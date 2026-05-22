@@ -1,0 +1,3470 @@
+import { fabric } from "fabric";
+import { useCallback, useEffect, useRef, useState } from "react";
+
+// ─── Translations ─────────────────────────────────────────────────────────────
+const TRANSLATIONS = {
+  en: {
+    pageEditor:"Page Editor", editorMobile:"Editor",
+    undoTitle:"Undo (Ctrl+Z)", redoTitle:"Redo (Ctrl+Y)",
+    groupSelectedTitle:"Group selected objects", group:"Group",
+    ungroupSelectedTitle:"Ungroup selected group", ungroup:"Ungroup",
+    duplicate:"Duplicate", delete:"Delete",
+    apply:"Apply", saveApply:"Save & Apply",
+    uploadImage:"Upload Image", searchGraphicsPixabay:"Search Graphics (Pixabay)",
+    layers:"Layers", properties:"Properties", shapes:"Shapes", draw:"Draw", graphics:"Graphics",
+    noLayers:"No layers yet — add text, shapes or images",
+    tapToEdit:"Tap an element on the canvas to edit its properties",
+    editingInsideGroup:"Editing shape inside group",
+    font:"Font", size:"Size", color:"Color", style:"Style", align:"Align", text:"Text",
+    enterText:"Enter text…", fill:"Fill", stroke:"Stroke",
+    strokeWidth:"Stroke Width", cornerRadius:"Corner Radius",
+    cropCut:"Crop / Cut", rect:"Rect", shape:"Shape",
+    clipShape:"Clip Shape", removeClipShape:"Remove Clip Shape",
+    flip:"Flip", flipH:"Flip H", flipV:"Flip V",
+    opacity:"Opacity", rotation:"Rotation",
+    brushType:"Brush Type", pen:"Pen", pencil:"Pencil", marker:"Marker",
+    spray:"Spray", circles:"Circles", eraser:"Eraser", eraserSize:"Eraser Size",
+    drawTip:"All strokes share one drawing layer. Use Eraser to remove parts.",
+    chooseShape:"Choose a shape to add",
+    rectangle:"Rectangle", circle:"Circle", triangle:"Triangle", star:"Star", line:"Line",
+    stickers:"Stickers", templates:"Templates", elements:"Elements", backgrounds:"Backgrounds",
+    scrapbookElements:"scrapbook elements",
+    handCraftedTemplates:"hand-crafted templates — click to load onto your page",
+    useTemplate:"Use Template",
+    searchFonts:"Search fonts…", noFontsFound:"No fonts found",
+    quickSearches:"Quick searches", popularStickers:"Popular sticker searches",
+    popularBackgrounds:"Popular backgrounds",
+    noResults:"No results — try a different search",
+    results:"results", imagesVia:"Images via Pixabay",
+    all:"All", vectorArt:"Vector Art", clipart:"Clipart", photo:"Photo",
+    searchGraphics:"Search graphics…", searchStickers:"Search sticker graphics…",
+    searchBackgrounds:"Search backgrounds…", setBg:"Set BG",
+    show:"Show", hide:"Hide", lock:"Lock", unlock:"Unlock",
+    moveUp:"Move Up", moveDown:"Move Down", editing:"editing",
+    editingGroupBanner:"Editing group — click parts to select", done:"Done",
+    dblClickHint:"Double-click to edit parts",
+    editingGroupCanvas:"Editing group — press Esc or click Done when finished",
+    cancel:"Cancel", multi:"Multi",
+    tapToSelect:"Tap layers below to select", selected:"selected", ungrp:"Ungrp",
+    applyCrop:"Apply Crop",
+    langBtn:"MN",
+  },
+  mn: {
+    pageEditor:"Хуудасны засварлагч", editorMobile:"Засварлагч",
+    undoTitle:"Буцаах (Ctrl+Z)", redoTitle:"Дахин хийх (Ctrl+Y)",
+    groupSelectedTitle:"Сонгосон объектуудыг бүлэглэх", group:"Бүлэглэх",
+    ungroupSelectedTitle:"Бүлгийг задлах", ungroup:"Задлах",
+    duplicate:"Хуулбарлах", delete:"Устгах",
+    apply:"Хэрэглэх", saveApply:"Хадгалах & Хэрэглэх",
+    uploadImage:"Зураг оруулах", searchGraphicsPixabay:"График хайх (Pixabay)",
+    layers:"Давхаргууд", properties:"Шинж чанар", shapes:"Хэлбэрүүд", draw:"Зурах", graphics:"График",
+    noLayers:"Давхарга алга — текст, хэлбэр эсвэл зураг нэмнэ үү",
+    tapToEdit:"Шинж чанарыг засахын тулд элемент дарна уу",
+    editingInsideGroup:"Бүлэг доторх хэлбэрийг засаж байна",
+    font:"Фонт", size:"Хэмжээ", color:"Өнгө", style:"Хэв маяг", align:"Тэгшлэх", text:"Текст",
+    enterText:"Текст оруулна уу…", fill:"Дүүргэх", stroke:"Зах",
+    strokeWidth:"Захын өргөн", cornerRadius:"Булангийн радиус",
+    cropCut:"Тайрах / Огтлох", rect:"Хэвтээ", shape:"Хэлбэр",
+    clipShape:"Хайчлах хэлбэр", removeClipShape:"Хайчлах хэлбэрийг арилгах",
+    flip:"Эргүүлэх", flipH:"Хэвт. эргүүлэх", flipV:"Босоо эргүүлэх",
+    opacity:"Тунгалаг байдал", rotation:"Эргэлт",
+    brushType:"Сойзны төрөл", pen:"Үзэг", pencil:"Харандаа", marker:"Маркер",
+    spray:"Цацруулагч", circles:"Тойрог", eraser:"Устгагч", eraserSize:"Устгагчийн хэмжээ",
+    drawTip:"Бүх зурвасууд нэг давхаргыг хуваалцдаг. Хэсгийг арилгахын тулд Устгагч ашиглана уу.",
+    chooseShape:"Нэмэх хэлбэрийг сонгоно уу",
+    rectangle:"Тэгш өнцөгт", circle:"Тойрог", triangle:"Гурвалжин", star:"Одон", line:"Шугам",
+    stickers:"Наалт", templates:"Загвар", elements:"Элементүүд", backgrounds:"Арын дэвсгэр",
+    scrapbookElements:"скрапбукийн элементүүд",
+    handCraftedTemplates:"гараар бүтээсэн загварууд — хуудас дээрээ ачааллахын тулд дарна уу",
+    useTemplate:"Загвар ашиглах",
+    searchFonts:"Фонт хайх…", noFontsFound:"Фонт олдсонгүй",
+    quickSearches:"Хурдан хайлт", popularStickers:"Алдартай наалтын хайлтууд",
+    popularBackgrounds:"Алдартай арын дэвсгэрүүд",
+    noResults:"Үр дүн алга — өөр хайлт хийнэ үү",
+    results:"үр дүн", imagesVia:"Зургийг Pixabay-аар",
+    all:"Бүгд", vectorArt:"Векторын урлаг", clipart:"Зургийн клип", photo:"Зураг",
+    searchGraphics:"График хайх…", searchStickers:"Наалтын график хайх…",
+    searchBackgrounds:"Арын дэвсгэр хайх…", setBg:"Арин дэвсгэр",
+    show:"Харуулах", hide:"Нуух", lock:"Түгжих", unlock:"Нээх",
+    moveUp:"Дээш зөөх", moveDown:"Доош зөөх", editing:"засаж байна",
+    editingGroupBanner:"Бүлгийг засаж байна — хэсгийг сонгохын тулд дарна уу", done:"Болсон",
+    dblClickHint:"Хэсгийг засахын тулд давхар дарна уу",
+    editingGroupCanvas:"Бүлгийг засаж байна — дуусгахдаа Esc дарна уу",
+    cancel:"Цуцлах", multi:"Олон",
+    tapToSelect:"Сонгохын тулд доорх давхаргуудыг дарна уу", selected:"сонгогдсон", ungrp:"Задлах",
+    applyCrop:"Тайрахыг хэрэглэх",
+    langBtn:"EN",
+  },
+};
+
+// Module-level language var — synced by PageEditor on every render before children run
+let _lang = "en";
+const t = (key) => TRANSLATIONS[_lang]?.[key] ?? TRANSLATIONS.en[key] ?? key;
+
+const PAGE_RATIO = 1.28 / 1.71;
+const LW = 480;
+const LH = Math.round(LW / PAGE_RATIO); // 641
+
+const PIXABAY_KEY = "55314355-2ac2d0d5baf91c7b7d16552d0";
+
+// System fonts (no loading needed) + Google Fonts
+const SYSTEM_FONTS = ["Arial", "Georgia", "Times New Roman", "Verdana", "Trebuchet MS", "Courier New", "Impact"];
+const FONTS = [
+  // ── System ──────────────────────────────────────────────────────────────────
+  ...SYSTEM_FONTS,
+  // ── Sans-Serif ───────────────────────────────────────────────────────────────
+  "Poppins","Montserrat","Raleway","Lato","Open Sans","Nunito","Quicksand",
+  "Josefin Sans","Comfortaa","Rubik","Karla","DM Sans","Work Sans",
+  "Outfit","Inter","Ubuntu","Fira Sans","Source Sans 3","Figtree",
+  // ── Serif ────────────────────────────────────────────────────────────────────
+  "Playfair Display","Merriweather","Libre Baskerville","Cormorant Garamond",
+  "EB Garamond","Lora","Cinzel","Spectral","Crimson Text",
+  // ── Display / Bold ───────────────────────────────────────────────────────────
+  "Bebas Neue","Anton","Oswald","Abril Fatface","Alfa Slab One",
+  "Righteous","Fredoka One","Titan One","Yeseva One","Ultra","Boogaloo","Lilita One",
+  // ── Script / Handwriting ─────────────────────────────────────────────────────
+  "Dancing Script","Pacifico","Lobster","Caveat","Sacramento",
+  "Great Vibes","Satisfy","Kaushan Script","Parisienne","Allura",
+  "Alex Brush","Cookie","Yellowtail","Marck Script","Italianno",
+  // ── Special / Mono ───────────────────────────────────────────────────────────
+  "Space Mono","Orbitron","Press Start 2P","VT323","Silkscreen",
+];
+
+// ─── Scrapbook Sticker Elements ──────────────────────────────────────────────
+const grp = (items, opts={}) => new fabric.Group(items, { originX:"center", originY:"center", left:LW/2, top:LH/2, ...opts });
+
+const SCRAPBOOK_STICKERS = [
+  // ── Polaroid Frame ───────────────────────────────────────────────────────────
+  { id:"polaroid", name:"Polaroid Frame", emoji:"📷", color:"#fff",
+    build(){
+      const W=152, H=178;
+      return grp([
+        new fabric.Rect({left:-W/2,top:-H/2,width:W,height:H,fill:"#ffffff",rx:4,
+          shadow:new fabric.Shadow({color:"rgba(0,0,0,0.28)",blur:14,offsetX:3,offsetY:5})}),
+        new fabric.Rect({left:-W/2+9,top:-H/2+9,width:W-18,height:H-52,fill:"#d8d8d8",rx:2}),
+        new fabric.IText("📷",{left:0,top:H/2-34,fontSize:15,originX:"center",originY:"center"}),
+        new fabric.IText("add caption…",{left:0,top:H/2-16,fontSize:9,fill:"#aaa",fontStyle:"italic",originX:"center",originY:"center",fontFamily:"Georgia"}),
+      ]);
+    }
+  },
+  // ── Pink Washi Tape ──────────────────────────────────────────────────────────
+  { id:"washi-pink", name:"Pink Washi Tape", emoji:"🎀", color:"#FFB3CC",
+    build(){
+      const dots=[];
+      for(let i=0;i<18;i++) dots.push(new fabric.Circle({left:-130+i*15,top:0,radius:3,fill:"rgba(255,255,255,0.5)",originX:"center",originY:"center"}));
+      return grp([
+        new fabric.Rect({left:-140,top:-15,width:280,height:30,fill:"rgba(255,179,204,0.82)"}),
+        ...dots
+      ],{angle:-4});
+    }
+  },
+  // ── Mint Washi Tape ──────────────────────────────────────────────────────────
+  { id:"washi-mint", name:"Mint Washi Tape", emoji:"🌿", color:"#B2F0D8",
+    build(){
+      const stripes=[];
+      for(let i=0;i<10;i++) stripes.push(new fabric.Rect({left:-130+i*28,top:-15,width:14,height:30,fill:"rgba(255,255,255,0.3)"}));
+      return grp([
+        new fabric.Rect({left:-140,top:-15,width:280,height:30,fill:"rgba(178,240,216,0.85)"}),
+        ...stripes
+      ],{angle:3});
+    }
+  },
+  // ── Blue Polka Washi Tape ────────────────────────────────────────────────────
+  { id:"washi-blue", name:"Blue Washi Tape", emoji:"💙", color:"#7EC8E3",
+    build(){
+      const dots=[];
+      for(let i=0;i<14;i++) dots.push(new fabric.Circle({left:-100+i*15,top:0,radius:4,fill:"rgba(255,255,255,0.55)",originX:"center",originY:"center"}));
+      return grp([
+        new fabric.Rect({left:-115,top:-13,width:230,height:26,fill:"rgba(126,200,227,0.88)"}),
+        ...dots
+      ],{angle:2});
+    }
+  },
+  // ── Yellow Star Washi Tape ───────────────────────────────────────────────────
+  { id:"washi-yellow", name:"Yellow Washi Tape", emoji:"⭐", color:"#FFD93D",
+    build(){
+      const stars=[];
+      for(let i=0;i<11;i++) stars.push(new fabric.IText("★",{left:-110+i*22,top:0,fontSize:11,fill:"rgba(255,255,255,0.7)",originX:"center",originY:"center",fontFamily:"Arial"}));
+      return grp([
+        new fabric.Rect({left:-120,top:-13,width:240,height:26,fill:"rgba(255,217,61,0.9)"}),
+        ...stars
+      ],{angle:-3});
+    }
+  },
+  // ── Purple Striped Washi Tape ────────────────────────────────────────────────
+  { id:"washi-purple", name:"Purple Washi Tape", emoji:"💜", color:"#C084FC",
+    build(){
+      const stripes=[];
+      for(let i=0;i<8;i++) stripes.push(new fabric.Rect({left:-112+i*32,top:-13,width:18,height:26,fill:"rgba(255,255,255,0.22)"}));
+      return grp([
+        new fabric.Rect({left:-120,top:-13,width:240,height:26,fill:"rgba(192,132,252,0.88)"}),
+        ...stripes
+      ],{angle:1});
+    }
+  },
+  // ── Yellow Sticky Note ───────────────────────────────────────────────────────
+  { id:"sticky-note", name:"Sticky Note", emoji:"📝", color:"#FFE566",
+    build(){
+      const W=130,H=130;
+      return grp([
+        new fabric.Rect({left:-W/2,top:-H/2,width:W,height:H,fill:"#FFE566",rx:2,
+          shadow:new fabric.Shadow({color:"rgba(0,0,0,0.18)",blur:10,offsetX:3,offsetY:5})}),
+        new fabric.Triangle({left:W/2-20,top:H/2-20,width:20,height:20,fill:"rgba(0,0,0,0.12)",angle:180}),
+        new fabric.Line([-W/2+14,-H/2+36,W/2-14,-H/2+36],{stroke:"rgba(0,0,0,0.12)",strokeWidth:1}),
+        new fabric.Line([-W/2+14,-H/2+52,W/2-14,-H/2+52],{stroke:"rgba(0,0,0,0.12)",strokeWidth:1}),
+        new fabric.Line([-W/2+14,-H/2+68,W/2-14,-H/2+68],{stroke:"rgba(0,0,0,0.12)",strokeWidth:1}),
+        new fabric.IText("note here…",{left:0,top:-H/2+20,fontSize:11,fill:"#888",fontStyle:"italic",originX:"center",originY:"center",fontFamily:"Georgia"}),
+      ]);
+    }
+  },
+  // ── Pink Sticky Note ─────────────────────────────────────────────────────────
+  { id:"sticky-pink", name:"Pink Sticky Note", emoji:"🩷", color:"#FFB3CC",
+    build(){
+      const W=130,H=130;
+      return grp([
+        new fabric.Rect({left:-W/2,top:-H/2,width:W,height:H,fill:"#FFB3CC",rx:2,
+          shadow:new fabric.Shadow({color:"rgba(0,0,0,0.18)",blur:10,offsetX:3,offsetY:5})}),
+        new fabric.Triangle({left:W/2-20,top:H/2-20,width:20,height:20,fill:"rgba(0,0,0,0.1)",angle:180}),
+        new fabric.Line([-W/2+14,-H/2+36,W/2-14,-H/2+36],{stroke:"rgba(255,255,255,0.5)",strokeWidth:1}),
+        new fabric.Line([-W/2+14,-H/2+52,W/2-14,-H/2+52],{stroke:"rgba(255,255,255,0.5)",strokeWidth:1}),
+        new fabric.Line([-W/2+14,-H/2+68,W/2-14,-H/2+68],{stroke:"rgba(255,255,255,0.5)",strokeWidth:1}),
+        new fabric.IText("♥ note ♥",{left:0,top:-H/2+20,fontSize:11,fill:"#ff6b9d",fontStyle:"italic",originX:"center",originY:"center",fontFamily:"Georgia"}),
+      ]);
+    }
+  },
+  // ── Kraft Paper Tag ──────────────────────────────────────────────────────────
+  { id:"kraft-tag", name:"Kraft Tag", emoji:"🏷️", color:"#C4956A",
+    build(){
+      const W=80, H=120;
+      return grp([
+        new fabric.Rect({left:-W/2,top:-H/2+12,width:W,height:H,fill:"#D4A574",rx:6,
+          shadow:new fabric.Shadow({color:"rgba(0,0,0,0.22)",blur:8,offsetX:2,offsetY:3})}),
+        new fabric.Circle({left:0,top:-H/2+20,radius:7,fill:"none",stroke:"#8B6340",strokeWidth:2,originX:"center",originY:"center"}),
+        new fabric.Line([0,-H/2+13,0,-H/2-2],{stroke:"#8B6340",strokeWidth:1.5}),
+        new fabric.IText("TAG",{left:0,top:-H/2+62,fontSize:14,fill:"#6B4226",fontWeight:"bold",originX:"center",originY:"center",fontFamily:"Georgia",letterSpacing:3}),
+        new fabric.Line([-W/2+10,-H/2+80,W/2-10,-H/2+80],{stroke:"#8B6340",strokeWidth:0.8}),
+        new fabric.IText("label text",{left:0,top:-H/2+94,fontSize:8,fill:"#8B6340",fontStyle:"italic",originX:"center",originY:"center",fontFamily:"Georgia"}),
+      ]);
+    }
+  },
+  // ── Round Stamp ──────────────────────────────────────────────────────────────
+  { id:"stamp", name:"Round Stamp", emoji:"🔖", color:"#4A90D9",
+    build(){
+      const R=55;
+      return grp([
+        new fabric.Circle({left:0,top:0,radius:R,fill:"none",stroke:"#2E5FA3",strokeWidth:3,strokeDashArray:[4,3],originX:"center",originY:"center"}),
+        new fabric.Circle({left:0,top:0,radius:R-10,fill:"none",stroke:"#2E5FA3",strokeWidth:1,originX:"center",originY:"center"}),
+        new fabric.IText("★  AMAZING  ★",{left:0,top:0,fontSize:11,fill:"#2E5FA3",fontWeight:"bold",letterSpacing:1,originX:"center",originY:"center",fontFamily:"Arial"}),
+        new fabric.IText("scrapbook",{left:0,top:16,fontSize:9,fill:"#4A90D9",fontStyle:"italic",originX:"center",originY:"center",fontFamily:"Georgia"}),
+      ]);
+    }
+  },
+  // ── Ribbon Banner ────────────────────────────────────────────────────────────
+  { id:"ribbon-banner", name:"Ribbon Banner", emoji:"🎗️", color:"#FF6B9D",
+    build(){
+      const pts=[{x:-120,y:-18},{x:120,y:-18},{x:132,y:0},{x:120,y:18},{x:-120,y:18},{x:-132,y:0}];
+      return grp([
+        new fabric.Polygon(pts,{fill:"#FF6B9D",stroke:"#D4497A",strokeWidth:1}),
+        new fabric.Triangle({left:-128,top:0,width:16,height:36,fill:"#C43060",originX:"center",originY:"center",angle:270}),
+        new fabric.Triangle({left:128,top:0,width:16,height:36,fill:"#C43060",originX:"center",originY:"center",angle:90}),
+        new fabric.IText("✦  memories  ✦",{left:0,top:0,fontSize:15,fill:"#ffffff",fontWeight:"bold",originX:"center",originY:"center",fontFamily:"Georgia",letterSpacing:2}),
+      ]);
+    }
+  },
+  // ── Green Ribbon Banner ──────────────────────────────────────────────────────
+  { id:"ribbon-green", name:"Green Banner", emoji:"🌿", color:"#6BCB77",
+    build(){
+      const pts=[{x:-110,y:-16},{x:110,y:-16},{x:122,y:0},{x:110,y:16},{x:-110,y:16},{x:-122,y:0}];
+      return grp([
+        new fabric.Polygon(pts,{fill:"#6BCB77",stroke:"#4CAF50",strokeWidth:1}),
+        new fabric.Triangle({left:-118,top:0,width:14,height:32,fill:"#388E3C",originX:"center",originY:"center",angle:270}),
+        new fabric.Triangle({left:118,top:0,width:14,height:32,fill:"#388E3C",originX:"center",originY:"center",angle:90}),
+        new fabric.IText("✦  adventures  ✦",{left:0,top:0,fontSize:13,fill:"#ffffff",fontWeight:"bold",originX:"center",originY:"center",fontFamily:"Georgia",letterSpacing:1}),
+      ]);
+    }
+  },
+  // ── Speech Bubble ────────────────────────────────────────────────────────────
+  { id:"speech-bubble", name:"Speech Bubble", emoji:"💬", color:"#A78BFA",
+    build(){
+      return grp([
+        new fabric.Rect({left:0,top:0,width:160,height:80,fill:"#A78BFA",rx:16,originX:"center",originY:"center"}),
+        new fabric.Triangle({left:20,top:30,width:22,height:22,fill:"#A78BFA",angle:200}),
+        new fabric.IText("write here!",{left:0,top:0,fontSize:14,fill:"#ffffff",fontWeight:"bold",originX:"center",originY:"center",fontFamily:"Arial"}),
+      ]);
+    }
+  },
+  // ── Thought Bubble ───────────────────────────────────────────────────────────
+  { id:"thought-bubble", name:"Thought Bubble", emoji:"💭", color:"#BAE6FD",
+    build(){
+      return grp([
+        new fabric.Ellipse({rx:70,ry:44,fill:"#e8f4ff",stroke:"#93C5FD",strokeWidth:2,originX:"center",originY:"center",left:0,top:0}),
+        new fabric.Circle({left:-22,top:38,radius:10,fill:"#e8f4ff",stroke:"#93C5FD",strokeWidth:2,originX:"center",originY:"center"}),
+        new fabric.Circle({left:-14,top:53,radius:6,fill:"#e8f4ff",stroke:"#93C5FD",strokeWidth:2,originX:"center",originY:"center"}),
+        new fabric.Circle({left:-8,top:63,radius:3.5,fill:"#e8f4ff",stroke:"#93C5FD",strokeWidth:1.5,originX:"center",originY:"center"}),
+        new fabric.IText("hmm…",{left:0,top:0,fontSize:13,fill:"#60A5FA",fontStyle:"italic",originX:"center",originY:"center",fontFamily:"Georgia"}),
+      ]);
+    }
+  },
+  // ── Star Burst Label ─────────────────────────────────────────────────────────
+  { id:"starburst", name:"Star Burst", emoji:"⭐", color:"#FFD93D",
+    build(){
+      const pts=[]; const spikes=12,oR=60,iR=44;
+      for(let i=0;i<spikes*2;i++){
+        const r=i%2===0?oR:iR, a=(i*Math.PI)/spikes-Math.PI/2;
+        pts.push({x:r*Math.cos(a),y:r*Math.sin(a)});
+      }
+      return grp([
+        new fabric.Polygon(pts,{fill:"#FFD93D",stroke:"#E6B800",strokeWidth:1.5,originX:"center",originY:"center"}),
+        new fabric.IText("WOW!",{left:0,top:-6,fontSize:18,fill:"#7A5C00",fontWeight:"bold",originX:"center",originY:"center",fontFamily:"Arial"}),
+        new fabric.IText("awesome",{left:0,top:12,fontSize:8,fill:"#7A5C00",originX:"center",originY:"center",fontFamily:"Georgia",fontStyle:"italic"}),
+      ]);
+    }
+  },
+  // ── Film Strip ───────────────────────────────────────────────────────────────
+  { id:"film-strip", name:"Film Strip", emoji:"🎞️", color:"#222",
+    build(){
+      const holes=[], W=220,H=70, holeY=[-H/2+8, H/2-8];
+      for(let i=0;i<9;i++) holeY.forEach(y=>holes.push(new fabric.Rect({left:-W/2+10+i*23,top:y,width:14,height:10,fill:"#555",rx:2,originY:"center"})));
+      return grp([
+        new fabric.Rect({left:-W/2,top:-H/2,width:W,height:H,fill:"#111",rx:4}),
+        ...holes,
+        new fabric.Rect({left:-W/2+10,top:-H/2+22,width:W-20,height:H-44,fill:"#444",rx:2}),
+        new fabric.IText("📽  your memory",{left:0,top:0,fontSize:11,fill:"rgba(255,255,255,0.7)",originX:"center",originY:"center",fontFamily:"Arial"}),
+      ]);
+    }
+  },
+  // ── Torn Paper Edge ──────────────────────────────────────────────────────────
+  { id:"torn-paper", name:"Torn Paper Edge", emoji:"📄", color:"#f5efe6",
+    build(){
+      const W=240;
+      const pts=[{x:-W/2,y:-20}];
+      for(let x=-W/2+12;x<W/2;x+=12) pts.push({x,y:Math.sin(x*0.25)*9+4});
+      pts.push({x:W/2,y:-20},{x:W/2,y:30},{x:-W/2,y:30});
+      return grp([
+        new fabric.Polygon(pts,{fill:"#f5efe6",stroke:"none",
+          shadow:new fabric.Shadow({color:"rgba(0,0,0,0.15)",blur:8,offsetX:0,offsetY:3})}),
+        new fabric.IText("torn paper",{left:0,top:10,fontSize:11,fill:"#c4a882",fontStyle:"italic",originX:"center",originY:"center",fontFamily:"Georgia"}),
+      ]);
+    }
+  },
+  // ── Heart Sticker ────────────────────────────────────────────────────────────
+  { id:"heart-sticker", name:"Heart Sticker", emoji:"❤️", color:"#FF4D6D",
+    build(){
+      return grp([
+        new fabric.Path("M 0,-35 C 5,-50 30,-50 30,-28 C 30,-8 0,20 0,30 C 0,20 -30,-8 -30,-28 C -30,-50 -5,-50 0,-35 Z",
+          {fill:"#FF4D6D",stroke:"#CC1B3A",strokeWidth:1.5,originX:"center",originY:"center",scaleX:1.4,scaleY:1.4}),
+        new fabric.IText("love",{left:0,top:4,fontSize:12,fill:"#ffffff",fontWeight:"bold",fontStyle:"italic",originX:"center",originY:"center",fontFamily:"Georgia"}),
+      ]);
+    }
+  },
+  // ── Postage Stamp ────────────────────────────────────────────────────────────
+  { id:"postage", name:"Postage Stamp", emoji:"✉️", color:"#E8F4F8",
+    build(){
+      const W=100,H=120,step=10;
+      const perfs=[];
+      for(let x=-W/2+step;x<W/2;x+=step){
+        perfs.push(new fabric.Circle({left:x,top:-H/2,radius:4,fill:"#1a1a2e",originX:"center",originY:"center"}));
+        perfs.push(new fabric.Circle({left:x,top:H/2,radius:4,fill:"#1a1a2e",originX:"center",originY:"center"}));
+      }
+      for(let y=-H/2+step;y<H/2;y+=step){
+        perfs.push(new fabric.Circle({left:-W/2,top:y,radius:4,fill:"#1a1a2e",originX:"center",originY:"center"}));
+        perfs.push(new fabric.Circle({left:W/2,top:y,radius:4,fill:"#1a1a2e",originX:"center",originY:"center"}));
+      }
+      return grp([
+        new fabric.Rect({left:0,top:0,width:W+4,height:H+4,fill:"#c0c0c0",rx:2,originX:"center",originY:"center"}),
+        new fabric.Rect({left:0,top:0,width:W,height:H,fill:"#ffffff",rx:2,originX:"center",originY:"center"}),
+        ...perfs,
+        new fabric.Rect({left:0,top:-12,width:W-16,height:H/2-4,fill:"#c8e6f5",rx:2,originX:"center",originY:"center"}),
+        new fabric.IText("✉",{left:0,top:-16,fontSize:22,originX:"center",originY:"center"}),
+        new fabric.IText("stamp",{left:0,top:H/2-18,fontSize:9,fill:"#888",fontStyle:"italic",originX:"center",originY:"center",fontFamily:"Georgia"}),
+      ]);
+    }
+  },
+  // ── Push Pin ─────────────────────────────────────────────────────────────────
+  { id:"push-pin", name:"Push Pin", emoji:"📌", color:"#FF6B6B",
+    build(){
+      return grp([
+        new fabric.Circle({left:0,top:-14,radius:18,fill:"#FF6B6B",stroke:"#CC3333",strokeWidth:1.5,originX:"center",originY:"center"}),
+        new fabric.Circle({left:5,top:-20,radius:5,fill:"rgba(255,255,255,0.4)",originX:"center",originY:"center"}),
+        new fabric.Rect({left:0,top:6,width:5,height:24,fill:"#aaa",rx:2,originX:"center",originY:"top"}),
+      ]);
+    }
+  },
+  // ── Paper Clip ───────────────────────────────────────────────────────────────
+  { id:"paper-clip", name:"Paper Clip", emoji:"📎", color:"#999",
+    build(){
+      return grp([
+        new fabric.Rect({left:0,top:0,width:14,height:90,fill:"none",stroke:"#999",strokeWidth:3.5,rx:7,originX:"center",originY:"center"}),
+        new fabric.Rect({left:0,top:-12,width:8,height:56,fill:"none",stroke:"#bbb",strokeWidth:3,rx:4,originX:"center",originY:"center"}),
+      ]);
+    }
+  },
+  // ── Bow Sticker ──────────────────────────────────────────────────────────────
+  { id:"bow", name:"Bow Sticker", emoji:"🎀", color:"#FF6B9D",
+    build(){
+      return grp([
+        new fabric.Ellipse({rx:36,ry:22,fill:"#FF6B9D",stroke:"#CC3060",strokeWidth:1.5,left:-26,top:0,angle:-20,originX:"center",originY:"center"}),
+        new fabric.Ellipse({rx:36,ry:22,fill:"#FF6B9D",stroke:"#CC3060",strokeWidth:1.5,left:26,top:0,angle:20,originX:"center",originY:"center"}),
+        new fabric.Polygon([{x:0,y:4},{x:0,y:-4},{x:-50,y:18},{x:-46,y:24}],{fill:"#FF8FAB",stroke:"#CC3060",strokeWidth:1}),
+        new fabric.Polygon([{x:0,y:4},{x:0,y:-4},{x:50,y:18},{x:46,y:24}],{fill:"#FF8FAB",stroke:"#CC3060",strokeWidth:1}),
+        new fabric.Ellipse({rx:13,ry:11,fill:"#FF4D88",stroke:"#CC1B60",strokeWidth:1.5,left:0,top:0,originX:"center",originY:"center"}),
+      ]);
+    }
+  },
+  // ── Sun Sticker ──────────────────────────────────────────────────────────────
+  { id:"sun", name:"Sun Sticker", emoji:"☀️", color:"#FFD93D",
+    build(){
+      const rays=[];
+      for(let i=0;i<8;i++){
+        const a=(i*Math.PI*2)/8;
+        rays.push(new fabric.Line([Math.cos(a)*28,Math.sin(a)*28,Math.cos(a)*46,Math.sin(a)*46],
+          {stroke:"#FFB800",strokeWidth:3.5,strokeLinecap:"round"}));
+      }
+      return grp([
+        ...rays,
+        new fabric.Circle({left:0,top:0,radius:24,fill:"#FFD93D",stroke:"#FFC000",strokeWidth:2,originX:"center",originY:"center"}),
+        new fabric.IText("☀",{left:0,top:0,fontSize:20,originX:"center",originY:"center"}),
+      ]);
+    }
+  },
+  // ── Crescent Moon & Stars ────────────────────────────────────────────────────
+  { id:"moon-stars", name:"Moon & Stars", emoji:"🌙", color:"#C4B5FD",
+    build(){
+      return grp([
+        new fabric.Circle({left:0,top:0,radius:36,fill:"#C4B5FD",originX:"center",originY:"center"}),
+        new fabric.Circle({left:14,top:-10,radius:26,fill:"#1a1a2e",originX:"center",originY:"center"}),
+        new fabric.IText("★",{left:38,top:-28,fontSize:14,fill:"#FFD93D",originX:"center",originY:"center"}),
+        new fabric.IText("✦",{left:50,top:10,fontSize:9,fill:"#FFD93D",originX:"center",originY:"center"}),
+        new fabric.IText("★",{left:24,top:36,fontSize:11,fill:"#FFD93D",originX:"center",originY:"center"}),
+      ]);
+    }
+  },
+  // ── Rainbow ──────────────────────────────────────────────────────────────────
+  { id:"rainbow", name:"Rainbow", emoji:"🌈", color:"#FF6B9D",
+    build(){
+      const colors=["#FF6B6B","#FF9E44","#FFD93D","#6BCB77","#4A90D9","#7B68EE"];
+      const arcs = colors.map((c,i) =>
+        new fabric.Circle({left:0,top:0,radius:58-i*8,fill:"none",stroke:c,strokeWidth:5.5,
+          startAngle:180,endAngle:360,originX:"center",originY:"center"})
+      );
+      return grp([
+        ...arcs,
+        new fabric.Ellipse({rx:24,ry:15,fill:"white",left:-52,top:6,originX:"center",originY:"center"}),
+        new fabric.Ellipse({rx:24,ry:15,fill:"white",left:52,top:6,originX:"center",originY:"center"}),
+      ]);
+    }
+  },
+  // ── Flower Sticker ───────────────────────────────────────────────────────────
+  { id:"geo-flower", name:"Flower Sticker", emoji:"🌸", color:"#FFB3CC",
+    build(){
+      const petals=[];
+      for(let i=0;i<6;i++){
+        const a=(i*Math.PI*2)/6;
+        petals.push(new fabric.Ellipse({rx:13,ry:26,fill:"#FFB3CC",stroke:"#FF8FAB",strokeWidth:1,
+          left:Math.cos(a)*22,top:Math.sin(a)*22,angle:(a*180/Math.PI)+90,
+          originX:"center",originY:"center"}));
+      }
+      return grp([
+        ...petals,
+        new fabric.Circle({left:0,top:0,radius:16,fill:"#FFE566",stroke:"#E6B800",strokeWidth:1.5,originX:"center",originY:"center"}),
+        new fabric.IText("✿",{left:0,top:0,fontSize:14,fill:"#E68900",originX:"center",originY:"center"}),
+      ]);
+    }
+  },
+  // ── Daisy Flower ─────────────────────────────────────────────────────────────
+  { id:"daisy", name:"Daisy", emoji:"🌼", color:"#FFF9C4",
+    build(){
+      const petals=[];
+      for(let i=0;i<8;i++){
+        const a=(i*Math.PI*2)/8;
+        petals.push(new fabric.Ellipse({rx:9,ry:22,fill:"#FFF9C4",stroke:"#E6D800",strokeWidth:1,
+          left:Math.cos(a)*20,top:Math.sin(a)*20,angle:(a*180/Math.PI)+90,
+          originX:"center",originY:"center"}));
+      }
+      return grp([
+        ...petals,
+        new fabric.Circle({left:0,top:0,radius:14,fill:"#FFD93D",stroke:"#E6B800",strokeWidth:1.5,originX:"center",originY:"center"}),
+      ]);
+    }
+  },
+  // ── Butterfly ────────────────────────────────────────────────────────────────
+  { id:"butterfly", name:"Butterfly", emoji:"🦋", color:"#A78BFA",
+    build(){
+      return grp([
+        new fabric.Ellipse({rx:32,ry:22,fill:"#A78BFA",stroke:"#7C5CBF",strokeWidth:1.5,left:-24,top:-14,angle:-30,originX:"center",originY:"center"}),
+        new fabric.Ellipse({rx:32,ry:22,fill:"#C4B5FD",stroke:"#7C5CBF",strokeWidth:1.5,left:24,top:-14,angle:30,originX:"center",originY:"center"}),
+        new fabric.Ellipse({rx:22,ry:16,fill:"#7C5CBF",stroke:"#5A3FA0",strokeWidth:1.5,left:-22,top:14,angle:20,originX:"center",originY:"center"}),
+        new fabric.Ellipse({rx:22,ry:16,fill:"#9575CD",stroke:"#5A3FA0",strokeWidth:1.5,left:22,top:14,angle:-20,originX:"center",originY:"center"}),
+        new fabric.Ellipse({rx:5,ry:22,fill:"#4A3580",originX:"center",originY:"center",left:0,top:0}),
+        new fabric.Path("M 0 -18 Q -14 -38 -18 -44",{fill:"none",stroke:"#4A3580",strokeWidth:1.5,strokeLinecap:"round"}),
+        new fabric.Path("M 0 -18 Q 14 -38 18 -44",{fill:"none",stroke:"#4A3580",strokeWidth:1.5,strokeLinecap:"round"}),
+        new fabric.Circle({left:-18,top:-44,radius:3,fill:"#A78BFA",originX:"center",originY:"center"}),
+        new fabric.Circle({left:18,top:-44,radius:3,fill:"#A78BFA",originX:"center",originY:"center"}),
+      ]);
+    }
+  },
+  // ── Leaf Sticker ─────────────────────────────────────────────────────────────
+  { id:"leaf", name:"Leaf Sticker", emoji:"🍃", color:"#6BCB77",
+    build(){
+      return grp([
+        new fabric.Path("M 0 -50 C 30 -30 40 0 20 30 C 10 45 -10 45 -20 30 C -40 0 -30 -30 0 -50 Z",
+          {fill:"#6BCB77",stroke:"#4CAF50",strokeWidth:1.5,originX:"center",originY:"center"}),
+        new fabric.Path("M 0 -40 Q 8 0 0 28",{fill:"none",stroke:"rgba(255,255,255,0.6)",strokeWidth:1.5}),
+        new fabric.Path("M 0 -10 Q 14 -6 20 2",{fill:"none",stroke:"rgba(255,255,255,0.4)",strokeWidth:1}),
+        new fabric.Path("M 0 -10 Q -14 -6 -20 2",{fill:"none",stroke:"rgba(255,255,255,0.4)",strokeWidth:1}),
+      ]);
+    }
+  },
+  // ── Love Letter ──────────────────────────────────────────────────────────────
+  { id:"envelope", name:"Love Letter", emoji:"💌", color:"#FF6B9D",
+    build(){
+      const W=110,H=80;
+      return grp([
+        new fabric.Rect({left:0,top:0,width:W,height:H,fill:"#fff0f5",stroke:"#FFB3CC",strokeWidth:2,rx:4,originX:"center",originY:"center"}),
+        new fabric.Polygon([{x:-W/2,y:-H/2},{x:W/2,y:-H/2},{x:0,y:2}],{fill:"#FFB3CC",stroke:"#FF8FAB",strokeWidth:1}),
+        new fabric.Polygon([{x:-W/2,y:H/2},{x:W/2,y:H/2},{x:0,y:6}],{fill:"#FFD0E4",stroke:"#FFB3CC",strokeWidth:1}),
+        new fabric.Polygon([{x:-W/2,y:-H/2},{x:-W/2,y:H/2},{x:0,y:6}],{fill:"#ffe0ee",stroke:"#FFB3CC",strokeWidth:1}),
+        new fabric.Polygon([{x:W/2,y:-H/2},{x:W/2,y:H/2},{x:0,y:6}],{fill:"#ffe0ee",stroke:"#FFB3CC",strokeWidth:1}),
+        new fabric.IText("♥",{left:0,top:20,fontSize:18,fill:"#FF6B9D",originX:"center",originY:"center"}),
+      ]);
+    }
+  },
+  // ── Event Ticket ─────────────────────────────────────────────────────────────
+  { id:"ticket", name:"Event Ticket", emoji:"🎟️", color:"#6BCB77",
+    build(){
+      const W=180,H=70;
+      return grp([
+        new fabric.Rect({left:0,top:0,width:W,height:H,fill:"#6BCB77",rx:6,originX:"center",originY:"center",
+          shadow:new fabric.Shadow({color:"rgba(0,0,0,0.2)",blur:8,offsetX:2,offsetY:3})}),
+        new fabric.Line([-W/2+50,-H/2,-W/2+50,H/2],{stroke:"rgba(255,255,255,0.5)",strokeWidth:1.5,strokeDashArray:[4,3]}),
+        new fabric.Circle({left:-W/2+50,top:-H/2,radius:8,fill:"#1a1a2e",originX:"center",originY:"center"}),
+        new fabric.Circle({left:-W/2+50,top:H/2,radius:8,fill:"#1a1a2e",originX:"center",originY:"center"}),
+        new fabric.IText("ADMIT",{left:-W/2+24,top:-4,fontSize:9,fill:"rgba(255,255,255,0.8)",fontWeight:"bold",originX:"center",originY:"center",letterSpacing:1}),
+        new fabric.IText("ONE",{left:-W/2+24,top:8,fontSize:9,fill:"rgba(255,255,255,0.8)",fontWeight:"bold",originX:"center",originY:"center",letterSpacing:1}),
+        new fabric.IText("✦  MEMORY  ✦",{left:W/2-58,top:0,fontSize:13,fill:"#ffffff",fontWeight:"bold",originX:"center",originY:"center",fontFamily:"Georgia"}),
+      ]);
+    }
+  },
+  // ── Hexagon Badge ────────────────────────────────────────────────────────────
+  { id:"hex-badge", name:"Hex Badge", emoji:"🔷", color:"#4A90D9",
+    build(){
+      const R=50, pts=[];
+      for(let i=0;i<6;i++){ const a=(i*Math.PI/3)-Math.PI/6; pts.push({x:R*Math.cos(a),y:R*Math.sin(a)}); }
+      const inner=pts.map(p=>({x:p.x*0.72,y:p.y*0.72}));
+      return grp([
+        new fabric.Polygon(pts,{fill:"#4A90D9",stroke:"#2E5FA3",strokeWidth:2,originX:"center",originY:"center"}),
+        new fabric.Polygon(inner,{fill:"none",stroke:"rgba(255,255,255,0.3)",strokeWidth:1,originX:"center",originY:"center"}),
+        new fabric.IText("BEST",{left:0,top:-6,fontSize:13,fill:"#ffffff",fontWeight:"bold",originX:"center",originY:"center",letterSpacing:2}),
+        new fabric.IText("moment",{left:0,top:10,fontSize:8,fill:"rgba(255,255,255,0.8)",originX:"center",originY:"center",fontFamily:"Georgia",fontStyle:"italic"}),
+      ]);
+    }
+  },
+  // ── Vintage Oval Label ───────────────────────────────────────────────────────
+  { id:"oval-label", name:"Oval Label", emoji:"🏷️", color:"#D4A574",
+    build(){
+      return grp([
+        new fabric.Ellipse({rx:68,ry:44,fill:"#F5ECD7",stroke:"#C4956A",strokeWidth:2,originX:"center",originY:"center"}),
+        new fabric.Ellipse({rx:58,ry:34,fill:"none",stroke:"#C4956A",strokeWidth:1,strokeDashArray:[3,3],originX:"center",originY:"center"}),
+        new fabric.IText("vintage",{left:0,top:-5,fontSize:14,fill:"#8B6340",fontStyle:"italic",fontWeight:"bold",originX:"center",originY:"center",fontFamily:"Georgia"}),
+        new fabric.IText("✦ label ✦",{left:0,top:12,fontSize:9,fill:"#C4956A",originX:"center",originY:"center",fontFamily:"Georgia"}),
+      ]);
+    }
+  },
+  // ── Bookmark ─────────────────────────────────────────────────────────────────
+  { id:"bookmark", name:"Bookmark", emoji:"🔖", color:"#7B68EE",
+    build(){
+      const W=50,H=100;
+      return grp([
+        new fabric.Polygon([{x:-W/2,y:-H/2},{x:W/2,y:-H/2},{x:W/2,y:H/2},{x:0,y:H/2-16},{x:-W/2,y:H/2}],
+          {fill:"#7B68EE",stroke:"#5A4DC4",strokeWidth:1.5,
+            shadow:new fabric.Shadow({color:"rgba(0,0,0,0.25)",blur:8,offsetX:2,offsetY:3})}),
+        new fabric.IText("✦",{left:0,top:-10,fontSize:16,fill:"rgba(255,255,255,0.9)",originX:"center",originY:"center"}),
+        new fabric.Line([-W/2+10,10,W/2-10,10],{stroke:"rgba(255,255,255,0.4)",strokeWidth:1}),
+        new fabric.IText("mark",{left:0,top:26,fontSize:8,fill:"rgba(255,255,255,0.7)",originX:"center",originY:"center",fontFamily:"Georgia",fontStyle:"italic"}),
+      ]);
+    }
+  },
+  // ── Arrow Sticker ────────────────────────────────────────────────────────────
+  { id:"arrow", name:"Arrow Sticker", emoji:"➡️", color:"#FF6B9D",
+    build(){
+      return grp([
+        new fabric.Path("M -60 0 Q -20 -18 20 0 L 20 -18 L 62 0 L 20 18 L 20 0 Q -20 18 -60 0 Z",
+          {fill:"#FF6B9D",stroke:"#CC3060",strokeWidth:1.5,originX:"center",originY:"center"}),
+      ]);
+    }
+  },
+  // ── Laurel Wreath ────────────────────────────────────────────────────────────
+  { id:"laurel", name:"Laurel Wreath", emoji:"🏆", color:"#6BCB77",
+    build(){
+      const leaves=[];
+      for(let i=0;i<8;i++){
+        const a=(i/8)*Math.PI+Math.PI, r=44;
+        leaves.push(new fabric.Ellipse({rx:8,ry:16,fill:"#6BCB77",stroke:"#4CAF50",strokeWidth:1,
+          left:r*Math.cos(a),top:r*Math.sin(a),angle:a*180/Math.PI+90,originX:"center",originY:"center"}));
+      }
+      for(let i=0;i<8;i++){
+        const a=(i/8)*Math.PI, r=44;
+        leaves.push(new fabric.Ellipse({rx:8,ry:16,fill:"#4CAF50",stroke:"#388E3C",strokeWidth:1,
+          left:r*Math.cos(a),top:r*Math.sin(a),angle:a*180/Math.PI+90,originX:"center",originY:"center"}));
+      }
+      return grp([
+        ...leaves,
+        new fabric.IText("★",{left:0,top:0,fontSize:22,fill:"#FFD93D",originX:"center",originY:"center"}),
+      ]);
+    }
+  },
+  // ── Date Circle Badge ────────────────────────────────────────────────────────
+  { id:"date-badge", name:"Date Badge", emoji:"📅", color:"#FF6B9D",
+    build(){
+      return grp([
+        new fabric.Circle({left:0,top:0,radius:46,fill:"#FF6B9D",stroke:"#CC3060",strokeWidth:3,originX:"center",originY:"center"}),
+        new fabric.Circle({left:0,top:0,radius:38,fill:"none",stroke:"rgba(255,255,255,0.4)",strokeWidth:1,originX:"center",originY:"center"}),
+        new fabric.Rect({left:0,top:-20,width:70,height:20,fill:"#CC3060",rx:3,originX:"center",originY:"center"}),
+        new fabric.IText("MONTH",{left:0,top:-20,fontSize:8,fill:"#fff",fontWeight:"bold",letterSpacing:2,originX:"center",originY:"center"}),
+        new fabric.IText("00",{left:0,top:10,fontSize:24,fill:"#ffffff",fontWeight:"bold",originX:"center",originY:"center"}),
+      ]);
+    }
+  },
+  // ── Camera Sticker ───────────────────────────────────────────────────────────
+  { id:"camera", name:"Camera Sticker", emoji:"📸", color:"#333",
+    build(){
+      const W=100,H=72;
+      return grp([
+        new fabric.Rect({left:0,top:0,width:W,height:H,fill:"#2d2d2d",rx:10,originX:"center",originY:"center",
+          shadow:new fabric.Shadow({color:"rgba(0,0,0,0.3)",blur:10,offsetX:2,offsetY:4})}),
+        new fabric.Rect({left:0,top:-H/2+8,width:20,height:12,fill:"#444",rx:2,originX:"center",originY:"top"}),
+        new fabric.Rect({left:W/2-22,top:-H/2+8,width:14,height:10,fill:"#FFD93D",rx:2,originX:"center",originY:"top"}),
+        new fabric.Circle({left:0,top:4,radius:22,fill:"#222",stroke:"#555",strokeWidth:3,originX:"center",originY:"center"}),
+        new fabric.Circle({left:0,top:4,radius:14,fill:"#1a3a5c",stroke:"#444",strokeWidth:2,originX:"center",originY:"center"}),
+        new fabric.Circle({left:-6,top:-2,radius:4,fill:"rgba(255,255,255,0.25)",originX:"center",originY:"center"}),
+      ]);
+    }
+  },
+  // ── Scallop Frame ────────────────────────────────────────────────────────────
+  { id:"scallop-frame", name:"Scallop Frame", emoji:"🌸", color:"#FFB3CC",
+    build(){
+      const W=140,H=170, r=9, scallops=[];
+      for(let x=-W/2+r;x<=W/2-r;x+=r*2){ scallops.push(new fabric.Circle({left:x,top:-H/2,radius:r,fill:"#FFB3CC",originX:"center",originY:"center"})); scallops.push(new fabric.Circle({left:x,top:H/2,radius:r,fill:"#FFB3CC",originX:"center",originY:"center"})); }
+      for(let y=-H/2+r;y<=H/2-r;y+=r*2){ scallops.push(new fabric.Circle({left:-W/2,top:y,radius:r,fill:"#FFB3CC",originX:"center",originY:"center"})); scallops.push(new fabric.Circle({left:W/2,top:y,radius:r,fill:"#FFB3CC",originX:"center",originY:"center"})); }
+      return grp([
+        new fabric.Rect({left:0,top:0,width:W,height:H,fill:"white",rx:4,originX:"center",originY:"center"}),
+        ...scallops,
+        new fabric.IText("✿ photo ✿",{left:0,top:0,fontSize:11,fill:"#FFB3CC",fontStyle:"italic",originX:"center",originY:"center",fontFamily:"Georgia"}),
+      ]);
+    }
+  },
+  // ── Corner Tape ──────────────────────────────────────────────────────────────
+  { id:"corner-tape", name:"Corner Tape", emoji:"📐", color:"#FFF9C4",
+    build(){
+      const mk=(x,y,a)=>new fabric.Polygon([{x:0,y:0},{x:34,y:0},{x:34,y:12},{x:0,y:12}],
+        {fill:"rgba(255,249,180,0.85)",stroke:"rgba(200,180,60,0.5)",strokeWidth:1,left:x,top:y,angle:a,originX:"center",originY:"center"});
+      return grp([
+        new fabric.Rect({left:0,top:0,width:68,height:68,fill:"rgba(255,255,255,0.08)",stroke:"rgba(200,200,200,0.25)",strokeWidth:1,rx:2,originX:"center",originY:"center"}),
+        mk(-44,-44,45), mk(44,-44,135), mk(44,44,225), mk(-44,44,315),
+      ]);
+    }
+  },
+  // ── Star Cluster ─────────────────────────────────────────────────────────────
+  { id:"star-cluster", name:"Star Cluster", emoji:"⭐", color:"#FFD93D",
+    build(){
+      return grp([
+        new fabric.IText("★",{left:0,top:0,fontSize:52,fill:"#FFD93D",stroke:"#E6B800",strokeWidth:1,originX:"center",originY:"center"}),
+        new fabric.IText("★",{left:-36,top:-12,fontSize:22,fill:"#FFE566",originX:"center",originY:"center"}),
+        new fabric.IText("★",{left:38,top:-14,fontSize:18,fill:"#FFE566",originX:"center",originY:"center"}),
+        new fabric.IText("✦",{left:-18,top:30,fontSize:14,fill:"#FFC000",originX:"center",originY:"center"}),
+        new fabric.IText("✦",{left:22,top:28,fontSize:10,fill:"#FFC000",originX:"center",originY:"center"}),
+      ]);
+    }
+  },
+  // ── Diamond Badge ────────────────────────────────────────────────────────────
+  { id:"diamond", name:"Diamond Badge", emoji:"💎", color:"#67E8F9",
+    build(){
+      const pts=[{x:0,y:-56},{x:46,y:-14},{x:28,y:52},{x:-28,y:52},{x:-46,y:-14}];
+      return grp([
+        new fabric.Polygon(pts,{fill:"#67E8F9",stroke:"#06B6D4",strokeWidth:2,originX:"center",originY:"center"}),
+        new fabric.Polygon([{x:0,y:-56},{x:46,y:-14},{x:0,y:4}],{fill:"rgba(255,255,255,0.35)",stroke:"none",originX:"center",originY:"center"}),
+        new fabric.Polygon([{x:0,y:-56},{x:-46,y:-14},{x:0,y:4}],{fill:"rgba(255,255,255,0.18)",stroke:"none",originX:"center",originY:"center"}),
+        new fabric.IText("💎",{left:0,top:14,fontSize:18,originX:"center",originY:"center"}),
+      ]);
+    }
+  },
+  // ── Shooting Star ────────────────────────────────────────────────────────────
+  { id:"shooting-star", name:"Shooting Star", emoji:"🌠", color:"#FFD93D",
+    build(){
+      return grp([
+        new fabric.Line([-80,0,80,0],{stroke:"rgba(255,217,61,0.0)",strokeWidth:0}), // spacer
+        new fabric.IText("★",{left:40,top:0,fontSize:30,fill:"#FFD93D",stroke:"#E6B800",strokeWidth:1,originX:"center",originY:"center"}),
+        new fabric.Line([-60,-10,24,-4],{stroke:"#FFE566",strokeWidth:3,strokeLinecap:"round",opacity:0.9}),
+        new fabric.Line([-40,6,20,4],{stroke:"#FFD93D",strokeWidth:2,strokeLinecap:"round",opacity:0.6}),
+        new fabric.Line([-20,14,18,10],{stroke:"#FFB800",strokeWidth:1.5,strokeLinecap:"round",opacity:0.4}),
+        new fabric.IText("✦",{left:-52,top:-18,fontSize:10,fill:"#FFE566",originX:"center",originY:"center"}),
+        new fabric.IText("✦",{left:62,top:-22,fontSize:8,fill:"#FFF0A0",originX:"center",originY:"center"}),
+      ]);
+    }
+  },
+  // ── Cloud Sticker ────────────────────────────────────────────────────────────
+  { id:"cloud", name:"Cloud Sticker", emoji:"☁️", color:"#BAE6FD",
+    build(){
+      return grp([
+        new fabric.Circle({left:-28,top:8,radius:26,fill:"#DBEAFE",stroke:"#93C5FD",strokeWidth:1.5,originX:"center",originY:"center"}),
+        new fabric.Circle({left:10,top:0,radius:32,fill:"#DBEAFE",stroke:"#93C5FD",strokeWidth:1.5,originX:"center",originY:"center"}),
+        new fabric.Circle({left:42,top:8,radius:22,fill:"#DBEAFE",stroke:"#93C5FD",strokeWidth:1.5,originX:"center",originY:"center"}),
+        new fabric.Rect({left:6,top:24,width:82,height:24,fill:"#DBEAFE",rx:2,originX:"center",originY:"center"}),
+        new fabric.IText("☁",{left:6,top:20,fontSize:14,fill:"#60A5FA",originX:"center",originY:"center"}),
+      ]);
+    }
+  },
+  // ── Ice Cream Sticker ────────────────────────────────────────────────────────
+  { id:"ice-cream", name:"Ice Cream", emoji:"🍦", color:"#FFC0CB",
+    build(){
+      return grp([
+        // cone
+        new fabric.Polygon([{x:0,y:70},{x:-30,y:0},{x:30,y:0}],{fill:"#D4A574",stroke:"#B8860B",strokeWidth:1.5}),
+        // cross-hatch
+        new fabric.Line([-20,0,0,60],{stroke:"rgba(139,100,20,0.4)",strokeWidth:1}),
+        new fabric.Line([0,0,0,60],{stroke:"rgba(139,100,20,0.4)",strokeWidth:1}),
+        new fabric.Line([20,0,0,60],{stroke:"rgba(139,100,20,0.4)",strokeWidth:1}),
+        // scoop
+        new fabric.Circle({left:0,top:-14,radius:32,fill:"#FFB3CC",stroke:"#FF8FAB",strokeWidth:1.5,originX:"center",originY:"center"}),
+        // shine
+        new fabric.Circle({left:-10,top:-22,radius:7,fill:"rgba(255,255,255,0.4)",originX:"center",originY:"center"}),
+        new fabric.IText("🍓",{left:0,top:-14,fontSize:12,originX:"center",originY:"center"}),
+      ]);
+    }
+  },
+  // ── Music Note ───────────────────────────────────────────────────────────────
+  { id:"music-note", name:"Music Note", emoji:"🎵", color:"#A78BFA",
+    build(){
+      return grp([
+        new fabric.Path("M 12 -40 L 12 16",{fill:"none",stroke:"#7C5CBF",strokeWidth:4,strokeLinecap:"round"}),
+        new fabric.Path("M 12 -40 L 38 -52 L 38 -24 L 12 -12",{fill:"#A78BFA",stroke:"#7C5CBF",strokeWidth:1.5}),
+        new fabric.Ellipse({rx:14,ry:10,fill:"#A78BFA",stroke:"#7C5CBF",strokeWidth:1.5,left:2,top:22,angle:-20,originX:"center",originY:"center"}),
+        new fabric.Path("M -18 -16 L -18 34",{fill:"none",stroke:"#7C5CBF",strokeWidth:4,strokeLinecap:"round"}),
+        new fabric.Path("M -18 -16 L 8 -28 L 8 -2 L -18 -2",{fill:"#C4B5FD",stroke:"#7C5CBF",strokeWidth:1.5}),
+        new fabric.Ellipse({rx:13,ry:9,fill:"#C4B5FD",stroke:"#7C5CBF",strokeWidth:1.5,left:-26,top:40,angle:-20,originX:"center",originY:"center"}),
+      ]);
+    }
+  },
+];
+
+// ─── Built-in Templates ───────────────────────────────────────────────────────
+const mkRect  = (l,t,w,h,fill,rx=0,extra={}) => new fabric.Rect({ left:l,top:t,width:w,height:h,fill,rx,ry:rx,selectable:false,evented:false,...extra });
+const mkLine  = (x1,y1,x2,y2,stroke="#e0e0e0",sw=1.2) => new fabric.Line([x1,y1,x2,y2],{stroke,strokeWidth:sw,selectable:false,evented:false});
+const mkText  = (str,l,t,sz,fill="#333",opts={}) => new fabric.IText(str,{left:l,top:t,fontSize:sz,fill,fontFamily:"Arial",originX:"center",originY:"center",selectable:true,...opts});
+const mkCirc  = (l,t,r,fill,extra={}) => new fabric.Circle({left:l,top:t,radius:r,fill,originX:"center",originY:"center",selectable:false,evented:false,...extra});
+const mkLines = (x1,x2,startY,n,gap,color="#e0e0e0") => Array.from({length:n},(_,i)=>mkLine(x1,startY+i*gap,x2,startY+i*gap,color));
+
+const BUILTIN_TEMPLATES = [
+  // ── 1. Pink Hearts To-Do ────────────────────────────────────────────────────
+  {
+    id:"pink-todo", name:"Pink To-Do List", emoji:"🩷", cardBg:"#FF6B9D", cardFg:"#fff0f5",
+    build(){
+      const o=[];
+      o.push(mkRect(0,0,LW,LH,"#FFF0F5"));
+      // scattered hearts bg
+      [[28,110],[60,220],[430,140],[450,70],[25,380],[455,310],[32,510],[448,470],
+       [100,575],[400,560],[195,90],[345,85],[75,430],[440,420],[155,555],[330,110]
+      ].forEach(([x,y])=>o.push(mkText("♥",x,y,14,"#FFB3CC",{opacity:0.55,selectable:false,evented:false})));
+      // header
+      o.push(mkRect(0,0,LW,88,"#FF6B9D"));
+      o.push(mkRect(0,0,LW,88,"rgba(0,0,0,0.06)"));
+      o.push(mkText("♥  TO DO LIST  ♥",LW/2,44,24,"#ffffff",{fontWeight:"bold",letterSpacing:3}));
+      // card
+      o.push(mkRect(26,106,428,503,"#ffffff",18,{shadow:new fabric.Shadow({color:"rgba(255,107,157,0.18)",blur:22,offsetX:0,offsetY:6})}));
+      // checkbox rows
+      const colors=["#FF6B9D","#FF9EBB","#FFB3CC","#FF6B9D","#FF9EBB","#FFB3CC","#FF6B9D","#FF9EBB"];
+      for(let i=0;i<8;i++){
+        const y=162+i*44;
+        o.push(mkRect(50,y-10,18,18,"none",3,{stroke:colors[i],strokeWidth:2,selectable:false,evented:false}));
+        o.push(mkLine(80,y+0,410,y+0,colors[i%2===0?"0":"1"]||"#f0c0d0",1));
+        o.push(mkLine(80,y,410,y,"#f8d0e0",1));
+      }
+      // footer
+      o.push(mkText("🐼",420,585,34,"#000",{selectable:true}));
+      o.push(mkText("♥",52,132,18,"#FF9EBB",{selectable:false,evented:false}));
+      o.push(mkText("♥",428,132,18,"#FF9EBB",{selectable:false,evented:false}));
+      return o;
+    }
+  },
+  // ── 2. Blue Botanical Planner ────────────────────────────────────────────────
+  {
+    id:"blue-botanical", name:"Blue Daily Planner", emoji:"🌿", cardBg:"#4A90D9", cardFg:"#EAF6FF",
+    build(){
+      const o=[];
+      o.push(mkRect(0,0,LW,LH,"#EAF6FF"));
+      // leaf-dot border
+      const blue1="#7EC8E3",blue2="#A8D8EA";
+      const lp=14;
+      for(let i=0;i<9;i++){
+        o.push(mkCirc(lp,80+i*60,7,blue1));
+        o.push(mkCirc(LW-lp,80+i*60,7,blue2));
+      }
+      for(let i=0;i<8;i++){
+        o.push(mkCirc(80+i*52,lp,7,blue1));
+        o.push(mkCirc(80+i*52,LH-lp,7,blue2));
+      }
+      // corner circles
+      [["#5BBCD9",14,14],["#7EC8E3",LW-14,14],["#5BBCD9",14,LH-14],["#7EC8E3",LW-14,LH-14]].forEach(([c,x,y])=>o.push(mkCirc(x,y,12,c)));
+      // header
+      o.push(mkText("DAILY",LW/2,60,13,"#4A90D9",{fontWeight:"bold",letterSpacing:8,selectable:false,evented:false}));
+      o.push(mkText("PLANNER",LW/2,92,34,"#2E7AB6",{fontWeight:"bold",letterSpacing:4}));
+      // divider
+      o.push(mkLine(50,120,LW-50,120,"#A8D8EA",2));
+      // date area
+      o.push(mkRect(50,135,380,36,"#ffffff",8,{stroke:"#A8D8EA",strokeWidth:1.5}));
+      o.push(mkText("Date:",100,153,12,"#8BB8D0",{originX:"left",selectable:false,evented:false}));
+      // white content card
+      o.push(mkRect(30,186,420,415,"#ffffff",14,{shadow:new fabric.Shadow({color:"rgba(74,144,217,0.15)",blur:18,offsetX:0,offsetY:5})}));
+      // writing lines
+      mkLines(55,425,238,8,42,"#CBE8F5").forEach(l=>o.push(l));
+      // ✦ stars
+      [[LW/2-80,210],[LW/2+80,210]].forEach(([x,y])=>o.push(mkText("✦",x,y,10,"#A8D8EA",{selectable:false,evented:false})));
+      o.push(mkText("✦  notes for today  ✦",LW/2,215,11,"#A8D8EA",{selectable:false,evented:false}));
+      return o;
+    }
+  },
+  // ── 3. Yellow Goals ─────────────────────────────────────────────────────────
+  {
+    id:"yellow-goals", name:"Today's Goal", emoji:"⭐", cardBg:"#FFD93D", cardFg:"#FFFDE7",
+    build(){
+      const o=[];
+      o.push(mkRect(0,0,LW,LH,"#FFFFFF"));
+      // left accent bar
+      o.push(mkRect(0,0,14,LH,"#FF6B6B"));
+      // confetti dots
+      const cdots=[["#FF6B9D",60,50],["#FFD93D",120,30],["#6BCB77",200,55],["#4A90D9",300,35],["#FF6B6B",380,50],
+                   ["#FF6B9D",430,80],["#FFD93D",50,590],["#6BCB77",160,605],["#4A90D9",270,600],["#FF6B6B",370,595],["#FF6B9D",440,580]];
+      cdots.forEach(([c,x,y])=>{ o.push(mkCirc(x,y,5,c)); o.push(mkCirc(x+20,y+15,3,c,{opacity:0.5})); });
+      // yellow header banner
+      o.push(mkRect(30,25,420,80,"#FFD93D",12));
+      o.push(mkText("today's",LW/2,46,13,"#FF6B6B",{fontStyle:"italic",selectable:false,evented:false}));
+      o.push(mkText("G O A L",LW/2,75,28,"#333333",{fontWeight:"bold"}));
+      // rows with checkboxes
+      const rowColors=["#FF6B9D","#FFD93D","#6BCB77","#4A90D9","#FF6B6B","#A78BFA","#FF6B9D","#6BCB77"];
+      for(let i=0;i<8;i++){
+        const y=148+i*59;
+        o.push(mkRect(30,y,LW-60,52,"#FAFAFA",8,{stroke:"#f0f0f0",strokeWidth:1}));
+        o.push(mkRect(48,y+16,20,20,rowColors[i],4));
+        o.push(mkText(String(i+1),58,y+26,10,"#fff",{fontWeight:"bold",selectable:false,evented:false}));
+        o.push(mkLine(82,y+26,420,y+26,"#e8e8e8",1));
+      }
+      return o;
+    }
+  },
+  // ── 4. Don't Forget (Pink Hearts Frame) ─────────────────────────────────────
+  {
+    id:"dont-forget", name:"Don't Forget", emoji:"💌", cardBg:"#FF4D79", cardFg:"#FFB6C1",
+    build(){
+      const o=[];
+      o.push(mkRect(0,0,LW,LH,"#FF8FAB"));
+      // heart wallpaper
+      const hrows=[[20,30],[70,70],[130,25],[190,65],[250,30],[310,70],[370,25],[430,65],[455,30],
+                   [20,130],[65,170],[125,125],[185,165],[250,130],[315,165],[375,120],[440,165],
+                   [25,230],[70,265],[135,225],[195,260],[255,230],[320,262],[380,225],[445,260],
+                   [25,330],[65,365],[130,325],[195,360],[255,330],[320,362],[378,325],[445,360],
+                   [25,430],[70,470],[135,430],[195,465],[255,430],[320,465],[380,430],[445,465],
+                   [25,530],[70,568],[135,530],[195,565],[255,530],[320,565],[380,530],[445,565]];
+      hrows.forEach(([x,y])=>o.push(mkText("♥",x,y,16,"rgba(255,255,255,0.3)",{selectable:false,evented:false})));
+      // title text
+      o.push(mkText("Don't forget",LW/2,52,26,"#ffffff",{fontStyle:"italic",fontWeight:"bold",
+        shadow:new fabric.Shadow({color:"rgba(180,0,50,0.3)",blur:8,offsetX:1,offsetY:2})}));
+      o.push(mkText("♡",LW/2-130,52,22,"rgba(255,255,255,0.7)",{selectable:false,evented:false}));
+      o.push(mkText("♡",LW/2+130,52,22,"rgba(255,255,255,0.7)",{selectable:false,evented:false}));
+      // main white frame
+      o.push(mkRect(32,84,416,522,"#ffffff",20,{
+        stroke:"rgba(255,255,255,0.8)",strokeWidth:3,
+        shadow:new fabric.Shadow({color:"rgba(180,0,60,0.2)",blur:28,offsetX:0,offsetY:8})
+      }));
+      // lines inside
+      mkLines(55,425,148,10,47,"#FFD0DC").forEach(l=>o.push(l));
+      // corner hearts
+      [["♥",58,100],["♥",422,100],["♥",58,578],["♥",422,578]].forEach(([t,x,y])=>
+        o.push(mkText(t,x,y,20,"#FFB3CC",{selectable:false,evented:false})));
+      return o;
+    }
+  },
+  // ── 5. Pastel Wish List ──────────────────────────────────────────────────────
+  {
+    id:"wish-list", name:"Wish List", emoji:"✨", cardBg:"#A78BFA", cardFg:"#F5F0FF",
+    build(){
+      const o=[];
+      o.push(mkRect(0,0,LW,LH,"#FFFFFF"));
+      // top colour wave
+      o.push(mkRect(0,0,LW,105,"#F5F0FF"));
+      // title pill
+      o.push(mkRect(LW/2-90,22,80,42,"#FF6B9D",21));
+      o.push(mkText("WISH",LW/2-50,43,16,"#ffffff",{fontWeight:"bold",selectable:false,evented:false}));
+      o.push(mkRect(LW/2-8,22,110,42,"#A78BFA",21));
+      o.push(mkText("LIST",LW/2+47,43,22,"#ffffff",{fontWeight:"bold",selectable:false,evented:false}));
+      // small stars
+      [[80,40],[390,40],[80,88],[390,88]].forEach(([x,y])=>
+        o.push(mkText("★",x,y,14,"#FFD93D",{selectable:false,evented:false})));
+      o.push(mkLine(30,108,LW-30,108,"#EDE0FF",2));
+      // numbered items
+      const bcolors=["#FF6B9D","#FFD93D","#6BCB77","#4A90D9","#FF6B6B","#A78BFA","#FFA07A"];
+      for(let i=0;i<7;i++){
+        const y=142+i*70;
+        // circle badge
+        o.push(mkCirc(56,y+18,20,bcolors[i]));
+        o.push(mkText(String(i+1),56,y+18,16,"#ffffff",{fontWeight:"bold",selectable:false,evented:false}));
+        // line
+        o.push(mkRect(88,y+12,346,2,"#f0e8ff",1,{}));
+        o.push(mkRect(88,y+38,346,2,"#f0e8ff",1,{}));
+        // box
+        o.push(mkRect(88,y,346,50,"#FAFAFF",8,{stroke:"#EDE0FF",strokeWidth:1}));
+      }
+      // footer sparkle
+      o.push(mkText("✨ make your dreams happen ✨",LW/2,620,11,"#C4B5FD",{selectable:false,evented:false}));
+      return o;
+    }
+  },
+  // ── 6. Mint My Plans ────────────────────────────────────────────────────────
+  {
+    id:"my-plans", name:"My Plans", emoji:"🌸", cardBg:"#26C99E", cardFg:"#E8FFF5",
+    build(){
+      const o=[];
+      o.push(mkRect(0,0,LW,LH,"#F0FFF8"));
+      // colourful dot border
+      const bcols=["#FF6B9D","#FFD93D","#6BCB77","#4A90D9","#FF6B6B","#A78BFA"];
+      for(let i=0;i<14;i++){
+        o.push(mkCirc(32+i*30,20,7,bcols[i%bcols.length]));
+        o.push(mkCirc(32+i*30,LH-20,7,bcols[(i+2)%bcols.length]));
+      }
+      for(let i=0;i<18;i++){
+        o.push(mkCirc(20,32+i*32,7,bcols[(i+1)%bcols.length]));
+        o.push(mkCirc(LW-20,32+i*32,7,bcols[(i+3)%bcols.length]));
+      }
+      // header
+      o.push(mkText("My plans:",LW/2,70,32,"#2E9E78",{fontStyle:"italic",fontWeight:"bold",
+        shadow:new fabric.Shadow({color:"rgba(0,160,100,0.2)",blur:6,offsetX:1,offsetY:2})}));
+      o.push(mkLine(55,98,LW-55,98,"#6BCB77",2));
+      // content area
+      o.push(mkRect(42,110,396,490,"#ffffff",14,{
+        shadow:new fabric.Shadow({color:"rgba(38,201,158,0.2)",blur:20,offsetX:0,offsetY:6})
+      }));
+      mkLines(60,420,158,9,47,"#C0F0E0").forEach(l=>o.push(l));
+      // small flower decorations
+      ["🌸","🌿","🌸"].forEach((e,i)=>o.push(mkText(e,100+i*140,590,22,"#000",{selectable:true})));
+      return o;
+    }
+  },
+  // ── 7. Coral Be Happy ────────────────────────────────────────────────────────
+  {
+    id:"be-happy", name:"Be Happy", emoji:"🎀", cardBg:"#FF6B6B", cardFg:"#FFE0E0",
+    build(){
+      const o=[];
+      o.push(mkRect(0,0,LW,LH,"#FF6B6B"));
+      // black teardrop/oval accents
+      [[18,55],[460,55],[18,580],[460,580],[18,310],[460,310]].forEach(([x,y])=>{
+        o.push(mkCirc(x,y,18,"#2a2a2a",{scaleY:1.6}));
+      });
+      // cloud/bubbly white frame — simulated with many rounded rects + main white
+      o.push(mkRect(30,70,420,526,"#ffffff",28,{
+        shadow:new fabric.Shadow({color:"rgba(0,0,0,0.2)",blur:24,offsetX:0,offsetY:8})
+      }));
+      // bumpy top edge dots
+      const bumpY=68;
+      for(let i=0;i<9;i++) o.push(mkCirc(70+i*40,bumpY,18,"#ffffff"));
+      // writing lines
+      mkLines(58,422,130,9,46,"#FFD0D0").forEach(l=>o.push(l));
+      // footer banner
+      o.push(mkRect(80,565,320,45,"#FF6B6B",22));
+      o.push(mkText("✦  BE HAPPY  ✦",LW/2,587,17,"#ffffff",{fontWeight:"bold",letterSpacing:3}));
+      return o;
+    }
+  },
+  // ── 8. Lavender Noted ────────────────────────────────────────────────────────
+  {
+    id:"noted", name:"Noted ✦", emoji:"🦄", cardBg:"#C084FC", cardFg:"#FAF5FF",
+    build(){
+      const o=[];
+      o.push(mkRect(0,0,LW,LH,"#FFA07A"));
+      // wavy header cloud in pink
+      o.push(mkCirc(LW/2,36,LW/2+10,"#FF7BAC",{scaleX:1.12,scaleY:0.65}));
+      // white card
+      o.push(mkRect(28,80,424,530,"#ffffff",22,{
+        shadow:new fabric.Shadow({color:"rgba(180,0,100,0.18)",blur:24,offsetX:0,offsetY:8})
+      }));
+      // title in cloud
+      o.push(mkText("N O T E D",LW/2,36,26,"#ffffff",{fontWeight:"bold",letterSpacing:5,
+        shadow:new fabric.Shadow({color:"rgba(0,0,0,0.2)",blur:4,offsetX:0,offsetY:2})}));
+      // writing lines
+      mkLines(55,425,120,9,48,"#FFE0D0").forEach(l=>o.push(l));
+      // left accent dots
+      for(let i=0;i<7;i++) o.push(mkCirc(20,148+i*64,6,["#FF6B9D","#FFD93D","#A78BFA"][i%3]));
+      // unicorn footer
+      o.push(mkText("🦄",420,578,36,"#000",{selectable:true}));
+      o.push(mkText("✦ you've got this ✦",LW/2,618,11,"#FFA07A",{selectable:false,evented:false}));
+      return o;
+    }
+  },
+];
+
+// ─── Small icon ───────────────────────────────────────────────────────────────
+const Ic = ({ d, size = 16 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+    <path d={d} />
+  </svg>
+);
+
+const typeInfo = (obj) => {
+  if (!obj) return { icon: "◆", label: "Object" };
+  switch (obj.type) {
+    case "i-text": case "textbox": case "text":
+      return { icon: "T", label: obj.text?.slice(0, 18) || "Text" };
+    case "rect":     return { icon: "▭", label: "Rectangle" };
+    case "circle":   return { icon: "○", label: "Circle" };
+    case "triangle": return { icon: "△", label: "Triangle" };
+    case "polygon":  return { icon: "★", label: "Star" };
+    case "line":     return { icon: "╱", label: "Line" };
+    case "image":    return { icon: "⬚", label: "Image" };
+    case "group":    return { icon: "⊞", label: `Group (${obj.getObjects?.()?.length ?? 0})` };
+    default:         return { icon: "◆", label: obj.type };
+  }
+};
+
+// ─── Properties Panel ─────────────────────────────────────────────────────────
+const Row = ({ label, children }) => (
+  <div className="flex flex-col gap-1">
+    <span className="text-[10px] uppercase tracking-widest text-white/30">{label}</span>
+    {children}
+  </div>
+);
+
+const Num = ({ value, onChange, min, max, step = 1 }) => (
+  <input type="number" min={min} max={max} step={step} value={value}
+    onChange={(e) => onChange(Number(e.target.value))}
+    className="w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-white text-xs focus:outline-none focus:border-white/30" />
+);
+
+const Col = ({ value, onChange }) => (
+  <input type="color" value={value || "#000000"} onChange={(e) => onChange(e.target.value)}
+    className="w-full h-8 rounded-lg cursor-pointer border border-white/10 bg-transparent" />
+);
+
+const Slide = ({ value, min, max, step, onChange, display }) => (
+  <div className="flex items-center gap-2">
+    <input type="range" min={min} max={max} step={step} value={value}
+      onChange={(e) => onChange(Number(e.target.value))}
+      className="flex-1 accent-indigo-400 h-1" />
+    <span className="text-white/30 text-[10px] w-8 text-right">{display ?? value}</span>
+  </div>
+);
+
+// ─── Shape Crop Modal (draw-to-cut like scissors) ────────────────────────────
+const ShapeCropModal = ({ fabricImg, canvas, onClose }) => {
+  const el   = fabricImg._element;
+  const natW = el.naturalWidth  || el.width  || 800;
+  const natH = el.naturalHeight || el.height || 600;
+
+  // Fit image into preview box (max 360 × 460)
+  const MAX_W = Math.min(360, (typeof window !== "undefined" ? window.innerWidth : 400) - 48);
+  const MAX_H = 460;
+  const sc = Math.min(MAX_W / natW, MAX_H / natH, 1);
+  const pw = Math.round(natW * sc);
+  const ph = Math.round(natH * sc);
+
+  const [mode,      setMode]      = useState("freehand"); // "freehand" | "polygon"
+  const [pts,       setPts]       = useState([]);         // [{x,y}] in preview px
+  const [live,      setLive]      = useState(null);       // cursor pos for polygon guide line
+  const [isDown,    setIsDown]    = useState(false);
+  const [closed,    setClosed]    = useState(false);
+  const svgRef = useRef();
+  const CLOSE_R = 18; // px — snap-to-close radius for polygon
+
+  const getXY = (e) => {
+    const rect = svgRef.current.getBoundingClientRect();
+    const src  = e.touches ? e.touches[0] : e;
+    return {
+      x: Math.max(0, Math.min(pw, src.clientX - rect.left)),
+      y: Math.max(0, Math.min(ph, src.clientY - rect.top)),
+    };
+  };
+
+  // ── Freehand handlers ──
+  const fhDown  = (e) => { e.preventDefault(); setClosed(false); setPts([getXY(e)]); setIsDown(true); };
+  const fhMove  = (e) => {
+    e.preventDefault();
+    if (!isDown) return;
+    const p = getXY(e);
+    setPts(prev => {
+      const last = prev[prev.length - 1];
+      return Math.hypot(p.x - last.x, p.y - last.y) < 5 ? prev : [...prev, p];
+    });
+  };
+  const fhUp = () => { setIsDown(false); if (pts.length > 3) setClosed(true); };
+
+  // ── Polygon handlers ──
+  const polyClick = (e) => {
+    if (closed) return;
+    e.preventDefault();
+    const p = getXY(e);
+    // Snap to start point to close
+    if (pts.length >= 3 && Math.hypot(p.x - pts[0].x, p.y - pts[0].y) <= CLOSE_R) {
+      setClosed(true); return;
+    }
+    setPts(prev => [...prev, p]);
+  };
+  const polyMove = (e) => {
+    if (closed || !svgRef.current) return;
+    const rect = svgRef.current.getBoundingClientRect();
+    const src  = e.touches ? e.touches[0] : e;
+    setLive({ x: src.clientX - rect.left, y: src.clientY - rect.top });
+  };
+
+  const clearAll  = () => { setPts([]); setClosed(false); setIsDown(false); setLive(null); };
+  const switchMode = (m) => { setMode(m); clearAll(); };
+
+  // ── Build SVG path strings ──
+  const pathD = pts.length > 0
+    ? pts.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ") + (closed ? " Z" : "")
+    : "";
+  // Outer-rect + inner shape = darkens everything OUTSIDE the drawn area (evenodd rule)
+  const maskD = pathD ? `M 0 0 L ${pw} 0 L ${pw} ${ph} L 0 ${ph} Z ${pathD}` : "";
+
+  // ── Apply clip to fabric object ──
+  const applyClip = () => {
+    if (pts.length < 3) return;
+    // Convert preview coords → image local coords (0,0 = image center)
+    const svgPath = pts.map((p, i) => {
+      const lx = ((p.x / pw) - 0.5) * natW;
+      const ly = ((p.y / ph) - 0.5) * natH;
+      return `${i === 0 ? "M" : "L"} ${lx.toFixed(1)} ${ly.toFixed(1)}`;
+    }).join(" ") + " Z";
+
+    const clip = new fabric.Path(svgPath, {
+      originX:    "center",
+      originY:    "center",
+      fill:       "black",
+      selectable: false,
+      evented:    false,
+    });
+    fabricImg.set({ clipPath: clip });
+    canvas.renderAll();
+    onClose();
+  };
+
+  const fhSVGProps = mode === "freehand" ? {
+    onMouseDown:  fhDown,  onMouseMove:  fhMove,  onMouseUp:    fhUp,  onMouseLeave: fhUp,
+    onTouchStart: fhDown,  onTouchMove:  fhMove,  onTouchEnd:   fhUp,
+  } : {};
+  const polySVGProps = mode === "polygon" ? {
+    onClick:     polyClick,
+    onMouseMove: polyMove,
+    onTouchMove: (e) => polyMove(e),
+  } : {};
+
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/90 backdrop-blur-sm overflow-auto py-6"
+      style={{ userSelect: "none" }}>
+      <div className="bg-[#14131f] rounded-2xl flex flex-col gap-4 border border-white/10 shadow-2xl mx-4 p-5"
+        style={{ width: pw + 40 }}>
+
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-white font-semibold text-sm flex items-center gap-2">
+              <span className="text-lg">✂️</span> Shape Crop
+            </h3>
+            <p className="text-white/35 text-xs mt-0.5">
+              {mode === "freehand"
+                ? "Hold & drag to trace around your shape"
+                : "Tap to place points · tap first point to close"}
+            </p>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/10 text-white/40 hover:text-white transition-all">
+            <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+
+        {/* Mode toggle */}
+        <div className="flex gap-1.5">
+          {[
+            { id: "freehand", emoji: "✏️", label: "Freehand", hint: "drag like scissors" },
+            { id: "polygon",  emoji: "⬡",  label: "Polygon",  hint: "tap corner points" },
+          ].map(m => (
+            <button key={m.id} onClick={() => switchMode(m.id)}
+              className={`flex-1 py-2 rounded-xl text-xs font-medium border transition-all ${
+                mode === m.id
+                  ? "bg-indigo-600/80 border-indigo-500 text-white"
+                  : "bg-white/5 border-white/10 text-white/40 hover:bg-white/10"
+              }`}>
+              {m.emoji} {m.label}
+              <span className={`block text-[10px] mt-0.5 ${mode === m.id ? "text-indigo-200/60" : "text-white/20"}`}>{m.hint}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Drawing canvas */}
+        <div className="relative rounded-xl overflow-hidden ring-1 ring-white/10"
+          style={{ width: pw, height: ph, cursor: mode === "freehand" ? (isDown ? "crosshair" : "cell") : "cell" }}>
+          {/* Image */}
+          <img src={el.src} draggable={false}
+            style={{ width: pw, height: ph, display: "block", pointerEvents: "none", userSelect: "none" }} />
+
+          {/* SVG overlay */}
+          <svg ref={svgRef} className="absolute inset-0 select-none"
+            width={pw} height={ph}
+            style={{ touchAction: "none" }}
+            {...fhSVGProps}
+            {...polySVGProps}
+          >
+            {/* Darken outside shape (evenodd = punch hole) */}
+            {maskD && <path d={maskD} fill="rgba(0,0,0,0.58)" fillRule="evenodd" style={{ pointerEvents: "none" }} />}
+
+            {/* Shape outline */}
+            {pathD && (
+              <path d={pathD}
+                fill={closed ? "rgba(99,102,241,0.12)" : "none"}
+                stroke="#818cf8"
+                strokeWidth={2}
+                strokeDasharray={closed ? "0" : "8 3"}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                style={{ pointerEvents: "none" }} />
+            )}
+
+            {/* Polygon: live guide line to cursor */}
+            {mode === "polygon" && pts.length > 0 && live && !closed && (
+              <line
+                x1={pts[pts.length - 1].x} y1={pts[pts.length - 1].y}
+                x2={live.x} y2={live.y}
+                stroke="rgba(129,140,248,0.5)" strokeWidth={1.5} strokeDasharray="5 3"
+                style={{ pointerEvents: "none" }} />
+            )}
+
+            {/* Polygon: close-snap ring on first point */}
+            {mode === "polygon" && pts.length >= 3 && !closed && (
+              <circle cx={pts[0].x} cy={pts[0].y} r={CLOSE_R}
+                fill="none" stroke="rgba(129,140,248,0.4)" strokeWidth={1.5} strokeDasharray="4 3"
+                style={{ pointerEvents: "none" }} />
+            )}
+
+            {/* Polygon vertex dots */}
+            {mode === "polygon" && pts.map((p, i) => (
+              <circle key={i} cx={p.x} cy={p.y}
+                r={i === 0 ? 6 : 3.5}
+                fill={i === 0 ? "#6366f1" : "white"}
+                stroke={i === 0 ? "#818cf8" : "#6366f1"}
+                strokeWidth={2}
+                style={{ pointerEvents: "none" }} />
+            ))}
+          </svg>
+
+          {/* Empty state hint */}
+          {pts.length === 0 && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="bg-black/70 rounded-xl px-4 py-3 text-center">
+                <p className="text-2xl mb-1">{mode === "freehand" ? "✋" : "👆"}</p>
+                <p className="text-white/55 text-xs font-medium">
+                  {mode === "freehand" ? "Hold & drag to trace" : "Tap to place points"}
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Controls */}
+        <div className="flex items-center gap-2">
+          <button onClick={clearAll} disabled={pts.length === 0}
+            className="px-3 py-2 rounded-xl bg-white/8 hover:bg-white/12 text-white/50 hover:text-white text-xs border border-white/10 transition-all disabled:opacity-30 disabled:cursor-not-allowed">
+            Clear
+          </button>
+          {mode === "polygon" && pts.length >= 3 && !closed && (
+            <button onClick={() => setClosed(true)}
+              className="px-3 py-2 rounded-xl bg-white/8 hover:bg-white/12 text-white/50 hover:text-white text-xs border border-white/10 transition-all">
+              Close Path
+            </button>
+          )}
+          <div className="flex-1" />
+          <button onClick={onClose}
+            className="px-4 py-2.5 rounded-xl bg-white/8 hover:bg-white/12 text-white/60 hover:text-white text-sm border border-white/10 transition-all">
+            Cancel
+          </button>
+          <button onClick={applyClip}
+            disabled={pts.length < 3}
+            className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed">
+            ✂ Apply Cut
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── In-editor Crop Modal ─────────────────────────────────────────────────────
+const EditorCropModal = ({ fabricImg, onApply, onClose }) => {
+  const el = fabricImg._element;
+  const natW = el.naturalWidth  || el.width  || 800;
+  const natH = el.naturalHeight || el.height || 600;
+  const PREVIEW = 320;
+
+  const ratioOptions = [
+    { id:"free",  label:"Free" },
+    { id:"orig",  label:"Original" },
+    { id:"page",  label:"Page (3:4)" },
+    { id:"sq",    label:"Square" },
+    { id:"16:9",  label:"16:9" },
+  ];
+  const [ratioId,  setRatioId]  = useState("free");
+  const [box,      setBox]      = useState({ x:0.1, y:0.1, w:0.8, h:0.8 }); // 0-1 fractions of preview
+  const [dragging, setDragging] = useState(null); // null | "move" | "nw"|"ne"|"sw"|"se"|"n"|"s"|"e"|"w"
+  const [origin,   setOrigin]   = useState({ mx:0, my:0, bx:0, by:0, bw:0, bh:0 });
+  const overlayRef = useRef();
+
+  const getPreviewSize = () => {
+    const aspect = natW / natH;
+    return aspect >= 1
+      ? { pw: PREVIEW, ph: Math.round(PREVIEW / aspect) }
+      : { pw: Math.round(PREVIEW * aspect), ph: PREVIEW };
+  };
+  const { pw, ph } = getPreviewSize();
+
+  const clampBox = (b) => {
+    const MIN = 0.05;
+    let { x, y, w, h } = b;
+    w = Math.max(MIN, Math.min(w, 1 - x));
+    h = Math.max(MIN, Math.min(h, 1 - y));
+    x = Math.max(0, Math.min(x, 1 - w));
+    y = Math.max(0, Math.min(y, 1 - h));
+    return { x, y, w, h };
+  };
+
+  const applyRatio = (rid, b) => {
+    const ratioMap = { free: null, orig: natW/natH, page: 3/4, sq: 1, "16:9": 16/9 };
+    const r = ratioMap[rid];
+    if (!r) return b;
+    const cx = b.x + b.w / 2, cy = b.y + b.h / 2;
+    const curR = (b.w * pw) / (b.h * ph);
+    let nw = b.w, nh = b.h;
+    if (curR > r) nw = b.h * ph * r / pw;
+    else           nh = b.w * pw / (r * ph);
+    return clampBox({ x: cx - nw/2, y: cy - nh/2, w: nw, h: nh });
+  };
+
+  const onMouseDown = (e, handle) => {
+    e.preventDefault(); e.stopPropagation();
+    const rect = overlayRef.current.getBoundingClientRect();
+    setDragging(handle);
+    setOrigin({ mx: e.clientX, my: e.clientY, bx: box.x, by: box.y, bw: box.w, bh: box.h, rect });
+  };
+  useEffect(() => {
+    const onMove = (e) => {
+      if (!dragging) return;
+      const { mx, my, bx, by, bw, bh, rect } = origin;
+      const dx = (e.clientX - mx) / pw, dy = (e.clientY - my) / ph;
+      let nb = { x: bx, y: by, w: bw, h: bh };
+      if (dragging === "move") { nb.x = bx + dx; nb.y = by + dy; }
+      if (dragging.includes("e")) { nb.w = bw + dx; }
+      if (dragging.includes("w")) { nb.x = bx + dx; nb.w = bw - dx; }
+      if (dragging.includes("s")) { nb.h = bh + dy; }
+      if (dragging.includes("n")) { nb.y = by + dy; nb.h = bh - dy; }
+      nb = clampBox(nb);
+      if (ratioId !== "free") nb = applyRatio(ratioId, nb);
+      setBox(nb);
+    };
+    const onUp = () => setDragging(null);
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    // touch
+    const onTMove = (e) => onMove(e.touches[0]);
+    const onTEnd  = () => setDragging(null);
+    window.addEventListener("touchmove", onTMove);
+    window.addEventListener("touchend", onTEnd);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+      window.removeEventListener("touchmove", onTMove);
+      window.removeEventListener("touchend", onTEnd);
+    };
+  }, [dragging, origin, ratioId]);
+
+  const handleApply = () => {
+    const srcX = box.x * natW, srcY = box.y * natH;
+    const srcW = box.w * natW, srcH = box.h * natH;
+    const c = document.createElement("canvas");
+    c.width = Math.round(srcW); c.height = Math.round(srcH);
+    c.getContext("2d").drawImage(el, srcX, srcY, srcW, srcH, 0, 0, c.width, c.height);
+    c.toBlob(blob => { if (blob) onApply(URL.createObjectURL(blob)); }, "image/jpeg", 0.95);
+  };
+
+  // Box pixel coords
+  const bpx = box.x * pw, bpy = box.y * ph, bpw = box.w * pw, bph = box.h * ph;
+  const handles = [
+    { id:"nw", style:{ left: bpx-5,        top: bpy-5 } },
+    { id:"ne", style:{ left: bpx+bpw-5,    top: bpy-5 } },
+    { id:"sw", style:{ left: bpx-5,        top: bpy+bph-5 } },
+    { id:"se", style:{ left: bpx+bpw-5,    top: bpy+bph-5 } },
+    { id:"n",  style:{ left: bpx+bpw/2-5,  top: bpy-5 } },
+    { id:"s",  style:{ left: bpx+bpw/2-5,  top: bpy+bph-5 } },
+    { id:"w",  style:{ left: bpx-5,        top: bpy+bph/2-5 } },
+    { id:"e",  style:{ left: bpx+bpw-5,    top: bpy+bph/2-5 } },
+  ];
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm" style={{userSelect:"none"}}>
+      <div className="bg-[#14131f] rounded-2xl flex flex-col gap-4 shadow-2xl border border-white/10 p-5"
+        style={{ maxWidth: "95vw" }}>
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-white font-semibold text-sm">Crop Image</h3>
+            <p className="text-white/35 text-xs mt-0.5">Drag the box or its handles to set the crop area</p>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/10 text-white/40 hover:text-white transition-all">
+            <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+
+        {/* Ratio tabs */}
+        <div className="flex gap-1.5 flex-wrap">
+          {ratioOptions.map(r => (
+            <button key={r.id} onClick={() => { setRatioId(r.id); setBox(b => applyRatio(r.id, b)); }}
+              className={`px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all ${ratioId===r.id ? "bg-indigo-600 border-indigo-500 text-white" : "bg-white/5 border-white/10 text-white/40 hover:bg-white/10"}`}>
+              {r.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Crop canvas */}
+        <div ref={overlayRef} className="relative overflow-hidden rounded-xl bg-black/60 select-none"
+          style={{ width: pw, height: ph, cursor: dragging === "move" ? "grabbing" : "default" }}>
+          {/* Source image */}
+          <img src={el.src} draggable={false} style={{ width: pw, height: ph, display:"block", pointerEvents:"none" }} />
+          {/* Dark overlay — 4 rects around crop box */}
+          <div className="absolute inset-0 pointer-events-none">
+            {/* top */}
+            <div className="absolute bg-black/55" style={{ left:0, top:0, width:pw, height:bpy }} />
+            {/* bottom */}
+            <div className="absolute bg-black/55" style={{ left:0, top:bpy+bph, width:pw, height:ph-bpy-bph }} />
+            {/* left */}
+            <div className="absolute bg-black/55" style={{ left:0, top:bpy, width:bpx, height:bph }} />
+            {/* right */}
+            <div className="absolute bg-black/55" style={{ left:bpx+bpw, top:bpy, width:pw-bpx-bpw, height:bph }} />
+            {/* crop box border */}
+            <div className="absolute border-2 border-white/80" style={{ left:bpx, top:bpy, width:bpw, height:bph }}>
+              {/* rule-of-thirds grid */}
+              <div className="absolute border-white/20 border-r" style={{ left:"33%", top:0, height:"100%", width:0 }} />
+              <div className="absolute border-white/20 border-r" style={{ left:"66%", top:0, height:"100%", width:0 }} />
+              <div className="absolute border-white/20 border-b" style={{ top:"33%", left:0, width:"100%", height:0 }} />
+              <div className="absolute border-white/20 border-b" style={{ top:"66%", left:0, width:"100%", height:0 }} />
+            </div>
+          </div>
+          {/* Draggable move area */}
+          <div className="absolute cursor-grab active:cursor-grabbing"
+            style={{ left:bpx, top:bpy, width:bpw, height:bph }}
+            onMouseDown={e => onMouseDown(e, "move")}
+            onTouchStart={e => onMouseDown(e.touches[0], "move")} />
+          {/* Handles */}
+          {handles.map(h => (
+            <div key={h.id}
+              className="absolute w-[11px] h-[11px] bg-white rounded-sm border border-black/30 z-10"
+              style={{ ...h.style, cursor: `${h.id}-resize` }}
+              onMouseDown={e => onMouseDown(e, h.id)}
+              onTouchStart={e => onMouseDown(e.touches[0], h.id)} />
+          ))}
+        </div>
+
+        {/* Size info */}
+        <p className="text-white/25 text-[10px] text-center">
+          {Math.round(box.w * natW)} × {Math.round(box.h * natH)} px
+        </p>
+
+        {/* Buttons */}
+        <div className="flex gap-3">
+          <button onClick={onClose}
+            className="flex-1 py-2.5 rounded-xl bg-white/8 hover:bg-white/12 text-white/60 hover:text-white text-sm border border-white/10 transition-all">
+            {t("cancel")}
+          </button>
+          <button onClick={handleApply}
+            className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-all">
+            {t("applyCrop")}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const PropertiesPanel = ({ obj, onUpdate, onCrop, onShapeCrop, isGroupChild = false }) => {
+  if (!obj) return (
+    <p className="text-white/20 text-xs text-center py-8 px-4">
+      {t("tapToEdit")}
+    </p>
+  );
+
+  // Group children don't have obj.canvas; onUpdate triggers fabricRef.renderAll() instead
+  const set = (props) => { obj.set(props); obj.canvas?.renderAll(); onUpdate(); };
+  const isText  = ["i-text", "textbox", "text"].includes(obj.type);
+  const isShape = ["rect", "circle", "triangle", "polygon"].includes(obj.type);
+  const isImage = obj.type === "image";
+
+  return (
+    <div className="flex flex-col gap-4 p-4 pb-6">
+      {/* "Editing inside group" indicator */}
+      {isGroupChild && (
+        <div className="flex items-center gap-2 px-3 py-2 bg-violet-500/12 rounded-xl border border-violet-500/20">
+          <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" className="text-violet-400 shrink-0">
+            <rect x="2" y="2" width="8" height="8" rx="1"/><rect x="14" y="2" width="8" height="8" rx="1"/>
+            <rect x="2" y="14" width="8" height="8" rx="1"/><rect x="14" y="14" width="8" height="8" rx="1"/>
+          </svg>
+          <span className="text-violet-300 text-[10px]">{t("editingInsideGroup")}</span>
+        </div>
+      )}
+      {isText && (
+        <>
+          <Row label={t("font")}>
+            <FontPicker value={obj.fontFamily || "Arial"} onChange={(v) => set({ fontFamily: v })} />
+          </Row>
+          <div className="grid grid-cols-2 gap-2">
+            <Row label={t("size")}>
+              <Num value={Math.round(obj.fontSize || 24)} min={4} max={400} onChange={(v) => set({ fontSize: v })} />
+            </Row>
+            <Row label={t("color")}>
+              <Col value={typeof obj.fill === "string" ? obj.fill : "#000"} onChange={(v) => set({ fill: v })} />
+            </Row>
+          </div>
+          <Row label={t("style")}>
+            <div className="flex gap-1.5">
+              {[
+                { l: "B", cls: "font-bold", active: obj.fontWeight === "bold", fn: () => set({ fontWeight: obj.fontWeight === "bold" ? "normal" : "bold" }) },
+                { l: "I", cls: "italic",    active: obj.fontStyle === "italic", fn: () => set({ fontStyle: obj.fontStyle === "italic" ? "normal" : "italic" }) },
+                { l: "U", cls: "underline", active: obj.underline,  fn: () => set({ underline: !obj.underline }) },
+                { l: "S", cls: "line-through", active: obj.linethrough, fn: () => set({ linethrough: !obj.linethrough }) },
+              ].map(({ l, cls, active, fn }) => (
+                <button key={l} onClick={fn}
+                  className={`flex-1 py-1.5 rounded-lg border text-xs transition-all ${cls} ${active ? "bg-indigo-500/30 border-indigo-400/50 text-white" : "bg-white/5 border-white/10 text-white/40 hover:bg-white/10"}`}>
+                  {l}
+                </button>
+              ))}
+            </div>
+          </Row>
+          <Row label={t("align")}>
+            <div className="flex gap-1.5">
+              {["left","center","right","justify"].map((a) => (
+                <button key={a} onClick={() => set({ textAlign: a })}
+                  className={`flex-1 py-1.5 rounded-lg border text-[10px] uppercase tracking-wider transition-all ${obj.textAlign === a ? "bg-indigo-500/30 border-indigo-400/50 text-white" : "bg-white/5 border-white/10 text-white/40 hover:bg-white/10"}`}>
+                  {a[0].toUpperCase()}
+                </button>
+              ))}
+            </div>
+          </Row>
+          {/* Text content editor — especially useful for group children */}
+          <Row label={t("text")}>
+            <textarea
+              value={obj.text || ""}
+              onChange={(e) => set({ text: e.target.value })}
+              rows={2}
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-white text-xs placeholder-white/25 focus:outline-none focus:border-indigo-400/50 resize-none leading-relaxed"
+              placeholder={t("enterText")}
+              style={{ fontFamily: obj.fontFamily || "inherit" }}
+            />
+          </Row>
+        </>
+      )}
+
+      {isShape && (
+        <>
+          <div className="grid grid-cols-2 gap-2">
+            <Row label={t("fill")}>
+              <Col value={typeof obj.fill === "string" ? obj.fill : "#6366f1"} onChange={(v) => set({ fill: v })} />
+            </Row>
+            <Row label={t("stroke")}>
+              <Col value={obj.stroke || "#000000"} onChange={(v) => set({ stroke: v })} />
+            </Row>
+          </div>
+          <Row label={`${t("strokeWidth")} — ${obj.strokeWidth || 0}px`}>
+            <Slide value={obj.strokeWidth || 0} min={0} max={30} step={1} onChange={(v) => set({ strokeWidth: v })} />
+          </Row>
+          {obj.type === "rect" && (
+            <Row label={`${t("cornerRadius")} — ${obj.rx || 0}px`}>
+              <Slide value={obj.rx || 0} min={0} max={80} step={1} onChange={(v) => set({ rx: v, ry: v })} />
+            </Row>
+          )}
+        </>
+      )}
+
+      {isImage && (
+        <>
+          <Row label={t("cropCut")}>
+            <div className="flex gap-1.5">
+              <button onClick={() => onCrop?.(obj)}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/40 border border-indigo-500/30 hover:border-indigo-400/60 text-indigo-300 hover:text-white text-xs font-medium transition-all"
+                title="Rectangular crop with drag">
+                <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M6 2v14a2 2 0 002 2h14"/><path d="M18 22V8a2 2 0 00-2-2H2"/></svg>
+                {t("rect")}
+              </button>
+              <button onClick={() => onShapeCrop?.(obj)}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-violet-600/20 hover:bg-violet-600/40 border border-violet-500/30 hover:border-violet-400/60 text-violet-300 hover:text-white text-xs font-medium transition-all"
+                title="Draw any shape to cut out">
+                <span className="text-sm leading-none">✂️</span>
+                {t("shape")}
+              </button>
+            </div>
+          </Row>
+          {obj.clipPath && (
+            <Row label={t("clipShape")}>
+              <button
+                onClick={() => { obj.set({ clipPath: null }); obj.canvas?.renderAll(); onUpdate(); }}
+                className="w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-rose-600/15 hover:bg-rose-600/30 border border-rose-500/25 hover:border-rose-400/50 text-rose-300/80 hover:text-rose-200 text-xs font-medium transition-all">
+                <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                {t("removeClipShape")}
+              </button>
+            </Row>
+          )}
+          <Row label={t("flip")}>
+            <div className="flex gap-2">
+              <button onClick={() => set({ flipX: !obj.flipX })}
+                className="flex-1 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white/60 hover:bg-white/10 text-xs transition-all">{t("flipH")}</button>
+              <button onClick={() => set({ flipY: !obj.flipY })}
+                className="flex-1 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white/60 hover:bg-white/10 text-xs transition-all">{t("flipV")}</button>
+            </div>
+          </Row>
+        </>
+      )}
+
+      <Row label={`${t("opacity")} — ${Math.round((obj.opacity ?? 1) * 100)}%`}>
+        <Slide value={obj.opacity ?? 1} min={0} max={1} step={0.01} onChange={(v) => set({ opacity: v })} />
+      </Row>
+
+      <div className="grid grid-cols-2 gap-2">
+        <Row label="X"><Num value={Math.round(obj.left || 0)} onChange={(v) => set({ left: v })} /></Row>
+        <Row label="Y"><Num value={Math.round(obj.top || 0)} onChange={(v) => set({ top: v })} /></Row>
+        <Row label="W">
+          <Num value={Math.round(obj.getScaledWidth?.() || obj.width || 0)} min={1}
+            onChange={(v) => { obj.scaleX = v / (obj.width || 1); obj.canvas?.renderAll(); onUpdate(); }} />
+        </Row>
+        <Row label="H">
+          <Num value={Math.round(obj.getScaledHeight?.() || obj.height || 0)} min={1}
+            onChange={(v) => { obj.scaleY = v / (obj.height || 1); obj.canvas?.renderAll(); onUpdate(); }} />
+        </Row>
+      </div>
+
+      <Row label={`${t("rotation")} — ${Math.round(obj.angle || 0)}°`}>
+        <Slide value={obj.angle || 0} min={-180} max={180} step={1} onChange={(v) => set({ angle: v })} />
+      </Row>
+    </div>
+  );
+};
+
+// ─── Layers List ──────────────────────────────────────────────────────────────
+const LockIcon = ({ locked }) => locked ? (
+  <svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+    <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
+  </svg>
+) : (
+  <svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+    <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 019.9-1"/>
+  </svg>
+);
+
+const LayersList = ({
+  layers, activeObj, onSelect, onMoveUp, onMoveDown,
+  onToggleVis, onToggleLock, onDelete,
+  multiSelectMode = false, checkedForGroup = new Set(), onToggleCheck,
+  groupChildEdit = null, onSelectChild,
+  inGroupEdit = false, onExitGroupEdit,
+}) => {
+  const [expanded, setExpanded] = useState({});
+  const toggleExpand = (key) => setExpanded(p => ({ ...p, [key]: !p[key] }));
+
+  return (
+  <div>
+    {/* In-group-edit banner */}
+    {inGroupEdit && (
+      <div className="flex items-center gap-2 px-3 py-2 bg-violet-600/15 border-b border-violet-500/25">
+        <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" className="text-violet-400 shrink-0">
+          <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+          <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+        </svg>
+        <span className="flex-1 text-[10px] text-violet-300">{t("editingGroupBanner")}</span>
+        <button onClick={onExitGroupEdit}
+          className="flex-none px-2 py-0.5 rounded-full bg-violet-500 hover:bg-violet-400 text-white text-[10px] font-semibold transition-all">
+          {t("done")}
+        </button>
+      </div>
+    )}
+    {layers.length === 0 && (
+      <p className="text-white/20 text-xs text-center py-8">{t("noLayers")}</p>
+    )}
+    {layers.map((obj, i) => {
+      const { icon, label } = typeInfo(obj);
+      const isActive   = obj === activeObj;
+      const isLocked   = obj.selectable === false;
+      const isGroup    = obj.type === "group";
+      const children   = isGroup ? (obj.getObjects?.() ?? []) : [];
+      const isExpanded = expanded[i];
+      const isChecked  = checkedForGroup.has(obj);
+
+      return (
+        <div key={i}>
+          {/* ── Main row ── */}
+          <div
+            onClick={() => multiSelectMode ? onToggleCheck?.(obj) : onSelect(obj)}
+            className={`flex items-center gap-1.5 px-2 py-2.5 cursor-pointer transition-all border-b border-white/5 group
+              ${multiSelectMode
+                ? isChecked ? "bg-amber-500/15 border-amber-500/20" : "hover:bg-white/5"
+                : isActive ? "bg-indigo-500/15" : "hover:bg-white/5"}
+              ${isLocked ? "opacity-55" : ""}`}>
+
+            {/* Checkbox (multi-select mode) OR expand arrow (groups) */}
+            {multiSelectMode ? (
+              <span className={`flex-none w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${isChecked ? "bg-amber-400 border-amber-400" : "border-white/25"}`}>
+                {isChecked && <svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={3} strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>}
+              </span>
+            ) : isGroup ? (
+              <button onClick={(e) => { e.stopPropagation(); toggleExpand(i); }}
+                className="flex-none p-0.5 rounded text-white/30 hover:text-white/70 transition-colors">
+                <svg width={9} height={9} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}
+                  style={{ transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)", transition: "transform 0.15s" }}>
+                  <path d="M9 18l6-6-6-6"/>
+                </svg>
+              </button>
+            ) : (
+              <span className="flex-none w-[13px]" />
+            )}
+
+            <span className={`flex-none text-xs w-4 text-center font-mono ${isGroup ? "text-amber-400/80" : "text-white/40"}`}>{icon}</span>
+            <span className={`flex-1 text-xs truncate ${isActive ? "text-white" : isLocked ? "text-white/30" : "text-white/60"}`}>{label}</span>
+
+            {/* Lock — always visible when locked, on-hover when unlocked */}
+            <button title={isLocked ? t("unlock") : t("lock")}
+              onClick={(e) => { e.stopPropagation(); onToggleLock(obj); }}
+              className={`flex-none p-1 rounded transition-all
+                ${isLocked
+                  ? "text-amber-400 hover:text-amber-300"
+                  : "text-white/20 hover:text-amber-300 opacity-0 group-hover:opacity-100"}`}>
+              <LockIcon locked={isLocked} />
+            </button>
+
+            {/* Other actions (appear on hover) */}
+            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+              <button title={t("moveUp")} onClick={(e) => { e.stopPropagation(); onMoveUp(obj); }}
+                className="p-1 rounded hover:bg-white/15 text-white/40 hover:text-white">
+                <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M18 15l-6-6-6 6"/></svg>
+              </button>
+              <button title={t("moveDown")} onClick={(e) => { e.stopPropagation(); onMoveDown(obj); }}
+                className="p-1 rounded hover:bg-white/15 text-white/40 hover:text-white">
+                <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M6 9l6 6 6-6"/></svg>
+              </button>
+              <button title={obj.visible === false ? t("show") : t("hide")} onClick={(e) => { e.stopPropagation(); onToggleVis(obj); }}
+                className="p-1 rounded hover:bg-white/15 text-white/40 hover:text-white">
+                <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                  {obj.visible === false
+                    ? <><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></>
+                    : <><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></>
+                  }
+                </svg>
+              </button>
+              <button title={t("delete")} onClick={(e) => { e.stopPropagation(); onDelete(obj); }}
+                className="p-1 rounded hover:bg-red-500/25 text-white/30 hover:text-red-300">
+                <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M18 6L6 18M6 6l12 12"/></svg>
+              </button>
+            </div>
+          </div>
+
+          {/* ── Group children (expandable, clickable for property editing) ── */}
+          {isGroup && isExpanded && children.map((child, ci) => {
+            const ci_info   = typeInfo(child);
+            const isChildSel = child === groupChildEdit;
+            return (
+              <div key={`g${i}-${ci}`}
+                onClick={(e) => { e.stopPropagation(); onSelectChild?.(child, obj); }}
+                className={`flex items-center gap-2 pl-6 pr-3 py-2 border-b border-white/[0.04] cursor-pointer transition-all
+                  ${isChildSel ? "bg-violet-500/20" : "bg-white/[0.025] hover:bg-white/[0.06]"}`}>
+                {/* Tree connector */}
+                <div className="flex-none flex items-center gap-1 text-white/15">
+                  <span className="text-[10px]">└</span>
+                </div>
+                <span className={`flex-none text-[10px] font-mono w-3 text-center ${isChildSel ? "text-violet-300" : "text-white/25"}`}>
+                  {ci_info.icon}
+                </span>
+                <span className={`flex-1 text-[10px] truncate ${isChildSel ? "text-violet-200 font-medium" : "text-white/40"}`}>
+                  {ci_info.label}
+                </span>
+                {isChildSel && (
+                  <span className="flex-none text-[9px] text-violet-400 bg-violet-500/20 px-1.5 py-0.5 rounded-full">{t("editing")}</span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      );
+    })}
+  </div>
+  );
+};
+
+// ─── Font Picker ──────────────────────────────────────────────────────────────
+const FontPicker = ({ value, onChange }) => {
+  const [open,   setOpen]   = useState(false);
+  const [search, setSearch] = useState("");
+  const ref = useRef(null);
+
+  // Close on outside click
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  const filtered = FONTS.filter(f => f.toLowerCase().includes(search.toLowerCase()));
+  const current  = value || "Arial";
+
+  return (
+    <div ref={ref} className="relative w-full">
+      {/* Trigger */}
+      <button
+        onClick={() => { setOpen(o => !o); setSearch(""); }}
+        className="w-full flex items-center justify-between gap-2 bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none hover:bg-white/10 transition-all"
+        style={{ fontFamily: current }}
+      >
+        <span className="truncate">{current}</span>
+        <svg className={`flex-none transition-transform ${open ? "rotate-180" : ""}`} width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+
+      {/* Dropdown */}
+      {open && (
+        <div className="absolute left-0 right-0 top-full mt-1 z-[200] bg-[#1a1830] border border-white/15 rounded-xl overflow-hidden shadow-2xl">
+          {/* Search */}
+          <div className="p-2 border-b border-white/8">
+            <input
+              type="text"
+              placeholder={t("searchFonts")}
+              value={search}
+              autoFocus
+              onChange={e => setSearch(e.target.value)}
+              className="w-full bg-white/8 border border-white/10 rounded-lg px-2.5 py-1.5 text-white text-xs placeholder-white/30 focus:outline-none focus:border-indigo-400/50"
+            />
+          </div>
+          {/* Font list */}
+          <div className="overflow-y-auto max-h-56" style={{ scrollbarWidth: "thin" }}>
+            {filtered.length === 0 && <p className="text-white/30 text-xs text-center py-4">{t("noFontsFound")}</p>}
+            {filtered.map(f => (
+              <button key={f}
+                onClick={() => { onChange(f); setOpen(false); setSearch(""); }}
+                className={`w-full text-left px-3 py-2 text-[13px] transition-colors hover:bg-white/10
+                  ${current === f ? "bg-indigo-500/20 text-indigo-200" : "text-white/80"}`}
+                style={{ fontFamily: f }}
+              >
+                {f}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─── Graphics Search Panel ────────────────────────────────────────────────────
+// IMAGE_TYPES labels are resolved via t() at render time using the key map below
+const IMAGE_TYPES = [
+  { id: "all",          tKey: "all" },
+  { id: "vector",       tKey: "vectorArt" },
+  { id: "illustration", tKey: "clipart" },
+  { id: "photo",        tKey: "photo" },
+];
+
+const QUICK_ELEMENTS = [
+  "floral border", "vintage ornament", "gold frame", "watercolor splash",
+  "book decoration", "ribbon banner", "leaf divider", "calligraphy swirl",
+  "crown", "butterfly", "feather", "wax seal",
+];
+
+const QUICK_BACKGROUNDS = [
+  "paper texture", "vintage paper", "old parchment", "watercolor paper",
+  "kraft paper", "floral pattern", "pastel background", "cute pattern",
+  "lined paper", "marble texture", "linen texture", "polka dot pattern",
+  "cherry blossom", "starry night", "bokeh background", "grid paper",
+];
+
+const QUICK_TEMPLATES = [
+  "cute planner page", "kawaii stationery", "cute to do list",
+  "cute notebook page", "kids journal template", "cute diary page",
+  "planner template illustration", "cute memo pad", "scrapbook page",
+  "cute schedule template", "pastel planner", "kawaii memo",
+];
+
+const QUICK_STICKERS = [
+  "scrapbook sticker", "kawaii sticker", "cute flower sticker",
+  "journal sticker", "heart sticker", "butterfly sticker",
+  "star sticker", "ribbon sticker", "cute animal sticker",
+];
+
+const PANEL_MODES = [
+  {
+    id:      "stickers",
+    label:   "Stickers",
+    icon:    <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M12 2a10 10 0 0 1 10 10c0 5.52-4.48 10-10 10S2 17.52 2 12"/><path d="M12 8v4l3 3"/></svg>,
+    accent:  { tab:"bg-orange-600/20 border-orange-500/40 text-orange-300", btn:"bg-orange-500 hover:bg-orange-400", chip:"hover:bg-orange-600/30 hover:border-orange-400/40", spin:"border-t-orange-400", focus:"focus:border-orange-400/50", thumb:"hover:border-orange-400/50", overlay:"group-hover:bg-orange-600/20", filter:"bg-orange-600 border-orange-500" },
+    stickers: true,
+    defaultType: "vector",
+    allowedTypes: ["vector", "illustration"],
+    placeholder: "Search sticker graphics…",
+    quickLabel:  "Popular sticker searches",
+    quick:       QUICK_STICKERS,
+    action:      "add",
+    thumbRatio:  "1",
+    actionLabel: "+",
+  },
+  {
+    id:      "templates",
+    label:   "Templates",
+    icon:    <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>,
+    accent:  { tab: "bg-pink-600/20 border-pink-500/40 text-pink-300", btn: "bg-pink-600 hover:bg-pink-500", chip: "hover:bg-pink-600/30 hover:border-pink-400/40", spin: "border-t-pink-400", focus: "focus:border-pink-400/50", thumb: "hover:border-pink-400/50", overlay: "group-hover:bg-pink-600/20", filter: "bg-pink-600 border-pink-500" },
+    builtin: true, // uses built-in templates, not Pixabay
+  },
+  {
+    id:      "elements",
+    label:   "Elements",
+    icon:    <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg>,
+    accent:  { tab: "bg-indigo-600/20 border-indigo-500/40 text-indigo-300", btn: "bg-indigo-600 hover:bg-indigo-500", chip: "hover:bg-indigo-600/30 hover:border-indigo-400/40", spin: "border-t-indigo-400", focus: "focus:border-indigo-400/50", thumb: "hover:border-indigo-400/50", overlay: "group-hover:bg-indigo-600/20", filter: "bg-indigo-600 border-indigo-500" },
+    defaultType: "vector",
+    allowedTypes: ["vector", "illustration"],
+    placeholder: "Search graphics…",
+    quickLabel:  "Quick searches",
+    quick:       QUICK_ELEMENTS,
+    action:      "add",
+    thumbRatio:  "1",
+    actionLabel: "+",
+  },
+  {
+    id:      "backgrounds",
+    label:   "Backgrounds",
+    icon:    <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>,
+    accent:  { tab: "bg-emerald-600/20 border-emerald-500/40 text-emerald-300", btn: "bg-emerald-600 hover:bg-emerald-500", chip: "hover:bg-emerald-600/30 hover:border-emerald-400/40", spin: "border-t-emerald-400", focus: "focus:border-emerald-400/50", thumb: "hover:border-emerald-400/50", overlay: "group-hover:bg-emerald-600/20", filter: "bg-emerald-600 border-emerald-500" },
+    defaultType: "photo",
+    allowedTypes: ["all", "photo", "illustration"],
+    placeholder: "Search backgrounds…",
+    quickLabel:  "Popular backgrounds",
+    quick:       QUICK_BACKGROUNDS,
+    action:      "bg",
+    thumbRatio:  "3/4",
+    actionLabel: "Set BG",
+  },
+];
+
+const GraphicsPanel = ({ onAdd, onSetBackground, onLoadTemplate }) => {
+  const [modeId,    setModeId]    = useState("templates");
+  const [query,     setQuery]     = useState("");
+  const [imgType,   setImgType]   = useState("illustration");
+  const [results,   setResults]   = useState([]);
+  const [loading,   setLoading]   = useState(false);
+  const [searched,  setSearched]  = useState(false);
+  const [adding,    setAdding]    = useState(null);
+
+  const mode = PANEL_MODES.find(m => m.id === modeId);
+
+  const switchMode = (m) => {
+    setModeId(m.id);
+    setResults([]);
+    setSearched(false);
+    setQuery("");
+    setImgType(m.defaultType || "illustration");
+  };
+
+  const doSearch = async (q = query, type = imgType) => {
+    if (!q.trim()) return;
+    setLoading(true);
+    setSearched(true);
+    try {
+      const isGraphicMode = mode.id === "stickers" || mode.id === "elements";
+      // For graphic modes "all" is not ideal — default to vector for clean clipart
+      const resolvedType = (isGraphicMode && type === "all") ? "vector" : type;
+      const url =
+        `https://pixabay.com/api/?key=${PIXABAY_KEY}` +
+        `&q=${encodeURIComponent(q)}` +
+        `&image_type=${resolvedType}` +
+        `&per_page=24&safesearch=true&min_width=200` +
+        (mode.id === "templates"  ? "&orientation=vertical" : "") +
+        (isGraphicMode            ? "&colors=transparent"   : "");
+      const res  = await fetch(url);
+      const data = await res.json();
+      setResults(data.hits || []);
+    } catch (e) {
+      console.error("Pixabay error:", e);
+      setResults([]);
+    }
+    setLoading(false);
+  };
+
+  const fetchAsBlob = async (url) => {
+    try {
+      const res  = await fetch(url);
+      const blob = await res.blob();
+      return URL.createObjectURL(blob);
+    } catch { return url; }
+  };
+
+  const handleClick = async (hit) => {
+    setAdding(hit.id);
+    if (mode.action === "add") {
+      const burl = await fetchAsBlob(hit.webformatURL);
+      onAdd(burl);
+    } else {
+      // template or bg — fill full canvas
+      const burl = await fetchAsBlob(hit.largeImageURL || hit.webformatURL);
+      onSetBackground(burl);
+    }
+    setAdding(null);
+  };
+
+  const { accent } = mode;
+
+  return (
+    <div className="flex flex-col h-full">
+
+      {/* Mode tabs */}
+      <div className="flex-none flex gap-1 p-2 border-b border-white/8">
+        {PANEL_MODES.map((m) => (
+          <button key={m.id} onClick={() => switchMode(m)}
+            className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-[11px] font-medium transition-all border ${modeId === m.id ? m.accent.tab : "bg-white/5 border-white/10 text-white/40 hover:bg-white/10"}`}>
+            {m.icon}
+            <span className="hidden sm:inline">{t(m.id)}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* ── Stickers: built-in elements ── */}
+      {mode.stickers ? (
+        <div className="flex-1 overflow-y-auto min-h-0 px-3 py-3">
+          <p className="text-[10px] text-white/25 uppercase tracking-widest mb-2">
+            {SCRAPBOOK_STICKERS.length} {t("scrapbookElements")}
+          </p>
+          <div className="grid grid-cols-3 gap-1.5 pb-2">
+            {SCRAPBOOK_STICKERS.map((s) => (
+              <button key={s.id} onClick={() => onLoadTemplate(s, "sticker")}
+                className="group flex flex-col items-center gap-1 p-2 rounded-xl bg-white/5 border border-white/8 hover:border-orange-400/50 hover:bg-white/10 transition-all"
+              >
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center text-xl"
+                  style={{ background: s.color + "33" }}>
+                  {s.emoji}
+                </div>
+                <span className="text-[9px] text-white/50 group-hover:text-white/80 text-center leading-tight transition-colors">
+                  {s.name}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : mode.builtin ? (
+        <div className="flex-1 overflow-y-auto min-h-0 px-3 py-3">
+          <p className="text-white/25 text-[10px] mb-3">
+            {BUILTIN_TEMPLATES.length} {t("handCraftedTemplates")}
+          </p>
+          <div className="grid grid-cols-2 gap-2.5">
+            {BUILTIN_TEMPLATES.map((tmpl) => (
+              <button key={tmpl.id} onClick={() => onLoadTemplate(tmpl)}
+                className="group relative rounded-xl overflow-hidden border-2 border-white/10 hover:border-pink-400/60 transition-all shadow-lg hover:shadow-pink-900/30"
+                style={{ aspectRatio: "3/4", background: tmpl.cardFg }}
+              >
+                {/* Fake mini-preview using the card bg color as accent */}
+                <div className="absolute inset-x-0 top-0 h-[30%]" style={{ background: tmpl.cardBg }} />
+                <div className="absolute inset-x-2 top-[8%] h-[18%] bg-white/20 rounded-lg" />
+                {/* Lines preview */}
+                <div className="absolute inset-x-4 bottom-[22%] flex flex-col gap-1.5">
+                  {[0,1,2,3].map(i=>(
+                    <div key={i} className="h-px w-full rounded-full" style={{ background: tmpl.cardBg, opacity: 0.35 }} />
+                  ))}
+                </div>
+                {/* Emoji */}
+                <div className="absolute bottom-2 right-2 text-lg leading-none">{tmpl.emoji}</div>
+                {/* Name */}
+                <div className="absolute bottom-2 left-2 right-8 text-[9px] font-semibold text-left leading-tight"
+                  style={{ color: tmpl.cardBg }}>{tmpl.name}</div>
+                {/* Hover overlay */}
+                <div className="absolute inset-0 bg-pink-500/0 group-hover:bg-pink-500/15 transition-all flex items-center justify-center">
+                  <span className="opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 text-white text-[11px] font-bold px-3 py-1.5 rounded-full">
+                    {t("useTemplate")}
+                  </span>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Search bar */}
+          <div className="flex-none px-3 pt-1 pb-2 flex gap-2">
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && doSearch()}
+              placeholder={t({ stickers:"searchStickers", elements:"searchGraphics", backgrounds:"searchBackgrounds" }[mode.id] || "searchGraphics")}
+              className={`flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-xs placeholder-white/25 focus:outline-none ${accent.focus}`}
+            />
+            <button onClick={() => doSearch()}
+              className={`px-3 py-2 rounded-lg text-white transition-all flex-none ${accent.btn}`}>
+              <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+            </button>
+          </div>
+
+          {/* Type filter — for stickers and elements */}
+          {(mode.id === "elements" || mode.id === "stickers") && (
+            <div className="flex-none flex gap-1.5 px-3 pb-2 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+              {IMAGE_TYPES.filter(tp => !mode.allowedTypes || mode.allowedTypes.includes(tp.id)).map(({ id, tKey }) => (
+                <button key={id}
+                  onClick={() => { setImgType(id); if (query.trim()) doSearch(query, id); }}
+                  className={`flex-none px-2.5 py-1 rounded-full text-[10px] font-medium transition-all border ${imgType === id ? `${accent.filter} text-white` : "bg-white/5 border-white/10 text-white/40 hover:bg-white/10 hover:text-white"}`}>
+                  {t(tKey)}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Quick searches */}
+          {!searched && (
+            <div className="flex-none px-3 pb-2">
+              <p className="text-[10px] text-white/25 uppercase tracking-widest mb-2">{t({ stickers:"popularStickers", elements:"quickSearches", backgrounds:"popularBackgrounds" }[mode.id] || "quickSearches")}</p>
+              <div className="flex flex-wrap gap-1.5">
+                {mode.quick.map((q) => (
+                  <button key={q}
+                    onClick={() => { setQuery(q); doSearch(q, imgType); }}
+                    className={`px-2 py-1 rounded-full bg-white/5 border border-white/10 text-white/50 hover:text-white text-[10px] transition-all ${accent.chip}`}>
+                    {q}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Results */}
+          <div className="flex-1 overflow-y-auto min-h-0 px-3 pb-3">
+            {loading && (
+              <div className="flex items-center justify-center py-10">
+                <div className={`w-6 h-6 border-2 border-white/20 rounded-full animate-spin ${accent.spin}`} />
+              </div>
+            )}
+            {!loading && searched && results.length === 0 && (
+              <p className="text-white/25 text-xs text-center py-8">{t("noResults")}</p>
+            )}
+            {!loading && results.length > 0 && (
+              <>
+                <p className="text-white/20 text-[10px] mb-2">{results.length} {t("results")}</p>
+                <div className={`grid gap-1.5 ${mode.id === "elements" ? "grid-cols-3" : "grid-cols-2"}`}>
+                  {results.map((hit) => (
+                    <button key={hit.id}
+                      onClick={() => handleClick(hit)}
+                      disabled={adding === hit.id}
+                      className={`relative group rounded-lg overflow-hidden border border-white/8 transition-all disabled:opacity-50 ${accent.thumb}`}
+                      style={{
+                        aspectRatio: mode.thumbRatio,
+                        background: mode.id === "elements"
+                          ? "repeating-conic-gradient(#2a2a2a 0% 25%, #1a1a1a 0% 50%) 0 0 / 12px 12px"
+                          : "rgba(255,255,255,0.05)"
+                      }}
+                    >
+                      <img src={hit.previewURL} alt={hit.tags} className={`w-full h-full ${mode.id === "elements" ? "object-contain" : "object-cover"}`} loading="lazy" />
+                      <div className={`absolute inset-0 transition-all flex items-center justify-center ${accent.overlay}`}>
+                        {adding === hit.id
+                          ? <div className="w-4 h-4 border-2 border-white/60 border-t-white rounded-full animate-spin" />
+                          : mode.action === "add"
+                            ? <svg className="opacity-0 group-hover:opacity-100 transition-opacity drop-shadow" width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.5} strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+                            : <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-black/50 rounded-lg px-2.5 py-1">
+                                <span className="text-white text-[10px] font-semibold drop-shadow">{mode.action === "bg" ? t("setBg") : mode.actionLabel}</span>
+                              </div>
+                        }
+                      </div>
+                    </button>
+                  ))}
+                </div>
+                <p className="text-white/15 text-[9px] text-center mt-3">{t("imagesVia")}</p>
+              </>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
+// ─── Main Editor ──────────────────────────────────────────────────────────────
+export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose }) => {
+  // ── Language ─────────────────────────────────────────────────────────────────
+  const [lang, setLang] = useState("en");
+  _lang = lang; // sync module-level var so all t() calls in child renders use current lang
+
+  // ── Load Google Fonts once ──────────────────────────────────────────────────
+  useEffect(() => {
+    const googleFonts = FONTS.filter(f => !SYSTEM_FONTS.includes(f));
+    // Split into two batches to keep URL length manageable
+    const half = Math.ceil(googleFonts.length / 2);
+    [googleFonts.slice(0, half), googleFonts.slice(half)].forEach(batch => {
+      const params = batch.map(f => `family=${encodeURIComponent(f)}:ital,wght@0,400;0,700;1,400`).join("&");
+      const link   = document.createElement("link");
+      link.rel     = "stylesheet";
+      link.href    = `https://fonts.googleapis.com/css2?${params}&display=swap`;
+      document.head.appendChild(link);
+    });
+  }, []);
+
+  const canvasElRef  = useRef(null);
+  const fabricRef    = useRef(null);
+  const containerRef = useRef(null);
+  const historyRef   = useRef([]);
+  const histIdxRef   = useRef(-1);
+  const skipHistRef  = useRef(false);
+
+  const [activeTool,      setActiveTool]      = useState("select");
+  const [activeObj,       setActiveObj]       = useState(null);
+  const [layers,          setLayers]          = useState([]);
+  const [propVer,         setPropVer]         = useState(0);
+  const [canUndo,         setCanUndo]         = useState(false);
+  const [canRedo,         setCanRedo]         = useState(false);
+  const [mobileTab,       setMobileTab]       = useState("layers");
+  const [mobileExpanded,  setMobileExpanded]  = useState(false);
+  const [graphicsOpen,    setGraphicsOpen]    = useState(false);
+  const [cropTarget,       setCropTarget]      = useState(null);
+  const [shapeCropTarget,  setShapeCropTarget] = useState(null);
+  const [groupChildEdit,   setGroupChildEdit]  = useState(null);
+  const [multiSelectMode,  setMultiSelectMode] = useState(false);
+  const [checkedForGroup,  setCheckedForGroup] = useState(new Set());
+  const multiSelectRef = useRef(false);
+
+  // ── Group enter/exit edit state ──────────────────────────────────────────────
+  const [inGroupEdit,   setInGroupEdit]   = useState(false); // true = inside a sticker group
+  const groupEditItems  = useRef(null);   // snapshot of children when we entered
+  const suppressGroupClearRef = useRef(false); // true while re-selecting parent group for child edit
+
+  // ── Drawing tool state ──
+  const [drawBrushType, setDrawBrushType] = useState("pen");
+  const [drawColor,     setDrawColor]     = useState("#1a1a2e");
+  const [drawWidth,     setDrawWidth]     = useState(6);
+  const [drawOpacity,   setDrawOpacity]   = useState(1);
+
+  // ── Drawing layer refs (single-layer canvas) ──
+  const drawElRef        = useRef(null);  // backing HTMLCanvasElement
+  const drawCtxRef       = useRef(null);  // its 2D context
+  const drawLayerRef     = useRef(null);  // fabric.Image wrapping drawEl
+  // Ref mirrors of draw settings — read by canvas event handlers
+  const drawBrushTypeRef = useRef("pen");
+  const drawColorRef     = useRef("#1a1a2e");
+  const drawWidthRef     = useRef(6);
+  const drawOpacityRef   = useRef(1);
+  const activeToolRef    = useRef("select");
+
+  const updateLayers = useCallback(() => {
+    const c = fabricRef.current;
+    if (!c) return;
+    // Exclude the drawing layer from the layers panel list
+    setLayers([...c.getObjects()].filter(o => o !== drawLayerRef.current).reverse());
+  }, []);
+
+  const saveHistory = useCallback(() => {
+    if (skipHistRef.current) return;
+    const c = fabricRef.current;
+    if (!c) return;
+    const json = JSON.stringify(c.toJSON());
+    historyRef.current = historyRef.current.slice(0, histIdxRef.current + 1);
+    historyRef.current.push(json);
+    histIdxRef.current = historyRef.current.length - 1;
+    setCanUndo(histIdxRef.current > 0);
+    setCanRedo(false);
+  }, []);
+
+  const reattachDrawLayer = useCallback((c) => {
+    if (!drawLayerRef.current) return;
+    // Remove any serialized draw layer that came from JSON, then re-add the live canvas-backed one
+    c.getObjects().forEach(o => { if (o._isDrawingLayer) c.remove(o); });
+    c.add(drawLayerRef.current);
+    c.sendToBack(drawLayerRef.current);
+  }, []);
+
+  const undo = useCallback(() => {
+    if (histIdxRef.current <= 0) return;
+    histIdxRef.current--;
+    skipHistRef.current = true;
+    fabricRef.current.loadFromJSON(JSON.parse(historyRef.current[histIdxRef.current]), () => {
+      reattachDrawLayer(fabricRef.current);
+      fabricRef.current.renderAll(); updateLayers(); setActiveObj(null);
+      skipHistRef.current = false;
+      setCanUndo(histIdxRef.current > 0); setCanRedo(true);
+    });
+  }, [updateLayers, reattachDrawLayer]);
+
+  const redo = useCallback(() => {
+    if (histIdxRef.current >= historyRef.current.length - 1) return;
+    histIdxRef.current++;
+    skipHistRef.current = true;
+    fabricRef.current.loadFromJSON(JSON.parse(historyRef.current[histIdxRef.current]), () => {
+      reattachDrawLayer(fabricRef.current);
+      fabricRef.current.renderAll(); updateLayers(); setActiveObj(null);
+      skipHistRef.current = false;
+      setCanUndo(true); setCanRedo(histIdxRef.current < historyRef.current.length - 1);
+    });
+  }, [updateLayers, reattachDrawLayer]);
+
+  // ── Canvas init ──
+  useEffect(() => {
+    const canvas = new fabric.Canvas(canvasElRef.current, {
+      width: LW, height: LH, backgroundColor: "#ffffff",
+      preserveObjectStacking: true,
+      selectionColor: "rgba(99,102,241,0.12)",
+      selectionBorderColor: "#6366f1",
+      selectionLineWidth: 1.5,
+    });
+    fabricRef.current = canvas;
+
+    // ── Single drawing layer backed by a plain HTML canvas ──────────────────
+    const drawEl  = document.createElement("canvas");
+    drawEl.width  = LW; drawEl.height = LH;
+    drawElRef.current  = drawEl;
+    const drawCtx = drawEl.getContext("2d");
+    drawCtxRef.current = drawCtx;
+
+    const drawLayer = new fabric.Image(drawEl, {
+      left: 0, top: 0, originX: "left", originY: "top",
+      selectable: false, evented: false,
+      objectCaching: false,      // always re-reads the live canvas pixels
+      hoverCursor: "crosshair",
+    });
+    // Tag it so we can find + remove serialised copies on JSON reload
+    drawLayer._isDrawingLayer = true;
+    // Override toObject to carry the tag into JSON
+    const _origToObj = drawLayer.toObject.bind(drawLayer);
+    drawLayer.toObject = (props) => ({ ..._origToObj(props), _isDrawingLayer: true });
+
+    canvas.add(drawLayer);
+    canvas.sendToBack(drawLayer);
+    drawLayerRef.current = drawLayer;
+
+    const applyZoom = () => {
+      const el = containerRef.current;
+      // Guard: canvas may have been disposed (e.g. ResizeObserver fires after unmount)
+      if (!el || !fabricRef.current) return;
+      try {
+        const s = Math.min((el.clientWidth - 32) / LW, (el.clientHeight - 32) / LH);
+        canvas.setZoom(s); canvas.setWidth(LW * s); canvas.setHeight(LH * s);
+        canvas.renderAll();
+      } catch (_) { /* ignore stale resize */ }
+    };
+    requestAnimationFrame(applyZoom);
+    const ro = new ResizeObserver(applyZoom);
+    if (containerRef.current) ro.observe(containerRef.current);
+
+    const afterLoad = () => { updateLayers(); setTimeout(saveHistory, 60); };
+    if (initialState) {
+      canvas.loadFromJSON(typeof initialState === "string" ? JSON.parse(initialState) : initialState, () => {
+        // Find any serialised draw layer, copy its pixels to our live drawEl, then remove it
+        const serialisedDraw = canvas.getObjects().find(o => o._isDrawingLayer);
+        if (serialisedDraw) {
+          const el = serialisedDraw.getElement();
+          if (el) drawCtx.drawImage(el, 0, 0, LW, LH);
+          canvas.remove(serialisedDraw);
+        }
+        canvas.add(drawLayer); canvas.sendToBack(drawLayer);
+        canvas.renderAll(); afterLoad();
+      });
+    } else if (initialImageUrl) {
+      fabric.Image.fromURL(initialImageUrl, (img) => {
+        const s = Math.max(LW / img.width, LH / img.height);
+        img.set({ left: LW / 2, top: LH / 2, originX: "center", originY: "center", scaleX: s, scaleY: s });
+        canvas.add(img); canvas.renderAll(); afterLoad();
+      });
+    } else { afterLoad(); }
+
+    canvas.on("selection:created", () => {
+      setActiveObj(canvas.getActiveObject()); setPropVer(v => v + 1);
+      if (!suppressGroupClearRef.current) { setGroupChildEdit(null); setMobileTab("properties"); }
+    });
+    canvas.on("selection:updated", () => {
+      setActiveObj(canvas.getActiveObject()); setPropVer(v => v + 1);
+      if (!suppressGroupClearRef.current) { setGroupChildEdit(null); setMobileTab("properties"); }
+    });
+    canvas.on("selection:cleared", () => { setActiveObj(null); setGroupChildEdit(null); });
+
+    // ── Double-click a group → enter it (children become individually editable) ──
+    canvas.on("mouse:dblclick", (e) => {
+      const target = canvas.getActiveObject();
+      if (!target || target.type !== "group" || target._isDrawingLayer) return;
+      const children = target.getObjects().slice(); // snapshot before ungrouping
+      groupEditItems.current = children;
+      setInGroupEdit(true);
+      try {
+        const sel = target.toActiveSelection();
+        canvas.setActiveObject(sel);
+      } catch (_) {}
+      canvas.renderAll();
+      updateLayers();
+    });
+    const onMod = () => { updateLayers(); saveHistory(); setPropVer(v => v + 1); };
+    canvas.on("object:added", onMod);
+    canvas.on("object:removed", onMod);
+    canvas.on("object:modified", onMod);
+    canvas.on("text:changed", onMod);
+
+    const onKey = (e) => {
+      const el = document.activeElement;
+      if (el.tagName === "INPUT" || el.tagName === "SELECT" || el.tagName === "TEXTAREA") return;
+      if (e.key === "Delete" || e.key === "Backspace") {
+        const obj = canvas.getActiveObject();
+        if (obj && !obj.isEditing) { canvas.remove(obj); canvas.discardActiveObject(); canvas.renderAll(); }
+      }
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === "z") { e.preventDefault(); undo(); }
+      if ((e.ctrlKey || e.metaKey) && (e.key === "y" || (e.shiftKey && e.key === "z"))) { e.preventDefault(); redo(); }
+      if ((e.ctrlKey || e.metaKey) && e.key === "d") {
+        e.preventDefault();
+        const obj = canvas.getActiveObject();
+        if (obj) obj.clone((cl) => { cl.set({ left: obj.left + 20, top: obj.top + 20 }); canvas.add(cl); canvas.setActiveObject(cl); canvas.renderAll(); });
+      }
+    };
+    window.addEventListener("keydown", onKey);
+
+    // ── Mobile multi-select: tap-to-add ──
+    // Capture active object BEFORE fabric processes the tap
+    let tapPrev = null;
+    let tapDown = null;
+    canvas.on("mouse:down", ({ target, pointer }) => {
+      if (!multiSelectRef.current || !target) { tapPrev = null; return; }
+      tapPrev = canvas.getActiveObject();
+      tapDown = pointer ? { x: pointer.x, y: pointer.y } : null;
+    });
+    canvas.on("mouse:up", ({ target, pointer }) => {
+      if (!multiSelectRef.current || !target || !tapPrev) return;
+      // Skip if this was a drag, not a tap
+      if (tapDown && pointer) {
+        if (Math.abs(pointer.x - tapDown.x) > 8 || Math.abs(pointer.y - tapDown.y) > 8) {
+          tapPrev = null; return;
+        }
+      }
+      const prev = tapPrev; tapPrev = null;
+      if (prev === target) return;
+      // Build new combined selection
+      const existing = prev.type === "activeSelection" ? prev.getObjects() : [prev];
+      const idx = existing.indexOf(target);
+      const newObjs = idx >= 0 ? existing.filter(o => o !== target) : [...existing, target];
+      canvas.discardActiveObject();
+      if (newObjs.length === 0) {
+        setActiveObj(null);
+      } else if (newObjs.length === 1) {
+        canvas.setActiveObject(newObjs[0]);
+        setActiveObj(newObjs[0]);
+      } else {
+        const sel = new fabric.ActiveSelection(newObjs, { canvas });
+        canvas.setActiveObject(sel);
+        setActiveObj(sel);
+      }
+      canvas.renderAll();
+      setPropVer(v => v + 1);
+    });
+
+    // ── Custom freehand drawing (all strokes share one drawEl canvas) ─────────
+    const hexRgb = (hex) => {
+      const h = hex.replace("#", "");
+      return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)];
+    };
+
+    const drawSeg = (from, to) => {
+      const type  = drawBrushTypeRef.current;
+      const color = drawColorRef.current;
+      const size  = drawWidthRef.current;
+      const alpha = drawOpacityRef.current;
+      const [r, g, b] = hexRgb(color);
+      const ctx = drawCtx;
+
+      if (type === "eraser") {
+        ctx.save();
+        ctx.globalCompositeOperation = "destination-out";
+        ctx.lineWidth   = size * 2.5;
+        ctx.lineCap     = "round";
+        ctx.lineJoin    = "round";
+        ctx.strokeStyle = "rgba(0,0,0,1)";
+        ctx.beginPath(); ctx.moveTo(from.x, from.y); ctx.lineTo(to.x, to.y);
+        ctx.stroke(); ctx.restore(); return;
+      }
+
+      if (type === "brush") {
+        // Soft painting brush: overlapping radial-gradient stamps build up colour
+        const dist    = Math.hypot(to.x - from.x, to.y - from.y);
+        const spacing = Math.max(1, size * 0.12);
+        const steps   = Math.max(1, Math.ceil(dist / spacing));
+        ctx.save();
+        for (let i = 0; i <= steps; i++) {
+          const t  = i / steps;
+          const x  = from.x + (to.x - from.x) * t;
+          const y  = from.y + (to.y - from.y) * t;
+          const rad = size * 0.9;
+          const g_ = ctx.createRadialGradient(x, y, 0, x, y, rad);
+          g_.addColorStop(0,   `rgba(${r},${g},${b},${alpha * 0.22})`);
+          g_.addColorStop(0.4, `rgba(${r},${g},${b},${alpha * 0.10})`);
+          g_.addColorStop(1,   `rgba(${r},${g},${b},0)`);
+          ctx.fillStyle = g_;
+          ctx.beginPath(); ctx.arc(x, y, rad, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.restore(); return;
+      }
+
+      if (type === "spray") {
+        const density = Math.max(20, size * 2.5);
+        const radius  = size * 2;
+        ctx.save();
+        for (let i = 0; i < density; i++) {
+          const ang = Math.random() * Math.PI * 2;
+          const d   = Math.sqrt(Math.random()) * radius;
+          ctx.fillStyle = `rgba(${r},${g},${b},${alpha * (0.35 + Math.random() * 0.65)})`;
+          ctx.beginPath();
+          ctx.arc(to.x + Math.cos(ang)*d, to.y + Math.sin(ang)*d,
+                  Math.random() * size * 0.22 + 0.4, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore(); return;
+      }
+
+      if (type === "circle") {
+        // Exact Fabric CircleBrush behaviour (read from fabric.js source):
+        //  • addPoint() called ONCE per onMouseMove → speed-sensitive natural density
+        //    (slow = overlapping bubble clusters, fast = scattered trail)
+        //  • radius  = getRandomInt(max(0,width-20), width+20) / 2
+        //  • opacity = getRandomInt(0,100)/100  — fully random 0-1, replaces colour alpha
+        //    (Fabric's setAlpha() overwrites, so user opacity slider had no effect originally)
+        const minR   = Math.max(0, size - 20);
+        const maxR   = size + 20;
+        // Only fill obvious gaps — threshold = one max-diameter so fast strokes stay sparse
+        const dist   = Math.hypot(to.x - from.x, to.y - from.y);
+        const steps  = Math.max(1, Math.round(dist / maxR));
+        ctx.save();
+        for (let i = 0; i < steps; i++) {
+          const t      = (i + 1) / steps;
+          const x      = from.x + (to.x - from.x) * t;
+          const y      = from.y + (to.y - from.y) * t;
+          const radius = (minR + Math.random() * (maxR - minR)) / 2;
+          const a      = Math.random();   // fully independent random opacity — matches Fabric exactly
+          ctx.fillStyle = `rgba(${r},${g},${b},${a})`;
+          ctx.beginPath();
+          ctx.arc(x, y, radius, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore(); return;
+      }
+
+      // ── Line-based: pen / pencil / marker ──
+      ctx.save();
+      ctx.lineCap = ctx.lineJoin = "round";
+      if (type === "marker") {
+        ctx.lineCap     = "square";
+        ctx.lineWidth   = size * 1.9;
+        ctx.strokeStyle = `rgba(${r},${g},${b},${alpha * 0.65})`;
+      } else if (type === "pencil") {
+        ctx.lineWidth   = size * 0.85;
+        ctx.strokeStyle = `rgba(${r},${g},${b},${alpha * 0.88})`;
+        ctx.shadowColor = `rgba(${r},${g},${b},${alpha * 0.28})`;
+        ctx.shadowBlur  = size * 0.55;
+      } else {                      // pen
+        ctx.lineWidth   = size;
+        ctx.strokeStyle = `rgba(${r},${g},${b},${alpha})`;
+      }
+      ctx.beginPath(); ctx.moveTo(from.x, from.y); ctx.lineTo(to.x, to.y);
+      ctx.stroke(); ctx.restore();
+    };
+
+    let isDrawing = false;
+    let lastPt    = null;
+
+    canvas.on("mouse:down", (e) => {
+      if (activeToolRef.current !== "draw") return;
+      isDrawing = true;
+      const ptr = canvas.getPointer(e.e);
+      lastPt = { x: ptr.x, y: ptr.y };
+      drawSeg(lastPt, lastPt);   // paint a dot on tap/click
+      canvas.renderAll();
+    });
+    canvas.on("mouse:move", (e) => {
+      if (!isDrawing || activeToolRef.current !== "draw") return;
+      const ptr = canvas.getPointer(e.e);
+      const pt  = { x: ptr.x, y: ptr.y };
+      drawSeg(lastPt, pt);
+      lastPt = pt;
+      canvas.renderAll();
+    });
+    canvas.on("mouse:up", () => {
+      if (!isDrawing) return;
+      isDrawing = false; lastPt = null;
+      if (activeToolRef.current === "draw") saveHistory();
+    });
+
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("keydown", onKey);
+      fabricRef.current = null; // null first so applyZoom guard fires before dispose
+      canvas.dispose();
+    };
+  }, []); // eslint-disable-line
+
+  // ── Tool fns ──
+  const addText = () => {
+    const t = new fabric.IText("Type here", { left: LW / 2, top: LH / 2, originX: "center", originY: "center", fontFamily: "Arial", fontSize: 36, fill: "#1a1a2e" });
+    fabricRef.current.add(t); fabricRef.current.setActiveObject(t); fabricRef.current.renderAll(); setActiveTool("select");
+  };
+  const addShape = (type) => {
+    const c = fabricRef.current;
+    const base = { left: LW / 2, top: LH / 2, originX: "center", originY: "center" };
+    let shape;
+    if (type === "rect")     shape = new fabric.Rect({ ...base, width: 160, height: 120, fill: "#6366f1", rx: 8, ry: 8 });
+    if (type === "circle")   shape = new fabric.Circle({ ...base, radius: 70, fill: "#ec4899" });
+    if (type === "triangle") shape = new fabric.Triangle({ ...base, width: 130, height: 120, fill: "#f59e0b" });
+    if (type === "star") {
+      const pts = []; const spikes = 5, outerR = 70, innerR = 30;
+      for (let i = 0; i < spikes * 2; i++) {
+        const r = i % 2 === 0 ? outerR : innerR;
+        const a = (i * Math.PI) / spikes - Math.PI / 2;
+        pts.push({ x: r * Math.cos(a), y: r * Math.sin(a) });
+      }
+      shape = new fabric.Polygon(pts, { ...base, fill: "#f59e0b" });
+    }
+    if (type === "line") shape = new fabric.Line([LW / 2 - 80, LH / 2, LW / 2 + 80, LH / 2], { stroke: "#1a1a2e", strokeWidth: 3 });
+    if (shape) { c.add(shape); c.setActiveObject(shape); c.renderAll(); setActiveTool("select"); }
+  };
+  const addImage = (file) => {
+    const url = URL.createObjectURL(file);
+    fabric.Image.fromURL(url, (img) => {
+      const s = Math.min((LW * 0.7) / img.width, (LH * 0.7) / img.height);
+      img.set({ left: LW / 2, top: LH / 2, originX: "center", originY: "center", scaleX: s, scaleY: s });
+      fabricRef.current.add(img); fabricRef.current.setActiveObject(img); fabricRef.current.renderAll();
+    });
+    setActiveTool("select");
+  };
+
+  // Add image from URL (Pixabay element)
+  const addImageFromUrl = useCallback((url) => {
+    fabric.Image.fromURL(url, (img) => {
+      const s = Math.min((LW * 0.55) / img.width, (LH * 0.55) / img.height);
+      img.set({ left: LW / 2, top: LH / 2, originX: "center", originY: "center", scaleX: s, scaleY: s });
+      fabricRef.current?.add(img);
+      fabricRef.current?.setActiveObject(img);
+      fabricRef.current?.renderAll();
+    });
+  }, []);
+
+  // Load a built-in template OR add a scrapbook sticker element
+  const loadBuiltinTemplate = useCallback((item, mode = "template") => {
+    const canvas = fabricRef.current;
+    if (!canvas) return;
+    if (mode === "sticker") {
+      const obj = item.build();
+      // Replace all English-word placeholder texts with "Text Here"
+      const normalizeTexts = (o) => {
+        if (!o) return;
+        if (o.type === "i-text" || o.type === "text") {
+          if (/[a-zA-Z]{2,}/.test(o.text || "")) o.set("text", "Text Here");
+        } else if (o.type === "group") {
+          o.getObjects?.().forEach(normalizeTexts);
+        }
+      };
+      normalizeTexts(obj);
+      canvas.add(obj);
+      canvas.setActiveObject(obj);
+      canvas.renderAll();
+      updateLayers();
+      saveHistory();
+    } else {
+      // Replace entire canvas with template
+      canvas.clear();
+      canvas.setBackgroundColor("#ffffff", () => {});
+      const objects = item.build();
+      objects.forEach(obj => canvas.add(obj));
+      canvas.discardActiveObject();
+      canvas.renderAll();
+      updateLayers();
+      saveHistory();
+    }
+  }, [updateLayers, saveHistory]);
+
+  // Apply crop result — replace the fabric Image with cropped version
+  const applyCrop = useCallback((croppedUrl) => {
+    const canvas = fabricRef.current;
+    const target = cropTarget;
+    if (!canvas || !target) return;
+    const oldLeft  = target.left,  oldTop    = target.top;
+    const oldScaleX = target.scaleX, oldScaleY = target.scaleY;
+    const oldAngle = target.angle ?? 0;
+    const oldFlipX = target.flipX, oldFlipY = target.flipY;
+    fabric.Image.fromURL(croppedUrl, (img) => {
+      img.set({ left: oldLeft, top: oldTop, scaleX: oldScaleX, scaleY: oldScaleY,
+                angle: oldAngle, flipX: oldFlipX, flipY: oldFlipY,
+                originX: target.originX, originY: target.originY });
+      canvas.remove(target);
+      canvas.add(img);
+      canvas.setActiveObject(img);
+      canvas.renderAll();
+      setActiveObj(img);
+      updateLayers();
+      saveHistory();
+    });
+    setCropTarget(null);
+  }, [cropTarget, updateLayers, saveHistory]);
+
+  // Set full-page background from URL (Pixabay background)
+  const setPageBackground = useCallback((url) => {
+    const canvas = fabricRef.current;
+    if (!canvas) return;
+    fabric.Image.fromURL(url, (img) => {
+      canvas.setBackgroundImage(img, () => {
+        canvas.renderAll();
+        saveHistory();
+      }, {
+        scaleX: LW / img.width,
+        scaleY: LH / img.height,
+        originX: "left",
+        originY: "top",
+      });
+    });
+  }, [saveHistory]);
+
+  const deleteSelected = () => {
+    const c = fabricRef.current;
+    const obj = c.getActiveObject();
+    if (!obj) return;
+    c.remove(obj); c.discardActiveObject(); c.renderAll();
+  };
+  const duplicateSelected = () => {
+    const obj = fabricRef.current.getActiveObject();
+    if (!obj) return;
+    obj.clone((cl) => { cl.set({ left: obj.left + 24, top: obj.top + 24 }); fabricRef.current.add(cl); fabricRef.current.setActiveObject(cl); fabricRef.current.renderAll(); });
+  };
+
+  const groupSelected = useCallback(() => {
+    const canvas = fabricRef.current;
+    const active = canvas.getActiveObject();
+    if (!active || active.type !== "activeSelection") return;
+    const group = active.toGroup();
+    canvas.setActiveObject(group);
+    canvas.renderAll();
+    setActiveObj(group);
+    updateLayers();
+    saveHistory();
+  }, [updateLayers, saveHistory]);
+
+  const ungroupSelected = useCallback(() => {
+    const canvas = fabricRef.current;
+    const active = canvas.getActiveObject();
+    if (!active || active.type !== "group") return;
+    const sel = active.toActiveSelection();
+    canvas.setActiveObject(sel);
+    canvas.renderAll();
+    setActiveObj(sel);
+    setGroupChildEdit(null); // clear any group-child edit
+    updateLayers();
+    saveHistory();
+  }, [updateLayers, saveHistory]);
+
+  // Keep refs in sync with state so canvas event handlers always read current values
+  useEffect(() => { multiSelectRef.current    = multiSelectMode;  }, [multiSelectMode]);
+  useEffect(() => { drawBrushTypeRef.current  = drawBrushType;    }, [drawBrushType]);
+  useEffect(() => { drawColorRef.current      = drawColor;        }, [drawColor]);
+  useEffect(() => { drawWidthRef.current      = drawWidth;        }, [drawWidth]);
+  useEffect(() => { drawOpacityRef.current    = drawOpacity;      }, [drawOpacity]);
+  useEffect(() => { activeToolRef.current     = activeTool;       }, [activeTool]);
+
+  // Manage cursor & selection mode when entering / leaving Draw tool
+  useEffect(() => {
+    const c = fabricRef.current;
+    if (!c) return;
+    c.isDrawingMode = false; // we never use Fabric's built-in drawing mode
+    if (activeTool === "draw") {
+      c.selection    = false;
+      c.defaultCursor = "crosshair";
+      c.hoverCursor   = "crosshair";
+    } else {
+      c.selection    = true;
+      c.defaultCursor = "default";
+      c.hoverCursor   = "move";
+    }
+  }, [activeTool]);
+
+  const exitMultiSelect = () => {
+    setMultiSelectMode(false);
+    setCheckedForGroup(new Set());
+  };
+
+  // ── Exit group edit — regroup all children back into one group ──────────────
+  const exitGroupEdit = useCallback(() => {
+    const canvas = fabricRef.current;
+    if (!canvas || !groupEditItems.current) return;
+    // Collect the children that are still on the canvas
+    const canvasObjs = new Set(canvas.getObjects());
+    const items = groupEditItems.current.filter(o => canvasObjs.has(o));
+    groupEditItems.current = null;
+    setInGroupEdit(false);
+    if (items.length === 0) { canvas.renderAll(); updateLayers(); return; }
+    // Deselect, then create a fresh ActiveSelection and convert to Group
+    canvas.discardActiveObject();
+    const sel = new fabric.ActiveSelection(items, { canvas });
+    canvas.setActiveObject(sel);
+    canvas.renderAll();
+    try {
+      const newGroup = sel.toGroup();
+      canvas.setActiveObject(newGroup);
+    } catch (_) {}
+    canvas.renderAll();
+    updateLayers();
+    saveHistory();
+  }, [updateLayers, saveHistory]);
+
+  // Escape key: exit group-edit mode (or clear canvas selection)
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key !== "Escape") return;
+      if (groupEditItems.current) { exitGroupEdit(); return; }
+      fabricRef.current?.discardActiveObject();
+      fabricRef.current?.renderAll();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [exitGroupEdit]);
+
+  const toggleCheck = (obj) => {
+    setCheckedForGroup(prev => {
+      const next = new Set(prev);
+      if (next.has(obj)) next.delete(obj); else next.add(obj);
+      return next;
+    });
+  };
+
+  const groupChecked = () => {
+    const canvas = fabricRef.current;
+    const objs = [...checkedForGroup];
+    if (objs.length < 2) return;
+    canvas.discardActiveObject();
+    const sel = new fabric.ActiveSelection(objs, { canvas });
+    canvas.setActiveObject(sel);
+    canvas.renderAll();
+    const group = sel.toGroup();
+    canvas.setActiveObject(group);
+    canvas.renderAll();
+    setActiveObj(group);
+    updateLayers();
+    saveHistory();
+    exitMultiSelect();
+  };
+
+  const layerOps = {
+    select: (obj) => { fabricRef.current.setActiveObject(obj); fabricRef.current.renderAll(); setActiveObj(obj); setPropVer(v => v + 1); },
+    up:     (obj) => { fabricRef.current.bringForward(obj);  fabricRef.current.renderAll(); updateLayers(); },
+    down:   (obj) => { fabricRef.current.sendBackwards(obj); fabricRef.current.renderAll(); updateLayers(); },
+    vis:    (obj) => { obj.set({ visible: !obj.visible }); fabricRef.current.renderAll(); updateLayers(); },
+    del:    (obj) => { fabricRef.current.remove(obj); fabricRef.current.renderAll(); },
+    lock:   (obj) => {
+      const locked = obj.selectable === false;
+      obj.set({
+        selectable:    locked,
+        evented:       locked,
+        lockMovementX: !locked,
+        lockMovementY: !locked,
+        lockScalingX:  !locked,
+        lockScalingY:  !locked,
+        lockRotation:  !locked,
+      });
+      if (!locked) {
+        fabricRef.current.discardActiveObject();
+        setActiveObj(null);
+      }
+      fabricRef.current.renderAll();
+      updateLayers();
+    },
+  };
+
+  const handleSave = () => {
+    const c = fabricRef.current;
+    c.discardActiveObject(); c.renderAll();
+    const json = c.toJSON();
+    const dataUrl = c.toDataURL({ format: "jpeg", quality: 0.95, multiplier: 1280 / c.getWidth() });
+    onSave({ json, dataUrl });
+  };
+
+  // ── Tool config ──
+  const tools = [
+    { id: "select", icon: "M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z",          label: t("toolSelect") },
+    { id: "text",   icon: "M4 7V4h16v3M9 20h6M12 4v16",                         label: t("text"),    fn: addText },
+    { id: "shape",  icon: "M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z", label: t("shapes") },
+    { id: "draw",   icon: "M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z", label: t("draw") },
+  ];
+
+  // ── Draw panel ──
+  const BRUSH_TYPES = [
+    {
+      id: "pen",
+      label: t("pen"),
+      icon: <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4z"/></svg>,
+      desc: "Crisp clean line",
+    },
+    {
+      id: "pencil",
+      label: t("pencil"),
+      icon: <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M17 3a2.828 2.828 0 114 4L7.5 20.5 2 22l1.5-5.5z"/><path d="M15 5l4 4"/></svg>,
+      desc: "Soft sketchy texture",
+    },
+    {
+      id: "brush",
+      label: t("marker"),
+      icon: <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M3 22l7-7"/><path d="M14.5 2.5c0 0 2 3 2 5.5s-2.5 4-2.5 4H8s-2.5-1.5-2.5-4S7.5 2.5 7.5 2.5"/><path d="M8 12v4a4 4 0 008 0v-4"/></svg>,
+      desc: "Soft painting brush",
+    },
+    {
+      id: "marker",
+      label: t("marker"),
+      icon: <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><rect x="7" y="2" width="10" height="14" rx="2"/><path d="M9 16v4l3 2 3-2v-4"/></svg>,
+      desc: "Bold flat strokes",
+    },
+    {
+      id: "spray",
+      label: t("spray"),
+      icon: <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M3 3h.01M7 3h.01M11 3h.01M7 7h.01M11 7h.01M15 7h.01M11 11h.01M15 11h.01M19 11h.01M15 15h.01M19 15h.01"/><path d="M5 21l7-7"/></svg>,
+      desc: "Scattered dot spray",
+    },
+    {
+      id: "circle",
+      label: t("circles"),
+      icon: <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="6" cy="6" r="2"/><circle cx="14" cy="5" r="1.5"/><circle cx="10" cy="12" r="2.5"/><circle cx="18" cy="11" r="1.5"/><circle cx="8" cy="18" r="2"/><circle cx="16" cy="18" r="1"/></svg>,
+      desc: "Circle stamp trail",
+    },
+    {
+      id: "eraser",
+      label: t("eraser"),
+      icon: <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M20 20H7L3 16l10-10 7 7-2.5 2.5"/><path d="M6.0 11.0l7 7"/></svg>,
+      desc: "Erase drawing",
+    },
+  ];
+
+  const drawPanel = (
+    <div className="flex flex-col gap-4 p-4 pb-6">
+      {/* Brush type grid */}
+      <div>
+        <p className="text-[10px] text-white/35 uppercase tracking-widest font-semibold mb-2">{t("brushType")}</p>
+        <div className="grid grid-cols-4 gap-1.5">
+          {BRUSH_TYPES.map(({ id, label, icon, desc }) => (
+            <button
+              key={id}
+              onClick={() => setDrawBrushType(id)}
+              title={desc}
+              className={`flex flex-col items-center gap-1.5 py-2.5 rounded-xl border text-[10px] font-medium transition-all
+                ${drawBrushType === id
+                  ? "bg-indigo-600/30 border-indigo-400/60 text-white"
+                  : "bg-white/[0.04] border-white/[0.07] text-white/45 hover:bg-white/[0.09] hover:text-white/80"}`}>
+              <span className={drawBrushType === id ? "text-indigo-300" : "text-white/40"}>{icon}</span>
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Color — hidden for eraser */}
+      {drawBrushType !== "eraser" && <div>
+        <p className="text-[10px] text-white/35 uppercase tracking-widest font-semibold mb-2">{t("color")}</p>
+        <div className="flex items-center gap-2">
+          <div className="relative w-10 h-10 rounded-xl overflow-hidden border border-white/15 shrink-0 cursor-pointer">
+            <div className="absolute inset-0 rounded-xl" style={{ background: drawColor }} />
+            <input
+              type="color"
+              value={drawColor}
+              onChange={(e) => setDrawColor(e.target.value)}
+              className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+            />
+          </div>
+          {/* Quick palette */}
+          <div className="flex flex-wrap gap-1.5 flex-1">
+            {["#1a1a2e","#ffffff","#ef4444","#f97316","#eab308","#22c55e","#3b82f6","#8b5cf6","#ec4899","#64748b"].map(c => (
+              <button
+                key={c}
+                onClick={() => setDrawColor(c)}
+                className={`w-6 h-6 rounded-lg border-2 transition-all ${drawColor === c ? "border-white scale-110" : "border-transparent hover:border-white/40"}`}
+                style={{ background: c }}
+              />
+            ))}
+          </div>
+        </div>
+      </div>}
+
+      {/* Size */}
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-[10px] text-white/35 uppercase tracking-widest font-semibold">
+            {drawBrushType === "eraser" ? t("eraserSize") : t("size")}
+          </p>
+          <span className="text-[10px] text-white/50 tabular-nums">{drawWidth}px</span>
+        </div>
+        <input
+          type="range" min={1} max={60} step={1} value={drawWidth}
+          onChange={(e) => setDrawWidth(Number(e.target.value))}
+          className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
+          style={{ accentColor: drawBrushType === "eraser" ? "#f87171" : "#6366f1" }}
+        />
+        {/* Live stroke preview */}
+        <div className="mt-3 flex items-center justify-center h-8 rounded-xl bg-white/[0.04] border border-white/[0.06]">
+          <div className="rounded-full transition-all" style={{
+            width:      Math.min(drawWidth * 3, 200),
+            height:     Math.min(drawWidth, 20),
+            background: drawBrushType === "eraser" ? "rgba(255,255,255,0.25)" : drawColor,
+            opacity:    drawBrushType === "eraser" ? 1 : drawOpacity,
+          }} />
+        </div>
+      </div>
+
+      {/* Opacity — hidden for eraser */}
+      {drawBrushType !== "eraser" && (
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-[10px] text-white/35 uppercase tracking-widest font-semibold">{t("opacity")}</p>
+            <span className="text-[10px] text-white/50 tabular-nums">{Math.round(drawOpacity * 100)}%</span>
+          </div>
+          <input
+            type="range" min={0.02} max={1} step={0.01} value={drawOpacity}
+            onChange={(e) => setDrawOpacity(Number(e.target.value))}
+            className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
+            style={{ accentColor: "#6366f1" }}
+          />
+        </div>
+      )}
+
+      {/* Tip */}
+      <p className="text-[10px] text-white/20 text-center leading-relaxed">
+        {t("drawTip")}
+      </p>
+    </div>
+  );
+
+  // ── Shape picker panel ──
+  const SHAPE_OPTIONS = [
+    {
+      id: "rect", label: t("rectangle"),
+      preview: <svg viewBox="0 0 40 30" width="40" height="30"><rect x="2" y="2" width="36" height="26" rx="4" fill="#6366f1"/></svg>,
+    },
+    {
+      id: "circle", label: t("circle"),
+      preview: <svg viewBox="0 0 32 32" width="32" height="32"><circle cx="16" cy="16" r="14" fill="#ec4899"/></svg>,
+    },
+    {
+      id: "triangle", label: t("triangle"),
+      preview: <svg viewBox="0 0 36 32" width="36" height="32"><polygon points="18,2 34,30 2,30" fill="#f59e0b"/></svg>,
+    },
+    {
+      id: "star", label: t("star"),
+      preview: (
+        <svg viewBox="-1 -1 26 26" width="32" height="32">
+          <polygon points="12,1 15.3,8.6 23.5,9.3 17.6,14.5 19.5,22.5 12,18.1 4.5,22.5 6.4,14.5 0.5,9.3 8.7,8.6" fill="#f59e0b"/>
+        </svg>
+      ),
+    },
+    {
+      id: "line", label: t("line"),
+      preview: <svg viewBox="0 0 40 10" width="40" height="10"><line x1="2" y1="5" x2="38" y2="5" stroke="#64748b" strokeWidth="3" strokeLinecap="round"/></svg>,
+    },
+  ];
+
+  const shapePicker = (
+    <div className="flex flex-col gap-3 p-4">
+      <p className="text-[10px] text-white/35 uppercase tracking-widest font-semibold">{t("chooseShape")}</p>
+      <div className="grid grid-cols-2 gap-2">
+        {SHAPE_OPTIONS.map(({ id, label, preview }) => (
+          <button
+            key={id}
+            onClick={() => addShape(id)}
+            className="flex flex-col items-center justify-center gap-2 py-4 rounded-xl bg-white/[0.04] hover:bg-white/[0.09] border border-white/[0.07] hover:border-white/20 text-white/50 hover:text-white transition-all active:scale-95">
+            <div className="flex items-center justify-center h-8">{preview}</div>
+            <span className="text-[10px] font-medium">{label}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
+  // ── Shared panel content ──
+  const layersList = (
+    <LayersList layers={layers} activeObj={activeObj}
+      onSelect={layerOps.select} onMoveUp={layerOps.up} onMoveDown={layerOps.down}
+      onToggleVis={layerOps.vis} onToggleLock={layerOps.lock} onDelete={layerOps.del}
+      multiSelectMode={multiSelectMode} checkedForGroup={checkedForGroup} onToggleCheck={toggleCheck}
+      groupChildEdit={groupChildEdit}
+      inGroupEdit={inGroupEdit}
+      onExitGroupEdit={exitGroupEdit}
+      onSelectChild={(child, parentGroup) => {
+        // Keep the parent group as the canvas active object (shows selection ring)
+        // Use the suppress flag so selection:created doesn't clear groupChildEdit
+        if (parentGroup && fabricRef.current) {
+          const canvas = fabricRef.current;
+          if (canvas.getActiveObject() !== parentGroup) {
+            suppressGroupClearRef.current = true;
+            canvas.setActiveObject(parentGroup);
+            canvas.renderAll();
+            suppressGroupClearRef.current = false;
+          }
+        }
+        setGroupChildEdit(child);
+        setPropVer(v => v + 1);
+        setMobileTab("properties");
+      }} />
+  );
+  // When editing a group child, show its props; onUpdate must force canvas re-render
+  // since group children don't carry a .canvas reference themselves
+  const editObj      = groupChildEdit ?? activeObj;
+  const isGroupChild = !!groupChildEdit;
+  const propsPanel = (
+    <PropertiesPanel
+      obj={editObj}
+      isGroupChild={isGroupChild}
+      onUpdate={() => { fabricRef.current?.renderAll(); setPropVer(v => v + 1); }}
+      onCrop={(obj) => setCropTarget(obj)}
+      onShapeCrop={(obj) => setShapeCropTarget(obj)} />
+  );
+  const graphicsPanel = (
+    <GraphicsPanel onAdd={addImageFromUrl} onSetBackground={setPageBackground} onLoadTemplate={loadBuiltinTemplate} />
+  );
+
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col bg-[#0e0d1a] text-white" style={{ userSelect: "none" }}>
+
+      {/* ── Header ── */}
+      <div className="flex-none h-12 md:h-14 flex items-center gap-1.5 md:gap-3 px-2 md:px-4 border-b border-white/10 bg-[#12111f]">
+        <button onClick={onClose}
+          className="p-2 rounded-lg hover:bg-white/10 text-white/50 hover:text-white transition-all">
+          <Ic d="M19 12H5M12 19l-7-7 7-7" />
+        </button>
+        <span className="hidden md:block text-sm font-semibold text-white/70">{t("pageEditor")}</span>
+        <span className="block md:hidden text-xs font-semibold text-white/60">{t("editorMobile")}</span>
+
+        <div className="flex gap-0.5 ml-1">
+          <button title={t("undoTitle")} disabled={!canUndo} onClick={undo}
+            className="p-2 rounded-lg hover:bg-white/10 text-white/40 hover:text-white disabled:opacity-25 disabled:cursor-not-allowed transition-all">
+            <Ic d="M3 7v6h6M3.51 15a9 9 0 1 0 .49-4.7" />
+          </button>
+          <button title={t("redoTitle")} disabled={!canRedo} onClick={redo}
+            className="p-2 rounded-lg hover:bg-white/10 text-white/40 hover:text-white disabled:opacity-25 disabled:cursor-not-allowed transition-all">
+            <Ic d="M21 7v6h-6M20.49 15a9 9 0 1 1-.49-4.7" />
+          </button>
+        </div>
+
+        <div className="flex-1" />
+
+        {/* Group / Ungroup — shown when selection type matches */}
+        {activeObj?.type === "activeSelection" && (
+          <button onClick={groupSelected} title={t("groupSelectedTitle")}
+            className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-600/15 hover:bg-amber-600/30 text-amber-400/80 hover:text-amber-300 text-sm transition-all border border-amber-500/20 hover:border-amber-400/40">
+            <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+              <rect x="2" y="2" width="8" height="8" rx="1"/><rect x="14" y="2" width="8" height="8" rx="1"/>
+              <rect x="2" y="14" width="8" height="8" rx="1"/><rect x="14" y="14" width="8" height="8" rx="1"/>
+              <path d="M6 10v4M18 10v4M10 6h4M10 18h4" strokeWidth={1.5}/>
+            </svg>
+            {t("group")}
+          </button>
+        )}
+        {activeObj?.type === "group" && (
+          <button onClick={ungroupSelected} title={t("ungroupSelectedTitle")}
+            className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-600/15 hover:bg-amber-600/30 text-amber-400/80 hover:text-amber-300 text-sm transition-all border border-amber-500/20 hover:border-amber-400/40">
+            <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+              <rect x="2" y="2" width="8" height="8" rx="1"/><rect x="14" y="2" width="8" height="8" rx="1"/>
+              <rect x="2" y="14" width="8" height="8" rx="1"/><rect x="14" y="14" width="8" height="8" rx="1"/>
+            </svg>
+            {t("ungroup")}
+          </button>
+        )}
+
+        <button onClick={duplicateSelected} title={t("duplicate")}
+          className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/8 hover:bg-white/15 text-white/60 hover:text-white text-sm transition-all border border-white/10">
+          <Ic d="M8 8H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-2M16 2h-4a2 2 0 00-2 2v10a2 2 0 002 2h4" />
+        </button>
+        <button onClick={deleteSelected} title={t("delete")}
+          className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/8 hover:bg-red-500/25 text-white/60 hover:text-red-300 text-sm transition-all border border-white/10 hover:border-red-500/30">
+          <Ic d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+        </button>
+
+        <button onClick={duplicateSelected} title={t("duplicate")}
+          className="md:hidden p-2 rounded-lg hover:bg-white/10 text-white/40 hover:text-white transition-all">
+          <Ic d="M8 8H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-2M16 2h-4a2 2 0 00-2 2v10a2 2 0 002 2h4" />
+        </button>
+        <button onClick={deleteSelected} title={t("delete")}
+          className="md:hidden p-2 rounded-lg hover:bg-red-500/20 text-white/40 hover:text-red-300 transition-all">
+          <Ic d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+        </button>
+
+        {/* Language toggle */}
+        <button
+          onClick={() => setLang(l => l === "en" ? "mn" : "en")}
+          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white/8 hover:bg-white/15 border border-white/10 text-white/55 hover:text-white text-xs font-semibold transition-all"
+          title={lang === "en" ? "Монгол хэл рүү шилжих" : "Switch to English"}>
+          <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/></svg>
+          {t("langBtn")}
+        </button>
+
+        <button onClick={handleSave}
+          className="flex items-center gap-1.5 px-3 md:px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-all shadow-lg shadow-indigo-900/40 text-xs md:text-sm">
+          <Ic d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2zM17 21v-8H7v8M7 3v5h8" />
+          <span className="md:hidden">{t("apply")}</span>
+          <span className="hidden md:inline">{t("saveApply")}</span>
+        </button>
+      </div>
+
+      {/* ── Body ── */}
+      <div className="flex-1 flex flex-row overflow-hidden min-h-0">
+
+        {/* Desktop left toolbar */}
+        <div className="hidden md:flex w-14 flex-none flex-col items-center gap-1 py-3 border-r border-white/10 bg-[#12111f] overflow-y-auto">
+          {tools.map(({ id, icon, label, fn }) => (
+            <button key={id} title={label}
+              className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all ${activeTool === id ? "bg-indigo-600 text-white shadow-lg shadow-indigo-900/40" : "text-white/40 hover:bg-white/10 hover:text-white"}`}
+              onClick={() => { setActiveTool(id); fn?.(); }}>
+              <Ic d={icon} />
+            </button>
+          ))}
+          <div className="w-8 h-px bg-white/10 my-1" />
+          {/* Upload image */}
+          <label title={t("uploadImage")}
+            className="w-10 h-10 flex items-center justify-center rounded-xl text-white/40 hover:bg-white/10 hover:text-white transition-all cursor-pointer">
+            <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) addImage(f); e.target.value = ""; }} />
+            <Ic d="M21 19V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2zM8.5 13.5l2.5 3 3.5-4.5 4.5 6H5l3.5-4.5z" />
+          </label>
+          {/* Graphics search toggle */}
+          <button
+            title={t("searchGraphicsPixabay")}
+            onClick={() => setGraphicsOpen(v => !v)}
+            className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all ${graphicsOpen ? "bg-violet-600 text-white" : "text-white/40 hover:bg-white/10 hover:text-white"}`}>
+            {/* sparkle / search icon */}
+            <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/>
+            </svg>
+          </button>
+        </div>
+
+        {/* Desktop graphics panel (slides in from left) */}
+        {graphicsOpen && (
+          <div className="hidden md:flex w-72 flex-none flex-col border-r border-white/10 bg-[#0f0e1c] overflow-hidden">
+            <div className="flex items-center justify-between px-3 py-2.5 border-b border-white/8 flex-none">
+              <div className="flex items-center gap-2">
+                <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" className="text-violet-400"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg>
+                <span className="text-xs font-semibold text-white/60 uppercase tracking-widest">{t("graphics")}</span>
+              </div>
+              <button onClick={() => setGraphicsOpen(false)} className="p-1 rounded hover:bg-white/10 text-white/30 hover:text-white transition-all">
+                <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M18 6L6 18M6 6l12 12"/></svg>
+              </button>
+            </div>
+            <div className="flex-1 overflow-hidden flex flex-col min-h-0">
+              {graphicsPanel}
+            </div>
+          </div>
+        )}
+
+        {/* Canvas area */}
+        <div ref={containerRef}
+          className="flex-1 relative flex items-center justify-center bg-[#0a0918] overflow-hidden">
+          <div className="rounded-lg overflow-hidden shadow-2xl shadow-black/60 ring-1 ring-white/10">
+            <canvas ref={canvasElRef} />
+          </div>
+          {/* Group edit hint */}
+          {activeObj?.type === "group" && !inGroupEdit && (
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/55 backdrop-blur-sm border border-white/10 text-white/45 text-[10px] pointer-events-none select-none">
+              <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              {t("dblClickHint")}
+            </div>
+          )}
+          {/* In group edit indicator */}
+          {inGroupEdit && (
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 px-3 py-1.5 rounded-full bg-violet-600/25 backdrop-blur-sm border border-violet-500/30 text-violet-300 text-[10px] pointer-events-none select-none">
+              <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              {t("editingGroupCanvas")}
+            </div>
+          )}
+        </div>
+
+        {/* Desktop right panel */}
+        <div className="hidden md:flex w-64 flex-none flex-col border-l border-white/10 bg-[#12111f] overflow-hidden">
+          <div className="flex flex-col border-b border-white/10 overflow-hidden" style={{ maxHeight: "45%" }}>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-white/8 flex-none">
+              <span className="text-xs font-semibold text-white/50 uppercase tracking-widest">{t("layers")}</span>
+              <div className="flex items-center gap-1.5">
+                {activeObj?.type === "activeSelection" && (
+                  <button onClick={groupSelected} title={t("group")}
+                    className="flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-600/15 hover:bg-amber-600/30 text-amber-400/80 hover:text-amber-300 text-[10px] font-medium border border-amber-500/20 transition-all">
+                    <svg width={9} height={9} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><rect x="2" y="2" width="8" height="8" rx="1"/><rect x="14" y="2" width="8" height="8" rx="1"/><rect x="2" y="14" width="8" height="8" rx="1"/><rect x="14" y="14" width="8" height="8" rx="1"/></svg>
+                    {t("group")}
+                  </button>
+                )}
+                {activeObj?.type === "group" && (
+                  <button onClick={ungroupSelected} title={t("ungroup")}
+                    className="flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-600/15 hover:bg-amber-600/30 text-amber-400/80 hover:text-amber-300 text-[10px] font-medium border border-amber-500/20 transition-all">
+                    <svg width={9} height={9} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><rect x="2" y="2" width="8" height="8" rx="1"/><rect x="14" y="2" width="8" height="8" rx="1"/><rect x="2" y="14" width="8" height="8" rx="1"/><rect x="14" y="14" width="8" height="8" rx="1"/></svg>
+                    {t("ungroup")}
+                  </button>
+                )}
+                <span className="text-[10px] text-white/25">{layers.length}</span>
+              </div>
+            </div>
+            <div className="overflow-y-auto flex-1">{layersList}</div>
+          </div>
+          <div className="flex flex-col flex-1 overflow-hidden">
+            <div className="px-4 py-3 border-b border-white/8 flex-none">
+              <span className="text-xs font-semibold text-white/50 uppercase tracking-widest">
+                {activeTool === "shape" ? t("shapes") : activeTool === "draw" ? t("draw") : t("properties")}
+              </span>
+            </div>
+            <div className="overflow-y-auto flex-1">
+              {activeTool === "shape" ? shapePicker : activeTool === "draw" ? drawPanel : propsPanel}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Rect crop modal ── */}
+      {cropTarget && (
+        <EditorCropModal
+          fabricImg={cropTarget}
+          onApply={applyCrop}
+          onClose={() => setCropTarget(null)}
+        />
+      )}
+
+      {/* ── Shape crop modal ── */}
+      {shapeCropTarget && (
+        <ShapeCropModal
+          fabricImg={shapeCropTarget}
+          canvas={fabricRef.current}
+          onClose={() => setShapeCropTarget(null)}
+        />
+      )}
+
+      {/* ── Mobile bottom panel ── */}
+      <div
+        className="md:hidden flex-none flex flex-col bg-[#12111f] border-t border-white/10"
+        style={{
+          height: mobileExpanded ? "82vh" : "clamp(200px, 44vh, 310px)",
+          transition: "height 0.28s cubic-bezier(0.4,0,0.2,1)",
+        }}>
+
+        {/* Tool strip — hidden when panel is expanded (saves space) */}
+        {!mobileExpanded && (
+          <div className="flex-none flex items-center gap-2 px-3 py-2 border-b border-white/8 overflow-x-auto"
+            style={{ scrollbarWidth: "none" }}>
+            {tools.map(({ id, icon, label, fn }) => (
+              <button key={id} title={label}
+                className={`flex-none w-10 h-10 flex items-center justify-center rounded-xl transition-all ${activeTool === id ? "bg-indigo-600 text-white" : "bg-white/5 text-white/50 hover:bg-white/10"}`}
+                onClick={() => {
+                  setActiveTool(id);
+                  fn?.();
+                  if (id === "shape" || id === "draw") setMobileTab("properties");
+                }}>
+                <Ic d={icon} />
+              </button>
+            ))}
+            {/* Upload image */}
+            <label className="flex-none w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 text-white/50 hover:bg-white/10 transition-all cursor-pointer">
+              <input type="file" accept="image/*" className="hidden"
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) addImage(f); e.target.value = ""; }} />
+              <Ic d="M21 19V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2zM8.5 13.5l2.5 3 3.5-4.5 4.5 6H5l3.5-4.5z" />
+            </label>
+            {/* Multi-select toggle */}
+            <button
+              onClick={() => {
+                const next = !multiSelectMode;
+                setMultiSelectMode(next);
+                if (!next) setCheckedForGroup(new Set());
+                setMobileTab("layers");
+              }}
+              title="Select multiple layers to group"
+              className={`flex-none px-2.5 h-10 flex items-center justify-center gap-1.5 rounded-xl text-[11px] font-medium border transition-all
+                ${multiSelectMode
+                  ? "bg-amber-500/25 border-amber-400/50 text-amber-300"
+                  : "bg-white/5 border-white/10 text-white/50 hover:bg-white/10"}`}>
+              <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+                <rect x="2" y="2" width="8" height="8" rx="1"/><rect x="14" y="2" width="8" height="8" rx="1"/>
+                <rect x="2" y="14" width="8" height="8" rx="1"/><rect x="14" y="14" width="8" height="8" rx="1"/>
+              </svg>
+              {multiSelectMode ? t("cancel") : t("multi")}
+            </button>
+            {/* Group */}
+            {(checkedForGroup.size >= 2 || activeObj?.type === "activeSelection") && (
+              <button
+                onClick={checkedForGroup.size >= 2 ? groupChecked : groupSelected}
+                className="flex-none px-2.5 h-10 flex items-center justify-center gap-1 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-[11px] font-bold border border-amber-400/50 transition-all">
+                <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><rect x="2" y="2" width="8" height="8" rx="1"/><rect x="14" y="2" width="8" height="8" rx="1"/><rect x="2" y="14" width="8" height="8" rx="1"/><rect x="14" y="14" width="8" height="8" rx="1"/></svg>
+                {checkedForGroup.size >= 2 ? `${t("group")} ${checkedForGroup.size}` : t("group")}
+              </button>
+            )}
+            {/* Ungroup */}
+            {activeObj?.type === "group" && (
+              <button onClick={ungroupSelected}
+                className="flex-none px-2.5 h-10 flex items-center justify-center gap-1 rounded-xl bg-amber-600/20 text-amber-400 text-[10px] font-medium border border-amber-500/30 transition-all">
+                <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><rect x="2" y="2" width="8" height="8" rx="1"/><rect x="14" y="2" width="8" height="8" rx="1"/><rect x="2" y="14" width="8" height="8" rx="1"/><rect x="14" y="14" width="8" height="8" rx="1"/></svg>
+                {t("ungrp")}
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Tab bar — always visible; X button replaces tool strip row when expanded */}
+        <div className="flex-none flex items-center border-b border-white/8">
+          {/* Tabs */}
+          <div className="flex flex-1">
+            {[
+              { id: "layers",     label: `${t("layers")} (${layers.length})` },
+              { id: "properties", label: t("properties") },
+              { id: "graphics",   label: `✦ ${t("graphics")}` },
+            ].map(({ id, label }) => (
+              <button key={id}
+                onClick={() => {
+                  setMobileTab(id);
+                  // Collapse when moving away from graphics
+                  if (id !== "graphics") setMobileExpanded(false);
+                }}
+                className={`flex-1 py-2.5 text-xs font-medium transition-all border-b-2 ${
+                  mobileTab === id
+                    ? id === "graphics"
+                      ? "border-violet-400 text-violet-300"
+                      : "border-indigo-400 text-white"
+                    : "border-transparent text-white/35 hover:text-white/60"}`}>
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {/* X — only shown when panel is expanded */}
+          {mobileExpanded && (
+            <button
+              onClick={() => setMobileExpanded(false)}
+              className="flex-none w-10 h-10 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 rounded-xl transition-all mr-1">
+              <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+                <path d="M18 6L6 18M6 6l12 12"/>
+              </svg>
+            </button>
+          )}
+        </div>
+
+        {/* Multi-select banner */}
+        {multiSelectMode && mobileTab === "layers" && (
+          <div className="flex-none flex items-center gap-2 px-3 py-2 bg-amber-500/10 border-b border-amber-500/20">
+            <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" className="text-amber-400 shrink-0">
+              <rect x="2" y="2" width="8" height="8" rx="1"/><rect x="14" y="2" width="8" height="8" rx="1"/>
+              <rect x="2" y="14" width="8" height="8" rx="1"/><rect x="14" y="14" width="8" height="8" rx="1"/>
+            </svg>
+            <span className="flex-1 text-[11px] text-amber-300/80">
+              {checkedForGroup.size === 0 ? t("tapToSelect") : `${checkedForGroup.size} ${t("selected")}`}
+            </span>
+            {checkedForGroup.size >= 2 && (
+              <button onClick={groupChecked}
+                className="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-black text-[11px] font-bold transition-all">
+                {t("group")} {checkedForGroup.size}
+              </button>
+            )}
+            <button onClick={exitMultiSelect}
+              className="p-1 rounded-lg bg-white/10 hover:bg-white/20 text-white/50 hover:text-white transition-all text-[11px]">
+              ✕
+            </button>
+          </div>
+        )}
+
+        {/* Tab content */}
+        <div className="flex-1 overflow-y-auto min-h-0">
+          {mobileTab === "layers"     && layersList}
+          {mobileTab === "properties" && (activeTool === "shape" ? shapePicker : activeTool === "draw" ? drawPanel : propsPanel)}
+          {/* Graphics tab: onFocus bubbles up from any child search input → auto-expand */}
+          {mobileTab === "graphics"   && (
+            <div className="h-full" onFocus={() => setMobileExpanded(true)}>
+              {graphicsPanel}
+            </div>
+          )}
+        </div>
+      </div>
+
+    </div>
+  );
+};
