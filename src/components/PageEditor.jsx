@@ -754,7 +754,70 @@ const mkText  = (str,l,t,sz,fill="#333",opts={}) => new fabric.IText(str,{left:l
 const mkCirc  = (l,t,r,fill,extra={}) => new fabric.Circle({left:l,top:t,radius:r,fill,originX:"center",originY:"center",selectable:false,evented:false,...extra});
 const mkLines = (x1,x2,startY,n,gap,color="#e0e0e0") => Array.from({length:n},(_,i)=>mkLine(x1,startY+i*gap,x2,startY+i*gap,color));
 
+// Image-based template factory — loads a real character PNG and wraps it in a themed layout
+function makeCharTemplate({ id, name, emoji, bg1, bg2, titleColor, lineColor, footerEmojis }) {
+  return {
+    id, name, emoji,
+    cardBg: bg1,    // header / accent colour
+    cardFg: bg2,    // page background colour
+    build() {
+      return new Promise((resolve) => {
+        const o = [];
+        // Full page bg
+        o.push(mkRect(0, 0, LW, LH, bg2));
+        // Coloured header band
+        o.push(mkRect(0, 0, LW, 230, bg1));
+        // Soft rounded pill that "connects" header to content
+        o.push(mkRect(0, 210, LW, 46, bg2, 23));
+
+        fabric.Image.fromURL("/characters/" + id + ".png", (img) => {
+          if (img && img.width) {
+            const maxW = 200, maxH = 190;
+            const s = Math.min(maxW / img.width, maxH / img.height);
+            img.set({
+              left: LW / 2, top: 112,
+              originX: "center", originY: "center",
+              scaleX: s, scaleY: s,
+              selectable: false, evented: false,
+            });
+            o.push(img);
+          }
+
+          // Character name title
+          o.push(mkText(name, LW / 2, 255, 20, titleColor,
+            { fontWeight: "bold", selectable: true }));
+
+          // White content card with writing lines
+          o.push(mkRect(28, 275, 424, 332, "#FFFFFF", 14, {
+            stroke: lineColor, strokeWidth: 1.5,
+            shadow: new fabric.Shadow({ color: "rgba(0,0,0,0.10)", blur: 14, offsetX: 0, offsetY: 4 }),
+          }));
+          mkLines(52, 428, 304, 7, 43, lineColor).forEach(l => o.push(l));
+
+          // Footer emoji row
+          (footerEmojis || [emoji, emoji, emoji, emoji]).forEach((e, i) =>
+            o.push(mkText(e, 52 + i * 126, 626, 22, "#000", { selectable: true })));
+
+          resolve(o);
+        });
+      });
+    },
+  };
+}
+
 const BUILTIN_TEMPLATES = [
+  makeCharTemplate({ id:"hello-kitty",  name:"Hello Kitty",  emoji:"🎀", bg1:"#FF6B9D", bg2:"#FFF0F8", titleColor:"#C2185B", lineColor:"#FFB3D9", footerEmojis:["🎀","🌸","🎀","🌸"] }),
+  makeCharTemplate({ id:"spider-man",   name:"Spider-Man",   emoji:"🕷️", bg1:"#CC0000",  bg2:"#0D1B3E", titleColor:"#EF5350", lineColor:"#EF9A9A", footerEmojis:["🕸️","🕷️","🦸","⭐"] }),
+  makeCharTemplate({ id:"stitch",       name:"Stitch",       emoji:"💙", bg1:"#1E88E5", bg2:"#E3F2FD", titleColor:"#1565C0", lineColor:"#90CAF9", footerEmojis:["🌊","🏄","💙","🌺"] }),
+  makeCharTemplate({ id:"pikachu",      name:"Pikachu",      emoji:"⚡", bg1:"#FFD700", bg2:"#FFFDE7", titleColor:"#F57F17", lineColor:"#FFE082", footerEmojis:["⚡","🔥","💛","⭐"] }),
+  makeCharTemplate({ id:"totoro",       name:"Totoro",       emoji:"🌿", bg1:"#4CAF50", bg2:"#F1F8E9", titleColor:"#2E7D32", lineColor:"#A5D6A7", footerEmojis:["🍃","🌳","☂️","🐾"] }),
+  makeCharTemplate({ id:"doraemon",     name:"Doraemon",     emoji:"🔔", bg1:"#1565C0", bg2:"#E3F2FD", titleColor:"#1565C0", lineColor:"#90CAF9", footerEmojis:["🔮","📦","💊","🎩"] }),
+  makeCharTemplate({ id:"cinnamoroll",  name:"Cinnamoroll",  emoji:"☁️", bg1:"#42A5F5", bg2:"#EDF7FF", titleColor:"#1565C0", lineColor:"#BBDEFB", footerEmojis:["☁️","💙","🍬","🌟"] }),
+  makeCharTemplate({ id:"my-melody",    name:"My Melody",    emoji:"🌸", bg1:"#EC407A", bg2:"#FCE4EC", titleColor:"#AD1457", lineColor:"#F48FB1", footerEmojis:["🌸","🎀","🌷","💗"] }),
+];
+
+// ── legacy — keep sticker-only helpers below but BUILTIN_TEMPLATES now uses real images ──
+const _UNUSED_TEMPLATE_SHAPES = [
   // ── 1. Hello Kitty ──────────────────────────────────────────────────────────
   {
     id:"hello-kitty", name:"Hello Kitty", emoji:"🎀", cardBg:"#FF6B9D", cardFg:"#FFF0F8",
@@ -1102,7 +1165,7 @@ const BUILTIN_TEMPLATES = [
       return o;
     }
   },
-];
+]; // end _UNUSED_TEMPLATE_SHAPES
 
 // ─── Small icon ───────────────────────────────────────────────────────────────
 const Ic = ({ d, size = 16 }) => (
@@ -2228,22 +2291,27 @@ const GraphicsPanel = ({ onAdd, onSetBackground, onLoadTemplate }) => {
                 className="group relative rounded-xl overflow-hidden border-2 border-white/10 hover:border-pink-400/60 transition-all shadow-lg hover:shadow-pink-900/30"
                 style={{ aspectRatio: "3/4", background: tmpl.cardFg }}
               >
-                {/* Fake mini-preview using the card bg color as accent */}
-                <div className="absolute inset-x-0 top-0 h-[30%]" style={{ background: tmpl.cardBg }} />
-                <div className="absolute inset-x-2 top-[8%] h-[18%] bg-white/20 rounded-lg" />
+                {/* Coloured header band */}
+                <div className="absolute inset-x-0 top-0 h-[52%]" style={{ background: tmpl.cardBg }} />
+                {/* Actual character image */}
+                <img
+                  src={`/characters/${tmpl.id}.png`}
+                  alt={tmpl.name}
+                  className="absolute inset-x-0 top-0 w-full h-[55%] object-contain object-bottom z-10 pointer-events-none"
+                  style={{ imageRendering: "auto" }}
+                  onError={e => { e.currentTarget.style.display = "none"; }}
+                />
                 {/* Lines preview */}
-                <div className="absolute inset-x-4 bottom-[22%] flex flex-col gap-1.5">
+                <div className="absolute inset-x-3 bottom-[14%] flex flex-col gap-1">
                   {[0,1,2,3].map(i=>(
-                    <div key={i} className="h-px w-full rounded-full" style={{ background: tmpl.cardBg, opacity: 0.35 }} />
+                    <div key={i} className="h-px w-full rounded-full" style={{ background: tmpl.cardBg, opacity: 0.3 }} />
                   ))}
                 </div>
-                {/* Emoji */}
-                <div className="absolute bottom-2 right-2 text-lg leading-none">{tmpl.emoji}</div>
                 {/* Name */}
-                <div className="absolute bottom-2 left-2 right-8 text-[9px] font-semibold text-left leading-tight"
+                <div className="absolute bottom-1.5 left-2 right-2 text-[9px] font-bold text-center leading-tight z-20"
                   style={{ color: tmpl.cardBg }}>{tmpl.name}</div>
                 {/* Hover overlay */}
-                <div className="absolute inset-0 bg-pink-500/0 group-hover:bg-pink-500/15 transition-all flex items-center justify-center">
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all flex items-center justify-center z-30">
                   <span className="opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 text-white text-[11px] font-bold px-3 py-1.5 rounded-full">
                     {t("useTemplate")}
                   </span>
@@ -2807,7 +2875,7 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose }) =
   }, []);
 
   // Load a built-in template OR add a scrapbook sticker element
-  const loadBuiltinTemplate = useCallback((item, mode = "template") => {
+  const loadBuiltinTemplate = useCallback(async (item, mode = "template") => {
     const canvas = fabricRef.current;
     if (!canvas) return;
     if (mode === "sticker") {
@@ -2828,10 +2896,11 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose }) =
       updateLayers();
       saveHistory();
     } else {
-      // Replace entire canvas with template
+      // Replace entire canvas with template (build() may return a Promise for image-based templates)
       canvas.clear();
       canvas.setBackgroundColor("#ffffff", () => {});
-      const objects = item.build();
+      const result = item.build();
+      const objects = (result instanceof Promise) ? await result : result;
       objects.forEach(obj => canvas.add(obj));
       canvas.discardActiveObject();
       canvas.renderAll();
