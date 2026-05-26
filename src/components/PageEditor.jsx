@@ -754,49 +754,165 @@ const mkText  = (str,l,t,sz,fill="#333",opts={}) => new fabric.IText(str,{left:l
 const mkCirc  = (l,t,r,fill,extra={}) => new fabric.Circle({left:l,top:t,radius:r,fill,originX:"center",originY:"center",selectable:false,evented:false,...extra});
 const mkLines = (x1,x2,startY,n,gap,color="#e0e0e0") => Array.from({length:n},(_,i)=>mkLine(x1,startY+i*gap,x2,startY+i*gap,color));
 
-// Image-based template factory — loads a real character PNG and wraps it in a themed layout
-function makeCharTemplate({ id, name, emoji, bg1, bg2, titleColor, lineColor, footerEmojis }) {
+// ─── Wavy-blob helpers ────────────────────────────────────────────────────────
+// Path bounding box: x 0-472, y 0-552 → place at left:4 top:16 to get canvas (4-476, 16-568)
+const BLOB_PATH =
+  "M 46 18 Q 16 18 16 48 Q 0 165 16 282 Q 0 390 16 506 Q 16 535 46 535" +
+  " Q 146 552 236 548 Q 326 552 426 535 Q 456 535 456 506" +
+  " Q 472 390 456 276 Q 472 165 456 48 Q 456 18 426 18" +
+  " Q 326 0 236 18 Q 146 0 46 18 Z";
+
+const mkDash = (x1, y1, x2, y2, stroke, sw = 1.2) =>
+  new fabric.Line([x1, y1, x2, y2], {
+    stroke, strokeWidth: sw, strokeDashArray: [6, 5],
+    selectable: false, evented: false,
+  });
+
+function mkCloud(cx, cy, sz, fill, opacity = 0.30) {
+  return [
+    mkCirc(cx,            cy,            sz,           fill, { opacity }),
+    mkCirc(cx + sz * 1.3, cy - sz * 0.5, sz * 0.82,   fill, { opacity }),
+    mkCirc(cx + sz * 2.4, cy + sz * 0.1, sz * 0.90,   fill, { opacity }),
+    mkCirc(cx - sz * 0.6, cy + sz * 0.3, sz * 0.65,   fill, { opacity }),
+  ];
+}
+
+// Push the blob, dashed lines, mini-clouds, and sparkle stars into array o
+function addBlobLayer(o, lineColor, accentColor) {
+  o.push(new fabric.Path(BLOB_PATH, {
+    left: 4, top: 16,
+    originX: "left", originY: "top",
+    fill: "#FFFFFF",
+    opacity: 0.96,
+    selectable: false, evented: false,
+    shadow: new fabric.Shadow({ color: "rgba(0,0,0,0.10)", blur: 18, offsetX: 2, offsetY: 4 }),
+  }));
+  // Mini-clouds on the white blob using theme accent colour
+  [[26,42],[350,26],[452,90],[22,212],[460,332],[28,470]].forEach(
+    ([cx,cy]) => mkCloud(cx, cy, 9, accentColor, 0.28).forEach(c => o.push(c))
+  );
+  // Sparkle stars
+  [[392,36],[54,104],[462,200],[30,376],[464,454],[210,22]].forEach(
+    ([sx,sy]) => o.push(mkText("✦", sx, sy, 12, accentColor, { opacity:0.42, selectable:false, evented:false }))
+  );
+  // Dashed writing lines (7 lines, 46 px apart, inside blob)
+  for (let i = 0; i < 7; i++) {
+    o.push(mkDash(52, 115 + i * 46, 428, 115 + i * 46, lineColor));
+  }
+}
+
+// ─── Character template factory ───────────────────────────────────────────────
+// Design: solid bg → wavy white blob → dashed lines → decorations
+//         → character image bottom-right → name italic at bottom centre
+function makeCharTemplate({ id, name, emoji, bg1, titleColor, lineColor, footerEmojis }) {
   return {
     id, name, emoji,
-    cardBg: bg1,    // header / accent colour
-    cardFg: bg2,    // page background colour
+    cardBg: bg1,
+    cardFg: "#FFFFFF",
     build() {
       return new Promise((resolve) => {
         const o = [];
-        // Full page bg
-        o.push(mkRect(0, 0, LW, LH, bg2));
-        // Coloured header band
-        o.push(mkRect(0, 0, LW, 230, bg1));
-        // Soft rounded pill that "connects" header to content
-        o.push(mkRect(0, 210, LW, 46, bg2, 23));
 
+        // 1. Full-page solid background
+        o.push(mkRect(0, 0, LW, LH, bg1));
+
+        // 2. Blob + dashed lines + decorative clouds/stars
+        addBlobLayer(o, lineColor, bg1);
+
+        // 3. Character image — bottom-right, slightly outside canvas edge
         fabric.Image.fromURL("/characters/" + id + ".png", (img) => {
           if (img && img.width) {
-            const maxW = 200, maxH = 190;
-            const s = Math.min(maxW / img.width, maxH / img.height);
+            const maxW = 210, maxH = 245;
+            const s  = Math.min(maxW / img.width, maxH / img.height);
+            const sw = img.width  * s;
+            const sh = img.height * s;
             img.set({
-              left: LW / 2, top: 112,
-              originX: "center", originY: "center",
+              left: LW - sw + 20,
+              top:  LH - sh + 20,
               scaleX: s, scaleY: s,
               selectable: false, evented: false,
             });
             o.push(img);
           }
 
-          // Character name title
-          o.push(mkText(name, LW / 2, 255, 20, titleColor,
-            { fontWeight: "bold", selectable: true }));
-
-          // White content card with writing lines
-          o.push(mkRect(28, 275, 424, 332, "#FFFFFF", 14, {
-            stroke: lineColor, strokeWidth: 1.5,
-            shadow: new fabric.Shadow({ color: "rgba(0,0,0,0.10)", blur: 14, offsetX: 0, offsetY: 4 }),
+          // 4. Character name — italic, bottom centre, on the bg colour strip
+          o.push(mkText(name, LW / 2, LH - 24, 22, titleColor, {
+            fontStyle: "italic",
+            fontFamily: "Georgia, serif",
+            fontWeight: "bold",
+            selectable: true,
           }));
-          mkLines(52, 428, 304, 7, 43, lineColor).forEach(l => o.push(l));
 
-          // Footer emoji row
-          (footerEmojis || [emoji, emoji, emoji, emoji]).forEach((e, i) =>
-            o.push(mkText(e, 52 + i * 126, 626, 22, "#000", { selectable: true })));
+          // 5. Small emoji accents inside blob (left side, away from character)
+          (footerEmojis || [emoji, emoji, emoji]).slice(0, 3).forEach((e, i) =>
+            o.push(mkText(e, 60 + i * 100, 510, 20, "#555", { selectable: true }))
+          );
+
+          resolve(o);
+        });
+      });
+    },
+  };
+}
+
+// ─── Scene template factory ───────────────────────────────────────────────────
+// Design: full background photo → semi-transparent white blob → dashed lines
+//         → seasonal emoji accents → dark footer strip + title
+function makeSceneTemplate({ id, name, emoji, lineColor, titleColor, decorEmojis, overlayColor }) {
+  return {
+    id, name, emoji,
+    cardBg: lineColor || "#888",
+    cardFg: "#FFFFFF",
+    build() {
+      return new Promise((resolve) => {
+        fabric.Image.fromURL("/backgrounds/" + id + ".jpg", (bg) => {
+          const o = [];
+
+          if (bg && bg.width) {
+            const s = Math.max(LW / bg.width, LH / bg.height);
+            bg.set({
+              left: LW / 2, top: LH / 2,
+              originX: "center", originY: "center",
+              scaleX: s, scaleY: s,
+              selectable: false, evented: false,
+            });
+            o.push(bg);
+          } else {
+            o.push(mkRect(0, 0, LW, LH, overlayColor || "#aaa"));
+          }
+
+          // Subtle colour tint
+          if (overlayColor) {
+            o.push(mkRect(0, 0, LW, LH, overlayColor, 0, { opacity: 0.18 }));
+          }
+
+          // Semi-transparent blob (lets photo bleed through slightly)
+          o.push(new fabric.Path(BLOB_PATH, {
+            left: 4, top: 16,
+            originX: "left", originY: "top",
+            fill: "rgba(255,255,255,0.88)",
+            selectable: false, evented: false,
+            shadow: new fabric.Shadow({ color: "rgba(0,0,0,0.15)", blur: 20, offsetX: 2, offsetY: 5 }),
+          }));
+
+          // Dashed writing lines
+          for (let i = 0; i < 7; i++) {
+            o.push(mkDash(52, 115 + i * 46, 428, 115 + i * 46, lineColor || "#ccc"));
+          }
+
+          // Decorative emojis (left half, away from right edge)
+          (decorEmojis || [emoji, emoji, emoji]).slice(0, 3).forEach((e, i) =>
+            o.push(mkText(e, 60 + i * 100, 510, 22, "#444", { selectable: true }))
+          );
+
+          // Dark footer strip + name
+          o.push(mkRect(0, LH - 68, LW, 68, "rgba(0,0,0,0.50)", 0, { selectable: false, evented: false }));
+          o.push(mkText(name, LW / 2, LH - 24, 22, titleColor || "#fff", {
+            fontStyle: "italic",
+            fontFamily: "Georgia, serif",
+            fontWeight: "bold",
+            selectable: true,
+          }));
 
           resolve(o);
         });
@@ -807,263 +923,33 @@ function makeCharTemplate({ id, name, emoji, bg1, bg2, titleColor, lineColor, fo
 
 const BUILTIN_TEMPLATES = [
   // ── Cartoon Characters ──────────────────────────────────────────────────────
-  makeCharTemplate({ id:"hello-kitty",  name:"Hello Kitty",  emoji:"🎀", bg1:"#FF6B9D", bg2:"#FFF0F8", titleColor:"#C2185B", lineColor:"#FFB3D9", footerEmojis:["🎀","🌸","🎀","🌸"] }),
-  makeCharTemplate({ id:"spider-man",   name:"Spider-Man",   emoji:"🕷️", bg1:"#CC0000",  bg2:"#0D1B3E", titleColor:"#EF5350", lineColor:"#EF9A9A", footerEmojis:["🕸️","🕷️","🦸","⭐"] }),
-  makeCharTemplate({ id:"stitch",       name:"Stitch",       emoji:"💙", bg1:"#1E88E5", bg2:"#E3F2FD", titleColor:"#1565C0", lineColor:"#90CAF9", footerEmojis:["🌊","🏄","💙","🌺"] }),
-  makeCharTemplate({ id:"pikachu",      name:"Pikachu",      emoji:"⚡", bg1:"#FFD700", bg2:"#FFFDE7", titleColor:"#F57F17", lineColor:"#FFE082", footerEmojis:["⚡","🔥","💛","⭐"] }),
-  makeCharTemplate({ id:"totoro",       name:"Totoro",       emoji:"🌿", bg1:"#4CAF50", bg2:"#F1F8E9", titleColor:"#2E7D32", lineColor:"#A5D6A7", footerEmojis:["🍃","🌳","☂️","🐾"] }),
-  makeCharTemplate({ id:"doraemon",     name:"Doraemon",     emoji:"🔔", bg1:"#1565C0", bg2:"#E3F2FD", titleColor:"#1565C0", lineColor:"#90CAF9", footerEmojis:["🔮","📦","💊","🎩"] }),
-  makeCharTemplate({ id:"cinnamoroll",  name:"Cinnamoroll",  emoji:"☁️", bg1:"#42A5F5", bg2:"#EDF7FF", titleColor:"#1565C0", lineColor:"#BBDEFB", footerEmojis:["☁️","💙","🍬","🌟"] }),
-  makeCharTemplate({ id:"my-melody",    name:"My Melody",    emoji:"🌸", bg1:"#EC407A", bg2:"#FCE4EC", titleColor:"#AD1457", lineColor:"#F48FB1", footerEmojis:["🌸","🎀","🌷","💗"] }),
+  makeCharTemplate({ id:"hello-kitty",  name:"Hello Kitty",  emoji:"🎀", bg1:"#FF6B9D", titleColor:"#AD1457", lineColor:"#FFB3D9", footerEmojis:["🎀","🌸","🎀"] }),
+  makeCharTemplate({ id:"spider-man",   name:"Spider-Man",   emoji:"🕷️", bg1:"#CC0000",  titleColor:"#FFCDD2", lineColor:"#EF9A9A", footerEmojis:["🕸️","🕷️","🦸"] }),
+  makeCharTemplate({ id:"stitch",       name:"Stitch",       emoji:"💙", bg1:"#1E88E5", titleColor:"#BBDEFB", lineColor:"#90CAF9", footerEmojis:["🌊","🏄","💙"] }),
+  makeCharTemplate({ id:"pikachu",      name:"Pikachu",      emoji:"⚡", bg1:"#FFD700", titleColor:"#E65100", lineColor:"#FFE082", footerEmojis:["⚡","🔥","💛"] }),
+  makeCharTemplate({ id:"totoro",       name:"Totoro",       emoji:"🌿", bg1:"#4CAF50", titleColor:"#1B5E20", lineColor:"#A5D6A7", footerEmojis:["🍃","🌳","☂️"] }),
+  makeCharTemplate({ id:"doraemon",     name:"Doraemon",     emoji:"🔔", bg1:"#1565C0", titleColor:"#E3F2FD", lineColor:"#90CAF9", footerEmojis:["🔮","📦","🎩"] }),
+  makeCharTemplate({ id:"cinnamoroll",  name:"Cinnamoroll",  emoji:"☁️", bg1:"#42A5F5", titleColor:"#0D47A1", lineColor:"#BBDEFB", footerEmojis:["☁️","💙","🌟"] }),
+  makeCharTemplate({ id:"my-melody",    name:"My Melody",    emoji:"🌸", bg1:"#EC407A", titleColor:"#FCE4EC", lineColor:"#F48FB1", footerEmojis:["🌸","🎀","💗"] }),
   // ── Superheroes ─────────────────────────────────────────────────────────────
-  makeCharTemplate({ id:"batman",       name:"Batman",       emoji:"🦇", bg1:"#1A1A2E", bg2:"#0D0D1A", titleColor:"#FFD700", lineColor:"#4A4A6A", footerEmojis:["🦇","🌑","⚡","🦇"] }),
-  makeCharTemplate({ id:"superman",     name:"Superman",     emoji:"🦸", bg1:"#1565C0", bg2:"#FFEBEE", titleColor:"#B71C1C", lineColor:"#FFCDD2", footerEmojis:["🦸","⭐","🔴","💪"] }),
-  makeCharTemplate({ id:"avengers",     name:"Avengers",     emoji:"⭐", bg1:"#B71C1C", bg2:"#0D0D1A", titleColor:"#FFD700", lineColor:"#4A2020", footerEmojis:["🛡️","🔨","🕸️","⭐"] }),
+  makeCharTemplate({ id:"batman",       name:"Batman",       emoji:"🦇", bg1:"#1A1A2E", titleColor:"#FFD700", lineColor:"#4A4A6A", footerEmojis:["🦇","🌑","⚡"] }),
+  makeCharTemplate({ id:"superman",     name:"Superman",     emoji:"🦸", bg1:"#1565C0", titleColor:"#FFCDD2", lineColor:"#FFCDD2", footerEmojis:["🦸","⭐","💪"] }),
+  makeCharTemplate({ id:"avengers",     name:"Avengers",     emoji:"⭐", bg1:"#B71C1C", titleColor:"#FFD700", lineColor:"#EF9A9A", footerEmojis:["🛡️","🔨","⭐"] }),
   // ── Sanrio & Gaming ─────────────────────────────────────────────────────────
-  makeCharTemplate({ id:"kuromi",       name:"Kuromi",       emoji:"🖤", bg1:"#4A0072", bg2:"#1A0033", titleColor:"#CE93D8", lineColor:"#6A0080", footerEmojis:["🖤","💜","🌙","💀"] }),
-  makeCharTemplate({ id:"barbie",       name:"Barbie",       emoji:"👛", bg1:"#FF1493", bg2:"#FFF0F5", titleColor:"#C2185B", lineColor:"#FF80AB", footerEmojis:["👗","💄","✨","🌸"] }),
-  makeCharTemplate({ id:"sonic",        name:"Sonic",        emoji:"💨", bg1:"#1565C0", bg2:"#E3F2FD", titleColor:"#0D47A1", lineColor:"#90CAF9", footerEmojis:["💨","⭐","🏃","💙"] }),
+  makeCharTemplate({ id:"kuromi",       name:"Kuromi",       emoji:"🖤", bg1:"#4A0072", titleColor:"#CE93D8", lineColor:"#9C27B0", footerEmojis:["🖤","💜","🌙"] }),
+  makeCharTemplate({ id:"barbie",       name:"Barbie",       emoji:"👛", bg1:"#FF1493", titleColor:"#FCE4EC", lineColor:"#FF80AB", footerEmojis:["👗","💄","✨"] }),
+  makeCharTemplate({ id:"sonic",        name:"Sonic",        emoji:"💨", bg1:"#1565C0", titleColor:"#E3F2FD", lineColor:"#90CAF9", footerEmojis:["💨","⭐","💙"] }),
   // ── TV Shows ────────────────────────────────────────────────────────────────
-  {
-    id:"stranger-things", name:"Stranger Things", emoji:"🔦", cardBg:"#B71C1C", cardFg:"#0D0D0D",
-    build() {
-      const o = [], cx = LW/2;
-      // Deep dark background
-      o.push(mkRect(0,0,LW,LH,"#080808"));
-      // Atmospheric red glow at top
-      o.push(mkRect(0,0,LW,260,"#1A0000"));
-      o.push(mkCirc(cx,0,LW*0.7,"rgba(183,28,28,0.18)",{scaleY:0.5}));
-      // Christmas lights row
-      const lightColors=["#FF0000","#FF8C00","#0000FF","#00C853","#FF1493","#FFFF00","#FF0000","#0091EA"];
-      lightColors.forEach((c,i)=>{ const x=28+i*(LW-56)/7; o.push(mkLine(x,34,x,52,"#333",1.2)); o.push(mkCirc(x,58,7,c,{shadow:new fabric.Shadow({color:c,blur:10,offsetX:0,offsetY:0})})); });
-      // Flickering light string
-      o.push(mkLine(28,52,LW-28,52,"#444",1));
-      // Title - ominous red text
-      o.push(mkRect(24,80,LW-48,70,"#0D0000",6));
-      o.push(mkText("STRANGER THINGS",cx,116,20,"#CC0000",{fontWeight:"bold",letterSpacing:4,fontFamily:"serif",shadow:new fabric.Shadow({color:"#FF0000",blur:16,offsetX:0,offsetY:0})}));
-      // Upside-down particles
-      ["✦","✦","✦","✦","✦","✦"].forEach((_,i)=>o.push(mkText("✦",Math.random()*LW|0,150+Math.random()*80|0,8,"rgba(200,0,0,0.4)",{selectable:false,evented:false})));
-      o.push(mkText("✦",60,155,8,"rgba(180,0,0,0.45)",{selectable:false,evented:false}));
-      o.push(mkText("✦",180,168,6,"rgba(180,0,0,0.35)",{selectable:false,evented:false}));
-      o.push(mkText("✦",320,160,10,"rgba(200,0,0,0.4)",{selectable:false,evented:false}));
-      o.push(mkText("✦",420,172,7,"rgba(180,0,0,0.3)",{selectable:false,evented:false}));
-      // Content card — dark like the upside-down
-      o.push(mkRect(28,238,424,360,"#100A00",14,{stroke:"#4A0000",strokeWidth:1.5,shadow:new fabric.Shadow({color:"rgba(200,0,0,0.3)",blur:18,offsetX:0,offsetY:4})}));
-      mkLines(52,428,268,7,44,"#3A0000").forEach(l=>o.push(l));
-      ["🔦","🕯️","📺","🌲"].forEach((e,i)=>o.push(mkText(e,52+i*126,616,22,"#fff",{selectable:true})));
-      return o;
-    }
-  },
-  {
-    id:"euphoria", name:"Euphoria", emoji:"✨", cardBg:"#7B1FA2", cardFg:"#0D0020",
-    build() {
-      const o = [], cx = LW/2;
-      // Deep purple background
-      o.push(mkRect(0,0,LW,LH,"#0D0020"));
-      // Purple gradient header band
-      o.push(mkRect(0,0,LW,240,"#1A0040"));
-      o.push(mkRect(0,0,LW,180,"#2D0060"));
-      o.push(mkRect(0,0,LW,120,"#3D0080"));
-      // Glitter particles scattered
-      const glitterPos=[[45,28],[110,55],[195,18],[270,42],[355,30],[415,62],[60,95],[145,80],[230,105],[310,88],[440,75],[80,130],[165,118],[250,132],[380,120],[455,145]];
-      glitterPos.forEach(([x,y],i)=>{
-        const colors=["#FF80FF","#E040FB","#CE93D8","#FFFFFF","#F48FB1","#B39DDB"];
-        const sz=[4,3,5,3,4,3][i%6];
-        o.push(mkCirc(x,y,sz,colors[i%colors.length],{opacity:0.7+Math.random()*0.3,shadow:new fabric.Shadow({color:colors[i%colors.length],blur:6,offsetX:0,offsetY:0})}));
-      });
-      // Large blurred glow orbs
-      o.push(mkCirc(cx-60,100,80,"rgba(183,0,255,0.12)"));
-      o.push(mkCirc(cx+80,60,60,"rgba(255,0,128,0.10)"));
-      // Title - thin elegant
-      o.push(mkText("euphoria",cx,130,32,"#FFFFFF",{fontStyle:"italic",fontFamily:"Georgia, serif",shadow:new fabric.Shadow({color:"#CC00FF",blur:22,offsetX:0,offsetY:0})}));
-      o.push(mkText("✦  ✦  ✦",cx,162,10,"rgba(200,150,255,0.7)",{selectable:false,evented:false}));
-      // Content card - dark glassy
-      o.push(mkRect(28,188,424,410,"#0A0020",14,{stroke:"#5500AA",strokeWidth:1,shadow:new fabric.Shadow({color:"rgba(150,0,255,0.4)",blur:24,offsetX:0,offsetY:6})}));
-      mkLines(52,428,220,8,44,"#2D0060").forEach(l=>o.push(l));
-      ["✨","💜","🌙","💫"].forEach((e,i)=>o.push(mkText(e,52+i*126,616,22,"#fff",{selectable:true})));
-      return o;
-    }
-  },
+  makeCharTemplate({ id:"stranger-things", name:"Stranger Things", emoji:"🔦", bg1:"#0D0D0D", titleColor:"#FF1744", lineColor:"#4A0000", footerEmojis:["🔦","🕯️","🌲"] }),
+  makeCharTemplate({ id:"euphoria",        name:"Euphoria",        emoji:"✨", bg1:"#1A0040", titleColor:"#E040FB", lineColor:"#7B1FA2", footerEmojis:["✨","💜","🌙"] }),
   // ── Four Seasons ────────────────────────────────────────────────────────────
-  {
-    id:"spring", name:"Spring", emoji:"🌸", cardBg:"#E91E8C", cardFg:"#FFF0F8",
-    build() {
-      const o = [], cx = LW/2;
-      o.push(mkRect(0,0,LW,LH,"#FFF8FC"));
-      // Sky gradient band
-      o.push(mkRect(0,0,LW,220,"#FCE4EC"));
-      // Branch silhouette
-      o.push(mkLine(cx-80,220,cx-20,140,"#6D4C41",3)); o.push(mkLine(cx-20,140,cx+30,100,"#6D4C41",2.5));
-      o.push(mkLine(cx-20,140,cx-60,90,"#6D4C41",2)); o.push(mkLine(cx+30,100,cx+80,60,"#6D4C41",2));
-      o.push(mkLine(cx+30,100,cx+10,55,"#6D4C41",1.5));
-      // Cherry blossoms - clusters of circles
-      const blossoms=[[cx-55,85,12,"#F48FB1"],[cx-30,70,10,"#FF80AB"],[cx-10,60,9,"#FCE4EC"],[cx+15,52,11,"#F48FB1"],[cx+40,50,13,"#FF80AB"],[cx+68,45,10,"#F06292"],[cx+85,56,8,"#F48FB1"],[cx-70,95,8,"#FF80AB"],[cx+95,72,9,"#FCE4EC"],[cx-5,92,7,"#F48FB1"],[cx+55,35,8,"#FF80AB"]];
-      blossoms.forEach(([x,y,r,c])=>o.push(mkCirc(x,y,r,c,{opacity:0.9})));
-      // Floating petals
-      [[60,160],[140,195],[280,175],[370,155],[440,180],[100,210],[320,200]].forEach(([x,y])=>o.push(mkCirc(x,y,5,"#F48FB1",{opacity:0.5})));
-      // Green grass strip
-      o.push(mkRect(0,210,LW,26,"#81C784",0));
-      o.push(mkRect(0,224,LW,14,"#66BB6A",0));
-      o.push(mkText("🌸  SPRING  🌸",cx,248,18,"#AD1457",{fontWeight:"bold",letterSpacing:4}));
-      o.push(mkRect(28,268,424,332,"#FFFFFF",14,{stroke:"#F48FB1",strokeWidth:1.5,shadow:new fabric.Shadow({color:"rgba(244,143,177,0.25)",blur:14,offsetX:0,offsetY:4})}));
-      mkLines(52,428,298,7,43,"#FFCDD2").forEach(l=>o.push(l));
-      ["🌸","🦋","🌷","🐝"].forEach((e,i)=>o.push(mkText(e,52+i*126,618,22,"#000",{selectable:true})));
-      return o;
-    }
-  },
-  {
-    id:"summer", name:"Summer", emoji:"☀️", cardBg:"#FF8F00", cardFg:"#FFF8E1",
-    build() {
-      const o = [], cx = LW/2;
-      o.push(mkRect(0,0,LW,LH,"#E1F5FE"));
-      // Sky
-      o.push(mkRect(0,0,LW,200,"#B3E5FC"));
-      // Sun
-      o.push(mkCirc(LW-60,50,48,"#FFD600",{shadow:new fabric.Shadow({color:"#FFD600",blur:30,offsetX:0,offsetY:0})}));
-      o.push(mkCirc(LW-60,50,38,"#FFEE58"));
-      // Sun rays
-      for(let i=0;i<8;i++){const a=i*Math.PI/4; o.push(mkLine(LW-60+Math.cos(a)*50,50+Math.sin(a)*50,LW-60+Math.cos(a)*68,50+Math.sin(a)*68,"#FFD600",2.5));}
-      // Clouds
-      [[80,40],[200,28],[330,50]].forEach(([x,y])=>{
-        o.push(mkCirc(x,y,20,"#FFFFFF",{opacity:0.9})); o.push(mkCirc(x+22,y+4,16,"#FFFFFF",{opacity:0.9})); o.push(mkCirc(x+40,y,18,"#FFFFFF",{opacity:0.9})); o.push(mkCirc(x-16,y+4,14,"#FFFFFF",{opacity:0.9}));
-      });
-      // Ocean
-      o.push(mkRect(0,192,LW,40,"#0288D1",0));
-      o.push(mkRect(0,208,LW,28,"#0277BD",0));
-      o.push(mkRect(0,220,LW,14,"#01579B",0));
-      // Waves
-      [0,40,80,120,160,200,240,280,320,360,400,440].forEach(x=>o.push(mkCirc(x+16,198,18,"#4FC3F7",{scaleX:2,opacity:0.4})));
-      // Sandy beach
-      o.push(mkRect(0,230,LW,10,"#FFE082",0));
-      o.push(mkText("☀️  SUMMER  ☀️",cx,254,18,"#E65100",{fontWeight:"bold",letterSpacing:3}));
-      o.push(mkRect(28,274,424,330,"#FFFFFF",14,{stroke:"#FFE082",strokeWidth:1.5,shadow:new fabric.Shadow({color:"rgba(255,200,0,0.2)",blur:12,offsetX:0,offsetY:4})}));
-      mkLines(52,428,304,7,43,"#FFE082").forEach(l=>o.push(l));
-      ["🌊","🐚","🌴","🦀"].forEach((e,i)=>o.push(mkText(e,52+i*126,620,22,"#000",{selectable:true})));
-      return o;
-    }
-  },
-  {
-    id:"autumn", name:"Autumn", emoji:"🍂", cardBg:"#E64A19", cardFg:"#FBE9E7",
-    build() {
-      const o = [], cx = LW/2;
-      o.push(mkRect(0,0,LW,LH,"#FBE9E7"));
-      // Warm sky gradient bands
-      o.push(mkRect(0,0,LW,240,"#FFF3E0")); o.push(mkRect(0,0,LW,160,"#FFE0B2")); o.push(mkRect(0,0,LW,80,"#FFCCBC"));
-      // Tree trunk
-      o.push(mkRect(cx-18,130,36,100,"#5D4037",8));
-      // Canopy mass
-      o.push(mkCirc(cx,110,70,"#FF6D00",{opacity:0.9})); o.push(mkCirc(cx-40,120,50,"#E65100",{opacity:0.85})); o.push(mkCirc(cx+44,116,48,"#BF360C",{opacity:0.85})); o.push(mkCirc(cx,82,42,"#FF8F00"));
-      // Ground
-      o.push(mkRect(0,224,LW,20,"#8D6E63",0));
-      // Falling leaves
-      const leaves=[["🍁",80,150],["🍂",160,170],["🍁",280,140],["🍂",360,165],["🍁",440,155],["🍂",60,195],["🍁",220,205],["🍂",400,188]];
-      leaves.forEach(([e,x,y])=>o.push(mkText(e,x,y,14,"#E64A19",{angle:Math.random()*30-15|0,selectable:false,evented:false})));
-      o.push(mkText("🍂  AUTUMN  🍂",cx,254,18,"#BF360C",{fontWeight:"bold",letterSpacing:3}));
-      o.push(mkRect(28,274,424,330,"#FFFDE7",14,{stroke:"#FFCC80",strokeWidth:1.5,shadow:new fabric.Shadow({color:"rgba(230,74,25,0.2)",blur:14,offsetX:0,offsetY:4})}));
-      mkLines(52,428,304,7,43,"#FFCC80").forEach(l=>o.push(l));
-      ["🍁","🎃","🌰","🍄"].forEach((e,i)=>o.push(mkText(e,52+i*126,620,22,"#000",{selectable:true})));
-      return o;
-    }
-  },
-  {
-    id:"winter", name:"Winter", emoji:"❄️", cardBg:"#1565C0", cardFg:"#E3F2FD",
-    build() {
-      const o = [], cx = LW/2;
-      o.push(mkRect(0,0,LW,LH,"#E3F2FD"));
-      // Night-ish sky
-      o.push(mkRect(0,0,LW,240,"#BBDEFB")); o.push(mkRect(0,0,LW,160,"#90CAF9")); o.push(mkRect(0,0,LW,80,"#64B5F6"));
-      // Moon
-      o.push(mkCirc(LW-70,55,38,"#E3F2FD",{shadow:new fabric.Shadow({color:"#BBDEFB",blur:20,offsetX:0,offsetY:0})}));
-      o.push(mkCirc(LW-50,42,30,"#90CAF9")); // moon crescent shadow
-      // Stars
-      [[30,30],[90,18],[150,42],[250,25],[310,38],[380,20],[100,60],[200,52]].forEach(([x,y])=>o.push(mkText("✦",x,y,8+Math.random()*6|0,"#E3F2FD",{opacity:0.7,selectable:false,evented:false})));
-      // Snowflakes falling
-      [[50,90],[110,75],[190,110],[260,85],[340,100],[420,78],[70,130],[180,145],[300,125],[430,138]].forEach(([x,y])=>o.push(mkText("❄",x,y,12+Math.random()*8|0,"#90CAF9",{opacity:0.6,selectable:false,evented:false})));
-      // Ground snow
-      o.push(mkRect(0,220,LW,28,"#FFFFFF",0)); o.push(mkCirc(cx,220,LW*0.55,"#FFFFFF",{scaleY:0.18}));
-      // Christmas tree silhouette
-      o.push(mkRect(cx-12,175,24,52,"#5D4037",4));
-      o.push(mkRect(cx-28,166,56,22,"#2E7D32",10)); o.push(mkRect(cx-38,146,76,28,"#388E3C",14)); o.push(mkRect(cx-22,128,44,26,"#43A047",10));
-      o.push(mkText("⭐",cx,118,14,"#FFD700",{selectable:false}));
-      o.push(mkText("❄️  WINTER  ❄️",cx,256,18,"#0D47A1",{fontWeight:"bold",letterSpacing:3}));
-      o.push(mkRect(28,276,424,328,"#FFFFFF",14,{stroke:"#90CAF9",strokeWidth:1.5,shadow:new fabric.Shadow({color:"rgba(21,101,192,0.2)",blur:14,offsetX:0,offsetY:4})}));
-      mkLines(52,428,306,7,43,"#BBDEFB").forEach(l=>o.push(l));
-      ["⛄","🎄","🛷","❄️"].forEach((e,i)=>o.push(mkText(e,52+i*126,620,22,"#000",{selectable:true})));
-      return o;
-    }
-  },
+  makeSceneTemplate({ id:"spring",      name:"Spring",       emoji:"🌸", lineColor:"#F48FB1", titleColor:"#FFFFFF", overlayColor:"#FCE4EC", decorEmojis:["🌸","🦋","🌷"] }),
+  makeSceneTemplate({ id:"summer",      name:"Summer",       emoji:"☀️", lineColor:"#FFE082", titleColor:"#FFFFFF", overlayColor:"#FFF8E1", decorEmojis:["🌊","🌴","🦀"] }),
+  makeSceneTemplate({ id:"autumn",      name:"Autumn",       emoji:"🍂", lineColor:"#FFCC80", titleColor:"#FFFFFF", overlayColor:"#FBE9E7", decorEmojis:["🍁","🎃","🍄"] }),
+  makeSceneTemplate({ id:"winter",      name:"Winter",       emoji:"❄️", lineColor:"#BBDEFB", titleColor:"#FFFFFF", overlayColor:"#E3F2FD", decorEmojis:["⛄","🎄","❄️"] }),
   // ── Travel & Vibes ──────────────────────────────────────────────────────────
-  {
-    id:"travel-beach", name:"Beach Travel", emoji:"🌊", cardBg:"#0288D1", cardFg:"#E1F5FE",
-    build() {
-      const o = [], cx = LW/2;
-      // Sky
-      o.push(mkRect(0,0,LW,LH,"#B3E5FC"));
-      o.push(mkRect(0,0,LW,200,"#81D4FA")); o.push(mkRect(0,0,LW,120,"#4FC3F7"));
-      // Sun
-      o.push(mkCirc(80,55,42,"#FFD600",{shadow:new fabric.Shadow({color:"#FFD600",blur:32,offsetX:0,offsetY:0})}));
-      o.push(mkCirc(80,55,32,"#FFEE58"));
-      // Clouds
-      [[150,30],[280,18],[380,40]].forEach(([x,y])=>{
-        o.push(mkCirc(x,y,18,"rgba(255,255,255,0.9)")); o.push(mkCirc(x+20,y+4,14,"rgba(255,255,255,0.9)")); o.push(mkCirc(x+36,y,16,"rgba(255,255,255,0.9)"));
-      });
-      // Ocean
-      o.push(mkRect(0,188,LW,50,"#0288D1",0)); o.push(mkRect(0,204,LW,36,"#0277BD",0)); o.push(mkRect(0,218,LW,20,"#01579B",0));
-      // Waves
-      [0,50,100,150,200,250,300,350,400,450].forEach(x=>o.push(mkCirc(x+22,192,24,"#4FC3F7",{scaleX:2.2,opacity:0.35})));
-      // Beach sand
-      o.push(mkRect(0,230,LW,16,"#FFD54F",0)); o.push(mkRect(0,238,LW,10,"#FFCA28",0));
-      // Palm trees
-      [[60,195],[LW-55,190]].forEach(([px,py])=>{
-        o.push(mkRect(px-5,py-90,10,92,"#795548",5)); // trunk
-        o.push(mkCirc(px,py-90,32,"#2E7D32",{opacity:0.9})); o.push(mkCirc(px-22,py-80,22,"#388E3C")); o.push(mkCirc(px+22,py-80,20,"#43A047")); o.push(mkCirc(px,py-72,18,"#2E7D32"));
-        o.push(mkText("🥥",px,py-100,12,"#000",{selectable:false,evented:false}));
-      });
-      o.push(mkText("🌊  TRAVEL  🌊",cx,258,18,"#01579B",{fontWeight:"bold",letterSpacing:3}));
-      o.push(mkRect(28,278,424,326,"#FFFFFF",14,{stroke:"#81D4FA",strokeWidth:1.5,shadow:new fabric.Shadow({color:"rgba(2,136,209,0.2)",blur:14,offsetX:0,offsetY:4})}));
-      mkLines(52,428,308,7,43,"#B3E5FC").forEach(l=>o.push(l));
-      ["🌴","🐠","🐚","⛵"].forEach((e,i)=>o.push(mkText(e,52+i*126,620,22,"#000",{selectable:true})));
-      return o;
-    }
-  },
-  {
-    id:"night-city", name:"Night City", emoji:"🌃", cardBg:"#7C4DFF", cardFg:"#0A0A1A",
-    build() {
-      const o = [], cx = LW/2;
-      // Night sky
-      o.push(mkRect(0,0,LW,LH,"#050510"));
-      o.push(mkRect(0,0,LW,180,"#0A0820")); o.push(mkRect(0,0,LW,100,"#0D0B2A"));
-      // Stars
-      Array.from({length:40},(_,i)=>{ const x=Math.floor(i*LW/39.5),y=Math.floor(10+i*4.1)%95;
-        o.push(mkCirc(x,y,i%3===0?2:1,i%5===0?"#FFFFFF":"rgba(200,200,255,0.7)",{opacity:0.4+i%3*0.2}));
-      });
-      // Moon
-      o.push(mkCirc(LW-55,38,28,"#FFF9C4",{shadow:new fabric.Shadow({color:"rgba(255,249,196,0.5)",blur:18,offsetX:0,offsetY:0})}));
-      o.push(mkCirc(LW-42,28,20,"#0A0820")); // crescent
-      // City skyline — silhouette of buildings
-      const buildings=[[0,80,55,130],[50,65,40,165],[88,75,50,155],[136,50,60,180],[192,70,35,160],[224,40,65,190],[286,60,45,170],[328,35,70,195],[394,55,45,175],[436,70,48,160]];
-      buildings.forEach(([x,y,w,h])=>{
-        o.push(mkRect(x,LH-h,w,h,"#0D0D28",0));
-        // Windows - random lit ones
-        for(let row=0;row<Math.floor(h/18);row++){
-          for(let col=0;col<Math.floor(w/12);col++){
-            if(Math.random()>0.55){
-              const wc=Math.random()>0.7?"#FFD54F":Math.random()>0.5?"#80DEEA":"#CE93D8";
-              o.push(mkRect(x+col*12+3,LH-h+row*18+5,7,9,wc,1,{opacity:0.8}));
-            }
-          }
-        }
-      });
-      // Neon reflections on street
-      o.push(mkRect(0,LH-56,LW,56,"#070715",0));
-      [[cx-80,"#7C4DFF"],[cx+20,"#FF4081"],[cx+120,"#00E5FF"]].forEach(([x,c])=>o.push(mkRect(x,LH-48,4,46,c,2,{opacity:0.3})));
-      o.push(mkText("🌃  NIGHT CITY  🌃",cx,200,16,"#CE93D8",{fontWeight:"bold",letterSpacing:3,shadow:new fabric.Shadow({color:"#7C4DFF",blur:10,offsetX:0,offsetY:0})}));
-      o.push(mkRect(28,220,424,356,"#0D0D20",14,{stroke:"#4A148C",strokeWidth:1,shadow:new fabric.Shadow({color:"rgba(124,77,255,0.4)",blur:20,offsetX:0,offsetY:6})}));
-      mkLines(52,428,252,7,44,"#1A1040").forEach(l=>o.push(l));
-      ["🌃","🌉","🚕","🎆"].forEach((e,i)=>o.push(mkText(e,52+i*126,588,22,"#fff",{selectable:true})));
-      return o;
-    }
-  },
+  makeSceneTemplate({ id:"travel-beach", name:"Beach Travel", emoji:"🌊", lineColor:"#B3E5FC", titleColor:"#FFFFFF", overlayColor:"#E1F5FE", decorEmojis:["🌴","🐠","⛵"] }),
+  makeSceneTemplate({ id:"night-city",   name:"Night City",   emoji:"🌃", lineColor:"#9575CD", titleColor:"#FFFFFF", overlayColor:"#0A0A2A", decorEmojis:["🌃","🌉","🎆"] }),
 ];
 
 // ── legacy — keep sticker-only helpers below but BUILTIN_TEMPLATES now uses real images ──
@@ -2539,27 +2425,33 @@ const GraphicsPanel = ({ onAdd, onSetBackground, onLoadTemplate }) => {
             {BUILTIN_TEMPLATES.map((tmpl) => (
               <button key={tmpl.id} onClick={() => onLoadTemplate(tmpl)}
                 className="group relative rounded-xl overflow-hidden border-2 border-white/10 hover:border-pink-400/60 transition-all shadow-lg hover:shadow-pink-900/30"
-                style={{ aspectRatio: "3/4", background: tmpl.cardFg }}
+                style={{ aspectRatio: "3/4", background: tmpl.cardBg }}
               >
-                {/* Coloured header band */}
-                <div className="absolute inset-x-0 top-0 h-[52%]" style={{ background: tmpl.cardBg }} />
-                {/* Character image — hides itself if no file exists (scene templates) */}
+                {/* Scene background photo */}
+                {["spring","summer","autumn","winter","travel-beach","night-city"].includes(tmpl.id) && (
+                  <img src={`/backgrounds/${tmpl.id}.jpg`} alt="" className="absolute inset-0 w-full h-full object-cover opacity-80 pointer-events-none" />
+                )}
+                {/* White blob preview shape */}
+                <div className="absolute inset-[6%] bottom-[16%] bg-white/90 z-5"
+                  style={{ borderRadius: "42% 50% 46% 44% / 48% 42% 52% 46%" }} />
+                {/* Character image (bottom-right) */}
                 <img
                   src={`/characters/${tmpl.id}.png`}
                   alt={tmpl.name}
-                  className="absolute inset-x-0 top-0 w-full h-[55%] object-contain object-bottom z-10 pointer-events-none"
+                  className="absolute right-0 bottom-7 w-[54%] h-[50%] object-contain object-right-bottom z-10 pointer-events-none"
                   style={{ imageRendering: "auto" }}
-                  onError={e => { e.currentTarget.replaceWith(Object.assign(document.createElement("div"),{className:"absolute inset-x-0 top-[8%] flex items-center justify-center text-4xl z-10",textContent:tmpl.emoji})); }}
+                  onError={e => { e.currentTarget.replaceWith(Object.assign(document.createElement("div"),{className:"absolute right-2 bottom-8 text-3xl z-10",textContent:tmpl.emoji})); }}
                 />
-                {/* Lines preview */}
-                <div className="absolute inset-x-3 bottom-[14%] flex flex-col gap-1">
-                  {[0,1,2,3].map(i=>(
-                    <div key={i} className="h-px w-full rounded-full" style={{ background: tmpl.cardBg, opacity: 0.3 }} />
+                {/* Dashed line strips (left side, inside blob) */}
+                <div className="absolute left-[8%] right-[46%] top-[22%] flex flex-col gap-[4px] z-10">
+                  {[0,1,2,3,4].map(i=>(
+                    <div key={i} className="h-px rounded-full" style={{ background: tmpl.cardBg || "#aaa", opacity: 0.4,
+                      backgroundImage: `repeating-linear-gradient(90deg, ${tmpl.cardBg||"#aaa"} 0, ${tmpl.cardBg||"#aaa"} 4px, transparent 4px, transparent 8px)` }} />
                   ))}
                 </div>
                 {/* Name */}
-                <div className="absolute bottom-1.5 left-2 right-2 text-[9px] font-bold text-center leading-tight z-20"
-                  style={{ color: tmpl.cardBg }}>{tmpl.name}</div>
+                <div className="absolute bottom-1.5 left-2 right-2 text-[9px] font-bold text-center leading-tight z-20 italic"
+                  style={{ color: "#fff", textShadow: "0 1px 4px rgba(0,0,0,0.8)" }}>{tmpl.name}</div>
                 {/* Hover overlay */}
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all flex items-center justify-center z-30">
                   <span className="opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 text-white text-[11px] font-bold px-3 py-1.5 rounded-full">
