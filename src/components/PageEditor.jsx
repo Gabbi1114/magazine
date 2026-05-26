@@ -755,246 +755,350 @@ const mkCirc  = (l,t,r,fill,extra={}) => new fabric.Circle({left:l,top:t,radius:
 const mkLines = (x1,x2,startY,n,gap,color="#e0e0e0") => Array.from({length:n},(_,i)=>mkLine(x1,startY+i*gap,x2,startY+i*gap,color));
 
 const BUILTIN_TEMPLATES = [
-  // ── 1. Pink Hearts To-Do ────────────────────────────────────────────────────
+  // ── 1. Hello Kitty ──────────────────────────────────────────────────────────
   {
-    id:"pink-todo", name:"Pink To-Do List", emoji:"🩷", cardBg:"#FF6B9D", cardFg:"#fff0f5",
+    id:"hello-kitty", name:"Hello Kitty", emoji:"🎀", cardBg:"#FF6B9D", cardFg:"#FFF0F8",
     build(){
-      const o=[];
-      o.push(mkRect(0,0,LW,LH,"#FFF0F5"));
-      // scattered hearts bg
-      [[28,110],[60,220],[430,140],[450,70],[25,380],[455,310],[32,510],[448,470],
-       [100,575],[400,560],[195,90],[345,85],[75,430],[440,420],[155,555],[330,110]
-      ].forEach(([x,y])=>o.push(mkText("♥",x,y,14,"#FFB3CC",{opacity:0.55,selectable:false,evented:false})));
-      // header
-      o.push(mkRect(0,0,LW,88,"#FF6B9D"));
-      o.push(mkRect(0,0,LW,88,"rgba(0,0,0,0.06)"));
-      o.push(mkText("♥  TO DO LIST  ♥",LW/2,44,24,"#ffffff",{fontWeight:"bold",letterSpacing:3}));
-      // card
-      o.push(mkRect(26,106,428,503,"#ffffff",18,{shadow:new fabric.Shadow({color:"rgba(255,107,157,0.18)",blur:22,offsetX:0,offsetY:6})}));
-      // checkbox rows
-      const colors=["#FF6B9D","#FF9EBB","#FFB3CC","#FF6B9D","#FF9EBB","#FFB3CC","#FF6B9D","#FF9EBB"];
-      for(let i=0;i<8;i++){
-        const y=162+i*44;
-        o.push(mkRect(50,y-10,18,18,"none",3,{stroke:colors[i],strokeWidth:2,selectable:false,evented:false}));
-        o.push(mkLine(80,y+0,410,y+0,colors[i%2===0?"0":"1"]||"#f0c0d0",1));
-        o.push(mkLine(80,y,410,y,"#f8d0e0",1));
-      }
-      // footer
-      o.push(mkText("🐼",420,585,34,"#000",{selectable:true}));
-      o.push(mkText("♥",52,132,18,"#FF9EBB",{selectable:false,evented:false}));
-      o.push(mkText("♥",428,132,18,"#FF9EBB",{selectable:false,evented:false}));
-      return o;
-    }
-  },
-  // ── 2. Blue Botanical Planner ────────────────────────────────────────────────
-  {
-    id:"blue-botanical", name:"Blue Daily Planner", emoji:"🌿", cardBg:"#4A90D9", cardFg:"#EAF6FF",
-    build(){
-      const o=[];
-      o.push(mkRect(0,0,LW,LH,"#EAF6FF"));
-      // leaf-dot border
-      const blue1="#7EC8E3",blue2="#A8D8EA";
-      const lp=14;
-      for(let i=0;i<9;i++){
-        o.push(mkCirc(lp,80+i*60,7,blue1));
-        o.push(mkCirc(LW-lp,80+i*60,7,blue2));
-      }
-      for(let i=0;i<8;i++){
-        o.push(mkCirc(80+i*52,lp,7,blue1));
-        o.push(mkCirc(80+i*52,LH-lp,7,blue2));
-      }
-      // corner circles
-      [["#5BBCD9",14,14],["#7EC8E3",LW-14,14],["#5BBCD9",14,LH-14],["#7EC8E3",LW-14,LH-14]].forEach(([c,x,y])=>o.push(mkCirc(x,y,12,c)));
-      // header
-      o.push(mkText("DAILY",LW/2,60,13,"#4A90D9",{fontWeight:"bold",letterSpacing:8,selectable:false,evented:false}));
-      o.push(mkText("PLANNER",LW/2,92,34,"#2E7AB6",{fontWeight:"bold",letterSpacing:4}));
-      // divider
-      o.push(mkLine(50,120,LW-50,120,"#A8D8EA",2));
-      // date area
-      o.push(mkRect(50,135,380,36,"#ffffff",8,{stroke:"#A8D8EA",strokeWidth:1.5}));
-      o.push(mkText("Date:",100,153,12,"#8BB8D0",{originX:"left",selectable:false,evented:false}));
-      // white content card
-      o.push(mkRect(30,186,420,415,"#ffffff",14,{shadow:new fabric.Shadow({color:"rgba(74,144,217,0.15)",blur:18,offsetX:0,offsetY:5})}));
-      // writing lines
-      mkLines(55,425,238,8,42,"#CBE8F5").forEach(l=>o.push(l));
-      // ✦ stars
-      [[LW/2-80,210],[LW/2+80,210]].forEach(([x,y])=>o.push(mkText("✦",x,y,10,"#A8D8EA",{selectable:false,evented:false})));
-      o.push(mkText("✦  notes for today  ✦",LW/2,215,11,"#A8D8EA",{selectable:false,evented:false}));
-      return o;
-    }
-  },
-  // ── 3. Yellow Goals ─────────────────────────────────────────────────────────
-  {
-    id:"yellow-goals", name:"Today's Goal", emoji:"⭐", cardBg:"#FFD93D", cardFg:"#FFFDE7",
-    build(){
-      const o=[];
+      const o=[], hx=LW/2, hy=82;
       o.push(mkRect(0,0,LW,LH,"#FFFFFF"));
-      // left accent bar
-      o.push(mkRect(0,0,14,LH,"#FF6B6B"));
-      // confetti dots
-      const cdots=[["#FF6B9D",60,50],["#FFD93D",120,30],["#6BCB77",200,55],["#4A90D9",300,35],["#FF6B6B",380,50],
-                   ["#FF6B9D",430,80],["#FFD93D",50,590],["#6BCB77",160,605],["#4A90D9",270,600],["#FF6B6B",370,595],["#FF6B9D",440,580]];
-      cdots.forEach(([c,x,y])=>{ o.push(mkCirc(x,y,5,c)); o.push(mkCirc(x+20,y+15,3,c,{opacity:0.5})); });
-      // yellow header banner
-      o.push(mkRect(30,25,420,80,"#FFD93D",12));
-      o.push(mkText("today's",LW/2,46,13,"#FF6B6B",{fontStyle:"italic",selectable:false,evented:false}));
-      o.push(mkText("G O A L",LW/2,75,28,"#333333",{fontWeight:"bold"}));
-      // rows with checkboxes
-      const rowColors=["#FF6B9D","#FFD93D","#6BCB77","#4A90D9","#FF6B6B","#A78BFA","#FF6B9D","#6BCB77"];
-      for(let i=0;i<8;i++){
-        const y=148+i*59;
-        o.push(mkRect(30,y,LW-60,52,"#FAFAFA",8,{stroke:"#f0f0f0",strokeWidth:1}));
-        o.push(mkRect(48,y+16,20,20,rowColors[i],4));
-        o.push(mkText(String(i+1),58,y+26,10,"#fff",{fontWeight:"bold",selectable:false,evented:false}));
-        o.push(mkLine(82,y+26,420,y+26,"#e8e8e8",1));
-      }
+      // pink top banner
+      o.push(mkRect(0,0,LW,148,"#FF6B9D"));
+      // scattered tiny hearts bg
+      [[28,170],[75,240],[420,175],[448,265],[26,370],[452,350],[34,490],[446,455],
+       [95,555],[395,545],[185,165],[335,162]].forEach(([x,y])=>
+        o.push(mkText("♥",x,y,12,"#FFD0E8",{opacity:0.6,selectable:false,evented:false})));
+      // head (white oval)
+      o.push(mkCirc(hx,hy,56,"#FFFFFF",{scaleX:1.15}));
+      // ears
+      o.push(mkCirc(hx-50,hy-44,20,"#FFFFFF"));
+      o.push(mkCirc(hx+50,hy-44,20,"#FFFFFF"));
+      // pink bow (right ear)
+      o.push(mkCirc(hx+38,hy-52,12,"#FF3A85"));
+      o.push(mkCirc(hx+58,hy-52,12,"#FF3A85"));
+      o.push(mkCirc(hx+48,hy-52,7,"#FF8BBC"));
+      // eyes
+      o.push(mkCirc(hx-16,hy-4,6,"#1a1a1a"));
+      o.push(mkCirc(hx+16,hy-4,6,"#1a1a1a"));
+      // nose (tiny yellow oval)
+      o.push(mkCirc(hx,hy+10,4,"#FFD700",{scaleX:1.3}));
+      // whiskers
+      o.push(mkLine(hx-46,hy+4,hx-14,hy+6,"#777",1));
+      o.push(mkLine(hx-46,hy+12,hx-14,hy+12,"#777",1));
+      o.push(mkLine(hx+14,hy+6,hx+46,hy+4,"#777",1));
+      o.push(mkLine(hx+14,hy+12,hx+46,hy+12,"#777",1));
+      // title
+      o.push(mkText("Hello Kitty",hx,128,14,"#FFFFFF",{fontWeight:"bold",letterSpacing:2}));
+      // pink dot border row
+      for(let i=0;i<13;i++) o.push(mkCirc(20+i*36,156,5,"#FFB3D9",{selectable:false,evented:false}));
+      // content card
+      o.push(mkRect(28,168,424,440,"#FFFFFF",16,{stroke:"#FFD0E8",strokeWidth:1.5,
+        shadow:new fabric.Shadow({color:"rgba(255,107,157,0.18)",blur:20,offsetX:0,offsetY:6})}));
+      mkLines(54,426,210,8,45,"#FFD0E8").forEach(l=>o.push(l));
+      [["♥",52,184],["♥",428,184],["♥",52,590],["♥",428,590]].forEach(([t,x,y])=>
+        o.push(mkText(t,x,y,18,"#FFB3CC",{selectable:false,evented:false})));
+      o.push(mkText("🎀",hx,626,18,"#000",{selectable:true}));
       return o;
     }
   },
-  // ── 4. Don't Forget (Pink Hearts Frame) ─────────────────────────────────────
+  // ── 2. Spider-Man ──────────────────────────────────────────────────────────
   {
-    id:"dont-forget", name:"Don't Forget", emoji:"💌", cardBg:"#FF4D79", cardFg:"#FFB6C1",
+    id:"spider-man", name:"Spider-Man", emoji:"🕷️", cardBg:"#CC0000", cardFg:"#E8EAF6",
     build(){
-      const o=[];
-      o.push(mkRect(0,0,LW,LH,"#FF8FAB"));
-      // heart wallpaper
-      const hrows=[[20,30],[70,70],[130,25],[190,65],[250,30],[310,70],[370,25],[430,65],[455,30],
-                   [20,130],[65,170],[125,125],[185,165],[250,130],[315,165],[375,120],[440,165],
-                   [25,230],[70,265],[135,225],[195,260],[255,230],[320,262],[380,225],[445,260],
-                   [25,330],[65,365],[130,325],[195,360],[255,330],[320,362],[378,325],[445,360],
-                   [25,430],[70,470],[135,430],[195,465],[255,430],[320,465],[380,430],[445,465],
-                   [25,530],[70,568],[135,530],[195,565],[255,530],[320,565],[380,530],[445,565]];
-      hrows.forEach(([x,y])=>o.push(mkText("♥",x,y,16,"rgba(255,255,255,0.3)",{selectable:false,evented:false})));
-      // title text
-      o.push(mkText("Don't forget",LW/2,52,26,"#ffffff",{fontStyle:"italic",fontWeight:"bold",
-        shadow:new fabric.Shadow({color:"rgba(180,0,50,0.3)",blur:8,offsetX:1,offsetY:2})}));
-      o.push(mkText("♡",LW/2-130,52,22,"rgba(255,255,255,0.7)",{selectable:false,evented:false}));
-      o.push(mkText("♡",LW/2+130,52,22,"rgba(255,255,255,0.7)",{selectable:false,evented:false}));
-      // main white frame
-      o.push(mkRect(32,84,416,522,"#ffffff",20,{
-        stroke:"rgba(255,255,255,0.8)",strokeWidth:3,
-        shadow:new fabric.Shadow({color:"rgba(180,0,60,0.2)",blur:28,offsetX:0,offsetY:8})
-      }));
-      // lines inside
-      mkLines(55,425,148,10,47,"#FFD0DC").forEach(l=>o.push(l));
-      // corner hearts
-      [["♥",58,100],["♥",422,100],["♥",58,578],["♥",422,578]].forEach(([t,x,y])=>
-        o.push(mkText(t,x,y,20,"#FFB3CC",{selectable:false,evented:false})));
-      return o;
-    }
-  },
-  // ── 5. Pastel Wish List ──────────────────────────────────────────────────────
-  {
-    id:"wish-list", name:"Wish List", emoji:"✨", cardBg:"#A78BFA", cardFg:"#F5F0FF",
-    build(){
-      const o=[];
-      o.push(mkRect(0,0,LW,LH,"#FFFFFF"));
-      // top colour wave
-      o.push(mkRect(0,0,LW,105,"#F5F0FF"));
-      // title pill
-      o.push(mkRect(LW/2-90,22,80,42,"#FF6B9D",21));
-      o.push(mkText("WISH",LW/2-50,43,16,"#ffffff",{fontWeight:"bold",selectable:false,evented:false}));
-      o.push(mkRect(LW/2-8,22,110,42,"#A78BFA",21));
-      o.push(mkText("LIST",LW/2+47,43,22,"#ffffff",{fontWeight:"bold",selectable:false,evented:false}));
-      // small stars
-      [[80,40],[390,40],[80,88],[390,88]].forEach(([x,y])=>
-        o.push(mkText("★",x,y,14,"#FFD93D",{selectable:false,evented:false})));
-      o.push(mkLine(30,108,LW-30,108,"#EDE0FF",2));
-      // numbered items
-      const bcolors=["#FF6B9D","#FFD93D","#6BCB77","#4A90D9","#FF6B6B","#A78BFA","#FFA07A"];
-      for(let i=0;i<7;i++){
-        const y=142+i*70;
-        // circle badge
-        o.push(mkCirc(56,y+18,20,bcolors[i]));
-        o.push(mkText(String(i+1),56,y+18,16,"#ffffff",{fontWeight:"bold",selectable:false,evented:false}));
-        // line
-        o.push(mkRect(88,y+12,346,2,"#f0e8ff",1,{}));
-        o.push(mkRect(88,y+38,346,2,"#f0e8ff",1,{}));
-        // box
-        o.push(mkRect(88,y,346,50,"#FAFAFF",8,{stroke:"#EDE0FF",strokeWidth:1}));
-      }
-      // footer sparkle
-      o.push(mkText("✨ make your dreams happen ✨",LW/2,620,11,"#C4B5FD",{selectable:false,evented:false}));
-      return o;
-    }
-  },
-  // ── 6. Mint My Plans ────────────────────────────────────────────────────────
-  {
-    id:"my-plans", name:"My Plans", emoji:"🌸", cardBg:"#26C99E", cardFg:"#E8FFF5",
-    build(){
-      const o=[];
-      o.push(mkRect(0,0,LW,LH,"#F0FFF8"));
-      // colourful dot border
-      const bcols=["#FF6B9D","#FFD93D","#6BCB77","#4A90D9","#FF6B6B","#A78BFA"];
-      for(let i=0;i<14;i++){
-        o.push(mkCirc(32+i*30,20,7,bcols[i%bcols.length]));
-        o.push(mkCirc(32+i*30,LH-20,7,bcols[(i+2)%bcols.length]));
-      }
-      for(let i=0;i<18;i++){
-        o.push(mkCirc(20,32+i*32,7,bcols[(i+1)%bcols.length]));
-        o.push(mkCirc(LW-20,32+i*32,7,bcols[(i+3)%bcols.length]));
-      }
-      // header
-      o.push(mkText("My plans:",LW/2,70,32,"#2E9E78",{fontStyle:"italic",fontWeight:"bold",
-        shadow:new fabric.Shadow({color:"rgba(0,160,100,0.2)",blur:6,offsetX:1,offsetY:2})}));
-      o.push(mkLine(55,98,LW-55,98,"#6BCB77",2));
-      // content area
-      o.push(mkRect(42,110,396,490,"#ffffff",14,{
-        shadow:new fabric.Shadow({color:"rgba(38,201,158,0.2)",blur:20,offsetX:0,offsetY:6})
-      }));
-      mkLines(60,420,158,9,47,"#C0F0E0").forEach(l=>o.push(l));
-      // small flower decorations
-      ["🌸","🌿","🌸"].forEach((e,i)=>o.push(mkText(e,100+i*140,590,22,"#000",{selectable:true})));
-      return o;
-    }
-  },
-  // ── 7. Coral Be Happy ────────────────────────────────────────────────────────
-  {
-    id:"be-happy", name:"Be Happy", emoji:"🎀", cardBg:"#FF6B6B", cardFg:"#FFE0E0",
-    build(){
-      const o=[];
-      o.push(mkRect(0,0,LW,LH,"#FF6B6B"));
-      // black teardrop/oval accents
-      [[18,55],[460,55],[18,580],[460,580],[18,310],[460,310]].forEach(([x,y])=>{
-        o.push(mkCirc(x,y,18,"#2a2a2a",{scaleY:1.6}));
+      const o=[], cx=LW/2;
+      // dark blue bg
+      o.push(mkRect(0,0,LW,LH,"#0D1B5E"));
+      // red top section
+      o.push(mkRect(0,0,LW,195,"#CC0000"));
+      // web ray lines from top-center
+      [-75,-48,-22,0,22,48,75].forEach(a=>{
+        const r=a*Math.PI/180, ex=cx+Math.sin(r)*700, ey=Math.cos(r)*700;
+        o.push(mkLine(cx,0,ex,ey,"rgba(255,255,255,0.13)",1));
       });
-      // cloud/bubbly white frame — simulated with many rounded rects + main white
-      o.push(mkRect(30,70,420,526,"#ffffff",28,{
-        shadow:new fabric.Shadow({color:"rgba(0,0,0,0.2)",blur:24,offsetX:0,offsetY:8})
-      }));
-      // bumpy top edge dots
-      const bumpY=68;
-      for(let i=0;i<9;i++) o.push(mkCirc(70+i*40,bumpY,18,"#ffffff"));
-      // writing lines
-      mkLines(58,422,130,9,46,"#FFD0D0").forEach(l=>o.push(l));
-      // footer banner
-      o.push(mkRect(80,565,320,45,"#FF6B6B",22));
-      o.push(mkText("✦  BE HAPPY  ✦",LW/2,587,17,"#ffffff",{fontWeight:"bold",letterSpacing:3}));
+      // concentric web arcs (approximated as circles)
+      [55,110,170].forEach(r=>o.push(mkCirc(cx,0,r,"transparent",{stroke:"rgba(255,255,255,0.10)",strokeWidth:1,selectable:false,evented:false})));
+      // mask eyes — white angular ovals
+      o.push(mkCirc(cx-54,66,28,"#FFFFFF",{scaleX:1.55,scaleY:0.78,angle:-18}));
+      o.push(mkCirc(cx+54,66,28,"#FFFFFF",{scaleX:1.55,scaleY:0.78,angle:18}));
+      o.push(mkCirc(cx-54,66,18,"#CC0000",{scaleX:1.55,scaleY:0.78,angle:-18}));
+      o.push(mkCirc(cx+54,66,18,"#CC0000",{scaleX:1.55,scaleY:0.78,angle:18}));
+      // chest spider logo (simplified)
+      o.push(mkCirc(cx,148,10,"#1a1a1a"));
+      o.push(mkLine(cx-28,155,cx+28,155,"#1a1a1a",3));
+      o.push(mkLine(cx-22,148,cx-42,168,"#1a1a1a",3));
+      o.push(mkLine(cx+22,148,cx+42,168,"#1a1a1a",3));
+      // title
+      o.push(mkText("SPIDER-MAN",cx,130,22,"#FFFFFF",{fontWeight:"bold",letterSpacing:2}));
+      o.push(mkText("JOURNAL",cx,156,11,"#FF9999",{letterSpacing:6,selectable:false,evented:false}));
+      // dark content card
+      o.push(mkRect(26,200,428,400,"#152269",14,{
+        shadow:new fabric.Shadow({color:"rgba(0,0,0,0.5)",blur:24,offsetX:0,offsetY:8})}));
+      mkLines(52,428,238,8,44,"rgba(255,255,255,0.10)").forEach(l=>o.push(l));
+      o.push(mkText("🕷️",44,222,18,"#000",{selectable:true}));
+      o.push(mkText("🕸️",428,222,18,"#000",{selectable:true}));
+      // red bottom bar
+      o.push(mkRect(0,608,LW,33,"#CC0000"));
+      o.push(mkText("⬡ YOUR AMAZING ADVENTURE ⬡",cx,625,10,"#fff",{letterSpacing:1,selectable:false,evented:false}));
       return o;
     }
   },
-  // ── 8. Lavender Noted ────────────────────────────────────────────────────────
+  // ── 3. Stitch ───────────────────────────────────────────────────────────────
   {
-    id:"noted", name:"Noted ✦", emoji:"🦄", cardBg:"#C084FC", cardFg:"#FAF5FF",
+    id:"stitch", name:"Stitch", emoji:"💙", cardBg:"#1E88E5", cardFg:"#E3F2FD",
     build(){
-      const o=[];
-      o.push(mkRect(0,0,LW,LH,"#FFA07A"));
-      // wavy header cloud in pink
-      o.push(mkCirc(LW/2,36,LW/2+10,"#FF7BAC",{scaleX:1.12,scaleY:0.65}));
-      // white card
-      o.push(mkRect(28,80,424,530,"#ffffff",22,{
-        shadow:new fabric.Shadow({color:"rgba(180,0,100,0.18)",blur:24,offsetX:0,offsetY:8})
-      }));
-      // title in cloud
-      o.push(mkText("N O T E D",LW/2,36,26,"#ffffff",{fontWeight:"bold",letterSpacing:5,
-        shadow:new fabric.Shadow({color:"rgba(0,0,0,0.2)",blur:4,offsetX:0,offsetY:2})}));
-      // writing lines
-      mkLines(55,425,120,9,48,"#FFE0D0").forEach(l=>o.push(l));
-      // left accent dots
-      for(let i=0;i<7;i++) o.push(mkCirc(20,148+i*64,6,["#FF6B9D","#FFD93D","#A78BFA"][i%3]));
-      // unicorn footer
-      o.push(mkText("🦄",420,578,36,"#000",{selectable:true}));
-      o.push(mkText("✦ you've got this ✦",LW/2,618,11,"#FFA07A",{selectable:false,evented:false}));
+      const o=[], sx=LW/2, sy=90;
+      o.push(mkRect(0,0,LW,LH,"#DCEEFB"));
+      // ocean at bottom
+      o.push(mkRect(0,530,LW,111,"#1565C0"));
+      [80,210,330,450].forEach((x,i)=>o.push(mkCirc(x,528,55+i%2*10,"#1976D2")));
+      // Stitch head — blue oval
+      o.push(mkCirc(sx,sy,66,"#4CA3DD",{scaleX:1.1}));
+      // big round ears
+      o.push(mkCirc(sx-54,sy-48,28,"#4CA3DD"));
+      o.push(mkCirc(sx+54,sy-48,28,"#4CA3DD"));
+      o.push(mkCirc(sx-54,sy-48,14,"#9B59B6",{opacity:0.45}));
+      o.push(mkCirc(sx+54,sy-48,14,"#9B59B6",{opacity:0.45}));
+      // antennae
+      o.push(mkLine(sx-8,sy-60,sx-18,sy-88,"#4CA3DD",3));
+      o.push(mkLine(sx+8,sy-60,sx+18,sy-88,"#4CA3DD",3));
+      o.push(mkCirc(sx-18,sy-88,5,"#FF6B9D"));
+      o.push(mkCirc(sx+18,sy-88,5,"#FF6B9D"));
+      // white tummy patch
+      o.push(mkCirc(sx,sy+14,32,"#BBDEFB",{scaleX:0.88,scaleY:0.72}));
+      // eyes
+      o.push(mkCirc(sx-18,sy-8,14,"#1A1A2E"));
+      o.push(mkCirc(sx+18,sy-8,14,"#1A1A2E"));
+      o.push(mkCirc(sx-13,sy-13,5,"#FFFFFF"));
+      o.push(mkCirc(sx+23,sy-13,5,"#FFFFFF"));
+      // nose & mouth
+      o.push(mkCirc(sx,sy+6,6,"#1A1A2E"));
+      o.push(mkLine(sx-12,sy+18,sx,sy+24,"#1A1A2E",2));
+      o.push(mkLine(sx,sy+24,sx+12,sy+18,"#1A1A2E",2));
+      // title
+      o.push(mkText("OHANA",sx,172,26,"#1565C0",{fontWeight:"bold",letterSpacing:5}));
+      o.push(mkText("means family  🌺",sx,200,12,"#64B5F6",{selectable:false,evented:false}));
+      // white content card
+      o.push(mkRect(28,218,424,300,"#FFFFFF",18,{stroke:"#90CAF9",strokeWidth:1.5,
+        shadow:new fabric.Shadow({color:"rgba(30,136,229,0.2)",blur:20,offsetX:0,offsetY:6})}));
+      mkLines(52,428,252,6,43,"#BBDEFB").forEach(l=>o.push(l));
+      ["🌺","🌴","🌊","🌺"].forEach((e,i)=>o.push(mkText(e,52+i*126,564,22,"#000",{selectable:true})));
+      return o;
+    }
+  },
+  // ── 4. Pikachu ──────────────────────────────────────────────────────────────
+  {
+    id:"pikachu", name:"Pikachu", emoji:"⚡", cardBg:"#FFD700", cardFg:"#FFFDE7",
+    build(){
+      const o=[], px=LW/2, py=84;
+      o.push(mkRect(0,0,LW,LH,"#FFF9C4"));
+      // zigzag lightning stripe top
+      o.push(mkRect(0,0,LW,16,"#FFD700"));
+      // head — yellow circle
+      o.push(mkCirc(px,py,64,"#FFD700",{scaleX:1.05}));
+      // ears (tall yellow rectangles with black tips)
+      o.push(mkRect(px-72,py-125,24,78,"#FFD700",6));
+      o.push(mkRect(px+48,py-125,24,78,"#FFD700",6));
+      o.push(mkRect(px-72,py-125,24,26,"#1a1a1a",6));
+      o.push(mkRect(px+48,py-125,24,26,"#1a1a1a",6));
+      // red cheeks
+      o.push(mkCirc(px-34,py+14,16,"#FF4444",{scaleX:1.2,opacity:0.85}));
+      o.push(mkCirc(px+34,py+14,16,"#FF4444",{scaleX:1.2,opacity:0.85}));
+      // eyes
+      o.push(mkCirc(px-18,py-8,10,"#1a1a1a"));
+      o.push(mkCirc(px+18,py-8,10,"#1a1a1a"));
+      o.push(mkCirc(px-14,py-12,4,"#ffffff"));
+      o.push(mkCirc(px+22,py-12,4,"#ffffff"));
+      // nose + smile
+      o.push(mkCirc(px,py+5,4,"#1a1a1a"));
+      o.push(mkLine(px-10,py+18,px,py+24,"#1a1a1a",2.5));
+      o.push(mkLine(px,py+24,px+10,py+18,"#1a1a1a",2.5));
+      // title
+      o.push(mkText("PIKACHU",px,166,28,"#E65100",{fontWeight:"bold",letterSpacing:4}));
+      o.push(mkText("DIARY",px,196,13,"#F57F17",{letterSpacing:6,selectable:false,evented:false}));
+      // white lined card
+      o.push(mkRect(28,214,424,378,"#FFFFFF",16,{stroke:"#FFD700",strokeWidth:2,
+        shadow:new fabric.Shadow({color:"rgba(255,160,0,0.25)",blur:20,offsetX:0,offsetY:6})}));
+      mkLines(52,428,250,8,43,"#FFF176").forEach(l=>o.push(l));
+      o.push(mkText("⚡",44,234,22,"#000",{selectable:true}));
+      o.push(mkText("⚡",428,234,22,"#000",{selectable:true}));
+      // yellow footer
+      o.push(mkRect(0,600,LW,41,"#FFD700"));
+      o.push(mkText("⚡ gotta catch 'em all ⚡",px,621,11,"#E65100",{fontWeight:"bold",selectable:false,evented:false}));
+      return o;
+    }
+  },
+  // ── 5. Totoro ───────────────────────────────────────────────────────────────
+  {
+    id:"totoro", name:"Totoro", emoji:"🌳", cardBg:"#4CAF50", cardFg:"#E8F5E9",
+    build(){
+      const o=[], tx=LW/2, ty=96;
+      o.push(mkRect(0,0,LW,LH,"#E8F5E9"));
+      // forest floor
+      o.push(mkRect(0,548,LW,93,"#2E7D32"));
+      [60,190,320,440].forEach(x=>o.push(mkCirc(x,546,46,"#388E3C")));
+      // body — big gray circle
+      o.push(mkCirc(tx,ty,68,"#8E9E8E",{scaleX:0.96,scaleY:1.08}));
+      // white belly
+      o.push(mkCirc(tx,ty+22,44,"#F0F0F0",{scaleX:0.84}));
+      // belly chevron marks
+      [-14,0,14].forEach((dx,i)=>o.push(mkText("∧",tx+dx,ty+8+i*14,10,"#666",{selectable:false,evented:false})));
+      // ears
+      o.push(mkCirc(tx-46,ty-60,20,"#8E9E8E"));
+      o.push(mkCirc(tx+46,ty-60,20,"#8E9E8E"));
+      o.push(mkCirc(tx-46,ty-72,10,"#4a5a4a"));
+      o.push(mkCirc(tx+46,ty-72,10,"#4a5a4a"));
+      // eyes (white + dark pupils)
+      o.push(mkCirc(tx-20,ty-16,16,"#FFFFFF"));
+      o.push(mkCirc(tx+20,ty-16,16,"#FFFFFF"));
+      o.push(mkCirc(tx-20,ty-14,10,"#1a2a1a"));
+      o.push(mkCirc(tx+20,ty-14,10,"#1a2a1a"));
+      o.push(mkCirc(tx-16,ty-18,4,"#FFFFFF"));
+      o.push(mkCirc(tx+24,ty-18,4,"#FFFFFF"));
+      // nose & whiskers
+      o.push(mkCirc(tx,ty+2,5,"#4a4a4a"));
+      o.push(mkLine(tx-36,ty+8,tx-12,ty+6,"#555",1));
+      o.push(mkLine(tx+12,ty+6,tx+36,ty+8,"#555",1));
+      o.push(mkLine(tx-34,ty+16,tx-12,ty+14,"#555",1));
+      o.push(mkLine(tx+12,ty+14,tx+34,ty+16,"#555",1));
+      // title
+      o.push(mkText("My Neighbor",tx,182,13,"#5D8A5E",{fontStyle:"italic",selectable:false,evented:false}));
+      o.push(mkText("TOTORO",tx,210,28,"#2E7D32",{fontWeight:"bold",letterSpacing:3}));
+      // content card
+      o.push(mkRect(28,232,424,306,"#FFFFFF",16,{stroke:"#A5D6A7",strokeWidth:1.5,
+        shadow:new fabric.Shadow({color:"rgba(56,142,60,0.18)",blur:18,offsetX:0,offsetY:5})}));
+      mkLines(52,428,264,6,44,"#C8E6C9").forEach(l=>o.push(l));
+      ["🌿","🍄","🍃","🌱"].forEach((e,i)=>o.push(mkText(e,52+i*120,574,22,"#000",{selectable:true})));
+      return o;
+    }
+  },
+  // ── 6. Doraemon ─────────────────────────────────────────────────────────────
+  {
+    id:"doraemon", name:"Doraemon", emoji:"🔔", cardBg:"#1565C0", cardFg:"#E3F2FD",
+    build(){
+      const o=[], dx=LW/2, dy=82;
+      o.push(mkRect(0,0,LW,LH,"#E3F2FD"));
+      // blue header
+      o.push(mkRect(0,0,LW,188,"#1976D2"));
+      // white collar band
+      o.push(mkRect(134,155,212,44,"#FFFFFF",5));
+      // red collar line
+      o.push(mkRect(134,168,212,8,"#E53935",0));
+      // bell
+      o.push(mkCirc(dx,172,18,"#FFD700"));
+      o.push(mkCirc(dx,172,12,"#E65100"));
+      o.push(mkLine(dx,172,dx,184,"#333",2));
+      // head — big blue circle
+      o.push(mkCirc(dx,dy,68,"#1976D2"));
+      // white face
+      o.push(mkCirc(dx,dy+10,50,"#FFFFFF",{scaleY:0.94}));
+      // eyes
+      o.push(mkCirc(dx-20,dy-14,15,"#FFFFFF"));
+      o.push(mkCirc(dx+20,dy-14,15,"#FFFFFF"));
+      o.push(mkCirc(dx-20,dy-12,10,"#1a1a1a"));
+      o.push(mkCirc(dx+20,dy-12,10,"#1a1a1a"));
+      o.push(mkCirc(dx-16,dy-16,4,"#FFFFFF"));
+      o.push(mkCirc(dx+24,dy-16,4,"#FFFFFF"));
+      // red nose
+      o.push(mkCirc(dx,dy+4,10,"#E53935"));
+      // mouth + whiskers
+      o.push(mkLine(dx-28,dy+16,dx+28,dy+16,"#1a1a1a",2));
+      o.push(mkLine(dx-50,dy+8,dx-14,dy+10,"#1a1a1a",1.5));
+      o.push(mkLine(dx-50,dy+18,dx-14,dy+18,"#1a1a1a",1.5));
+      o.push(mkLine(dx+14,dy+10,dx+50,dy+8,"#1a1a1a",1.5));
+      o.push(mkLine(dx+14,dy+18,dx+50,dy+18,"#1a1a1a",1.5));
+      // title
+      o.push(mkText("DORAEMON",dx,222,22,"#1565C0",{fontWeight:"bold",letterSpacing:3}));
+      // content card
+      o.push(mkRect(28,244,424,350,"#FFFFFF",14,{stroke:"#90CAF9",strokeWidth:1.5,
+        shadow:new fabric.Shadow({color:"rgba(21,101,192,0.18)",blur:18,offsetX:0,offsetY:5})}));
+      mkLines(52,428,276,7,43,"#BBDEFB").forEach(l=>o.push(l));
+      ["🔮","📦","💊","🎩"].forEach((e,i)=>o.push(mkText(e,52+i*126,612,22,"#000",{selectable:true})));
+      return o;
+    }
+  },
+  // ── 7. Cinnamoroll ──────────────────────────────────────────────────────────
+  {
+    id:"cinnamoroll", name:"Cinnamoroll", emoji:"☁️", cardBg:"#42A5F5", cardFg:"#E3F2FD",
+    build(){
+      const o=[], cx=LW/2, cy=100;
+      o.push(mkRect(0,0,LW,LH,"#EDF7FF"));
+      // cloud puffs bg
+      [[50,44],[155,28],[290,38],[400,50],[20,128],[460,125]].forEach(([x,y])=>
+        o.push(mkCirc(x,y,26,"rgba(255,255,255,0.85)")));
+      // big floppy ears
+      o.push(mkRect(cx-82,cy-75,50,68,"#FFFFFF",25));
+      o.push(mkRect(cx+32,cy-75,50,68,"#FFFFFF",25));
+      o.push(mkCirc(cx-56,cy-18,28,"#FFFFFF"));
+      o.push(mkCirc(cx+56,cy-18,28,"#FFFFFF"));
+      // inner ear pink
+      o.push(mkCirc(cx-56,cy-48,10,"#FFB3D9"));
+      o.push(mkCirc(cx+56,cy-48,10,"#FFB3D9"));
+      // head (big fluffy white circle)
+      o.push(mkCirc(cx,cy,72,"#FFFFFF",{
+        shadow:new fabric.Shadow({color:"rgba(66,165,245,0.35)",blur:16,offsetX:0,offsetY:4})}));
+      // curl on top
+      o.push(mkCirc(cx+10,cy-60,8,"#FFB3D9"));
+      // big blue eyes
+      o.push(mkCirc(cx-22,cy,16,"#1565C0"));
+      o.push(mkCirc(cx+22,cy,16,"#1565C0"));
+      o.push(mkCirc(cx-18,cy-4,6,"#FFFFFF"));
+      o.push(mkCirc(cx+26,cy-4,6,"#FFFFFF"));
+      // pink cheeks + nose
+      o.push(mkCirc(cx-36,cy+15,12,"#FFB3D9",{opacity:0.75}));
+      o.push(mkCirc(cx+36,cy+15,12,"#FFB3D9",{opacity:0.75}));
+      o.push(mkCirc(cx,cy+10,4,"#FFB3D9"));
+      // tiny smile
+      o.push(mkLine(cx-8,cy+22,cx,cy+26,"#90CAF9",2));
+      o.push(mkLine(cx,cy+26,cx+8,cy+22,"#90CAF9",2));
+      // title
+      o.push(mkText("Cinnamoroll",cx,196,19,"#42A5F5",{fontStyle:"italic",fontWeight:"bold"}));
+      o.push(mkText("✿  sweet notes  ✿",cx,222,11,"#90CAF9",{selectable:false,evented:false}));
+      // content card
+      o.push(mkRect(28,240,424,358,"#FFFFFF",20,{stroke:"#B3E5FC",strokeWidth:1.5,
+        shadow:new fabric.Shadow({color:"rgba(66,165,245,0.2)",blur:18,offsetX:0,offsetY:5})}));
+      mkLines(52,428,272,7,44,"#BBDEFB").forEach(l=>o.push(l));
+      ["☁️","💙","🍬","☁️"].forEach((e,i)=>o.push(mkText(e,52+i*126,614,22,"#000",{selectable:true})));
+      return o;
+    }
+  },
+  // ── 8. My Melody ────────────────────────────────────────────────────────────
+  {
+    id:"my-melody", name:"My Melody", emoji:"🐰", cardBg:"#EC407A", cardFg:"#FCE4EC",
+    build(){
+      const o=[], mx=LW/2, my=88;
+      o.push(mkRect(0,0,LW,LH,"#FCE4EC"));
+      // pink curved header
+      o.push(mkRect(0,0,LW,172,"#EC407A"));
+      o.push(mkCirc(mx,172,LW/2+8,"#EC407A",{scaleX:1.18,scaleY:0.32}));
+      // scattered flowers bg
+      [[32,200],[448,205],[32,420],[448,415],[240,595]].forEach(([x,y])=>
+        o.push(mkText("✿",x,y,14,"#F48FB1",{opacity:0.5,selectable:false,evented:false})));
+      // long bunny ears
+      o.push(mkRect(mx-34,my-122,28,84,"#FFFFFF",14));
+      o.push(mkRect(mx+6,my-122,28,84,"#FFFFFF",14));
+      o.push(mkRect(mx-29,my-118,18,64,"#F48FB1",8));
+      o.push(mkRect(mx+11,my-118,18,64,"#F48FB1",8));
+      // head — white circle (hood)
+      o.push(mkCirc(mx,my,66,"#FFFFFF"));
+      // pink hood bottom trim
+      o.push(mkCirc(mx,my+54,66,"#F8BBD0",{scaleX:1.04,scaleY:0.2,opacity:0.55}));
+      // eyes
+      o.push(mkCirc(mx-14,my+2,10,"#1a1a1a"));
+      o.push(mkCirc(mx+14,my+2,10,"#1a1a1a"));
+      o.push(mkCirc(mx-10,my-2,4,"#FFFFFF"));
+      o.push(mkCirc(mx+18,my-2,4,"#FFFFFF"));
+      // pink oval nose
+      o.push(mkCirc(mx,my+16,6,"#F48FB1",{scaleX:1.4}));
+      // flower accessory on left ear
+      o.push(mkCirc(mx-20,my-70,13,"#FFD700"));
+      o.push(mkCirc(mx-20,my-70,7,"#FF8F00"));
+      // title
+      o.push(mkText("My Melody",mx,192,20,"#FFFFFF",{fontStyle:"italic",fontWeight:"bold"}));
+      o.push(mkText("♡  dear diary  ♡",mx,218,12,"#F48FB1",{selectable:false,evented:false}));
+      // content card
+      o.push(mkRect(28,238,424,360,"#FFFFFF",18,{stroke:"#F8BBD0",strokeWidth:1.5,
+        shadow:new fabric.Shadow({color:"rgba(236,64,122,0.15)",blur:18,offsetX:0,offsetY:6})}));
+      mkLines(52,428,272,7,44,"#F8BBD0").forEach(l=>o.push(l));
+      ["🌸","🎀","🌷","🌸"].forEach((e,i)=>o.push(mkText(e,52+i*126,616,22,"#000",{selectable:true})));
       return o;
     }
   },
