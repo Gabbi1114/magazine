@@ -1,5 +1,5 @@
 import { fabric } from "fabric";
-import { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 
 // ─── Translations ─────────────────────────────────────────────────────────────
 const TRANSLATIONS = {
@@ -1859,6 +1859,68 @@ const FontPicker = ({ value, onChange }) => {
   );
 };
 
+// ─── Sticker Preview (renders actual Fabric.js group to a thumbnail) ──────────
+const StickerPreview = React.memo(({ sticker }) => {
+  const [src, setSrc] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const SIZE = 96;
+    const el = document.createElement("canvas");
+    el.width = SIZE; el.height = SIZE;
+    let fc;
+    try {
+      fc = new fabric.StaticCanvas(el, {
+        width: SIZE, height: SIZE,
+        enableRetinaScaling: false,
+        renderOnAddRemove: false,
+      });
+
+      const obj = sticker.build();
+      // Reset position/angle so the whole sticker is visible in the small square
+      obj.set({
+        left: SIZE / 2,
+        top: SIZE / 2,
+        originX: "center",
+        originY: "center",
+        angle: 0,
+      });
+      fc.add(obj);
+      fc.renderAll();
+
+      // Scale to fill ~88 % of the preview square
+      const w = obj.getScaledWidth  ? obj.getScaledWidth()  : (obj.width  || SIZE);
+      const h = obj.getScaledHeight ? obj.getScaledHeight() : (obj.height || SIZE);
+      const fit = (SIZE * 0.88) / Math.max(w, h, 1);
+      obj.scaleX = (obj.scaleX || 1) * fit;
+      obj.scaleY = (obj.scaleY || 1) * fit;
+      fc.renderAll();
+
+      if (!cancelled) setSrc(fc.toDataURL({ format: "png", multiplier: 1 }));
+    } catch (e) {
+      console.warn("StickerPreview failed for", sticker.id, e);
+    } finally {
+      try { fc?.dispose(); } catch (_) {}
+    }
+    return () => { cancelled = true; };
+  }, [sticker.id]);
+
+  if (!src) {
+    // Fallback while rendering
+    return (
+      <div className="w-full h-full flex items-center justify-center text-2xl"
+        style={{ background: sticker.color + "22" }}>
+        {sticker.emoji}
+      </div>
+    );
+  }
+  return (
+    <img src={src} alt={sticker.name}
+      className="w-full h-full object-contain"
+      style={{ imageRendering: "crisp-edges" }} />
+  );
+});
+
 // ─── Graphics Search Panel ────────────────────────────────────────────────────
 // IMAGE_TYPES labels are resolved via t() at render time using the key map below
 const IMAGE_TYPES = [
@@ -2034,16 +2096,17 @@ const GraphicsPanel = ({ onAdd, onSetBackground, onLoadTemplate }) => {
           <p className="text-[10px] text-white/25 uppercase tracking-widest mb-2">
             {SCRAPBOOK_STICKERS.length} {t("scrapbookElements")}
           </p>
-          <div className="grid grid-cols-3 gap-1.5 pb-2">
+          <div className="grid grid-cols-3 gap-2 pb-2">
             {SCRAPBOOK_STICKERS.map((s) => (
               <button key={s.id} onClick={() => onLoadTemplate(s, "sticker")}
-                className="group flex flex-col items-center gap-1 p-2 rounded-xl bg-white/5 border border-white/8 hover:border-orange-400/50 hover:bg-white/10 transition-all"
+                className="group flex flex-col items-center rounded-xl bg-white/5 border border-white/8 hover:border-orange-400/60 hover:bg-white/10 transition-all overflow-hidden"
               >
-                <div className="w-10 h-10 rounded-lg flex items-center justify-center text-xl"
-                  style={{ background: s.color + "33" }}>
-                  {s.emoji}
+                {/* Live canvas preview — shows the exact sticker that will be inserted */}
+                <div className="w-full aspect-square overflow-hidden flex items-center justify-center"
+                  style={{ background: "repeating-conic-gradient(#232232 0% 25%,#1a1928 0% 50%) 0 0 / 10px 10px" }}>
+                  <StickerPreview sticker={s} />
                 </div>
-                <span className="text-[9px] text-white/50 group-hover:text-white/80 text-center leading-tight transition-colors">
+                <span className="w-full text-[9px] text-white/50 group-hover:text-white/80 text-center leading-tight transition-colors py-1.5 px-1 truncate">
                   {s.name}
                 </span>
               </button>
