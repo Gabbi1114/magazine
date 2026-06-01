@@ -745,6 +745,140 @@ const SCRAPBOOK_STICKERS = [
       ]);
     }
   },
+  // ── Victorian Oval Photo Frame ───────────────────────────────────────────────
+  { id:"photo-frame-oval", name:"Victorian Oval", emoji:"🖼️", color:"#C8952A",
+    build(){
+      const items = [
+        // Outer thin border
+        new fabric.Ellipse({rx:95,ry:118,left:0,top:0,originX:"center",originY:"center",fill:"transparent",stroke:"#5C3D0A",strokeWidth:1.5,selectable:false,evented:false}),
+        // Main thick gold band
+        new fabric.Ellipse({rx:84,ry:106,left:0,top:0,originX:"center",originY:"center",fill:"transparent",stroke:"#C8952A",strokeWidth:22,selectable:false,evented:false}),
+        // Sepia wash over band
+        new fabric.Ellipse({rx:84,ry:106,left:0,top:0,originX:"center",originY:"center",fill:"transparent",stroke:"rgba(80,40,5,0.22)",strokeWidth:22,selectable:false,evented:false}),
+        // Inner decorative gold ring
+        new fabric.Ellipse({rx:72,ry:94,left:0,top:0,originX:"center",originY:"center",fill:"transparent",stroke:"#D4A256",strokeWidth:1.5,selectable:false,evented:false}),
+        // Innermost boundary (clip target)
+        new fabric.Ellipse({rx:70,ry:92,left:0,top:0,originX:"center",originY:"center",fill:"transparent",stroke:"#8B6914",strokeWidth:1,selectable:false,evented:false}),
+        // Cardinal ornaments
+        new fabric.IText("◆",{left:0,top:-120,fontSize:12,fill:"#C8952A",originX:"center",originY:"center",selectable:false,evented:false}),
+        new fabric.IText("◆",{left:0,top:120,fontSize:12,fill:"#C8952A",originX:"center",originY:"center",selectable:false,evented:false}),
+        new fabric.IText("◆",{left:-96,top:0,fontSize:10,fill:"#C8952A",originX:"center",originY:"center",selectable:false,evented:false}),
+        new fabric.IText("◆",{left:96,top:0,fontSize:10,fill:"#C8952A",originX:"center",originY:"center",selectable:false,evented:false}),
+        // Aging wrinkle lines
+        new fabric.Line([-94,-28,-76,-22],{stroke:"rgba(80,40,5,0.40)",strokeWidth:0.8,selectable:false,evented:false}),
+        new fabric.Line([-94,28,-76,22],{stroke:"rgba(80,40,5,0.40)",strokeWidth:0.8,selectable:false,evented:false}),
+        new fabric.Line([76,-22,94,-28],{stroke:"rgba(80,40,5,0.40)",strokeWidth:0.8,selectable:false,evented:false}),
+        new fabric.Line([76,22,94,28],{stroke:"rgba(80,40,5,0.40)",strokeWidth:0.8,selectable:false,evented:false}),
+        new fabric.Line([-16,-116,-10,-96],{stroke:"rgba(80,40,5,0.35)",strokeWidth:0.8,selectable:false,evented:false}),
+        new fabric.Line([10,-116,16,-96],{stroke:"rgba(80,40,5,0.35)",strokeWidth:0.8,selectable:false,evented:false}),
+        new fabric.Line([-16,116,-10,96],{stroke:"rgba(80,40,5,0.35)",strokeWidth:0.8,selectable:false,evented:false}),
+        new fabric.Line([10,116,16,96],{stroke:"rgba(80,40,5,0.35)",strokeWidth:0.8,selectable:false,evented:false}),
+      ];
+      const g = grp(items);
+      g.isPhotoFrame = true; g.frameShape = "ellipse"; g.frameRx = 70; g.frameRy = 92;
+      return g;
+    }
+  },
+  // ── Walnut Rectangle Photo Frame ─────────────────────────────────────────────
+  { id:"photo-frame-rect", name:"Walnut Frame", emoji:"🖼️", color:"#3D1C02",
+    build(){
+      const items = [
+        // Main dark walnut band
+        new fabric.Rect({width:186,height:216,left:0,top:0,originX:"center",originY:"center",fill:"transparent",stroke:"#3D1C02",strokeWidth:28,rx:4,ry:4,selectable:false,evented:false}),
+        // Outer gold trim
+        new fabric.Rect({width:215,height:245,left:0,top:0,originX:"center",originY:"center",fill:"transparent",stroke:"#B8860B",strokeWidth:2,rx:5,ry:5,selectable:false,evented:false}),
+        // Outer dark edge
+        new fabric.Rect({width:219,height:249,left:0,top:0,originX:"center",originY:"center",fill:"transparent",stroke:"#5C3D0A",strokeWidth:1,rx:6,ry:6,selectable:false,evented:false}),
+        // Inner gold trim
+        new fabric.Rect({width:158,height:188,left:0,top:0,originX:"center",originY:"center",fill:"transparent",stroke:"#D4A256",strokeWidth:2,rx:2,ry:2,selectable:false,evented:false}),
+        // Innermost boundary (clip target)
+        new fabric.Rect({width:154,height:184,left:0,top:0,originX:"center",originY:"center",fill:"transparent",stroke:"#8B6914",strokeWidth:1,rx:2,ry:2,selectable:false,evented:false}),
+        // Corner bracket ornaments
+        new fabric.IText("◆",{left:-104,top:-120,fontSize:11,fill:"#B8860B",originX:"center",originY:"center",selectable:false,evented:false}),
+        new fabric.IText("◆",{left:104,top:-120,fontSize:11,fill:"#B8860B",originX:"center",originY:"center",selectable:false,evented:false}),
+        new fabric.IText("◆",{left:-104,top:120,fontSize:11,fill:"#B8860B",originX:"center",originY:"center",selectable:false,evented:false}),
+        new fabric.IText("◆",{left:104,top:120,fontSize:11,fill:"#B8860B",originX:"center",originY:"center",selectable:false,evented:false}),
+        // Mid-edge dash ornaments
+        new fabric.IText("—",{left:0,top:-124,fontSize:11,fill:"#B8860B",originX:"center",originY:"center",selectable:false,evented:false}),
+        new fabric.IText("—",{left:0,top:124,fontSize:11,fill:"#B8860B",originX:"center",originY:"center",selectable:false,evented:false}),
+        // Wrinkle lines
+        new fabric.Line([-106,-60,-92,-52],{stroke:"rgba(80,40,5,0.40)",strokeWidth:0.8,selectable:false,evented:false}),
+        new fabric.Line([-106,60,-92,52],{stroke:"rgba(80,40,5,0.40)",strokeWidth:0.8,selectable:false,evented:false}),
+        new fabric.Line([92,-52,106,-60],{stroke:"rgba(80,40,5,0.40)",strokeWidth:0.8,selectable:false,evented:false}),
+        new fabric.Line([92,52,106,60],{stroke:"rgba(80,40,5,0.40)",strokeWidth:0.8,selectable:false,evented:false}),
+      ];
+      const g = grp(items);
+      g.isPhotoFrame = true; g.frameShape = "rect"; g.frameRx = 77; g.frameRy = 92;
+      return g;
+    }
+  },
+  // ── Silver Medallion Photo Frame ──────────────────────────────────────────────
+  { id:"photo-frame-circle", name:"Silver Medallion", emoji:"🥈", color:"#A8A8A8",
+    build(){
+      const items = [
+        // Outer dashed rope ring
+        new fabric.Circle({radius:102,left:0,top:0,originX:"center",originY:"center",fill:"transparent",stroke:"#888",strokeWidth:2,strokeDashArray:[4,3],selectable:false,evented:false}),
+        // Main silver band
+        new fabric.Circle({radius:92,left:0,top:0,originX:"center",originY:"center",fill:"transparent",stroke:"#A0A0A0",strokeWidth:20,selectable:false,evented:false}),
+        // Sheen overlay
+        new fabric.Circle({radius:92,left:0,top:0,originX:"center",originY:"center",fill:"transparent",stroke:"rgba(255,255,255,0.18)",strokeWidth:20,selectable:false,evented:false}),
+        // Outer engraved ring
+        new fabric.Circle({radius:103,left:0,top:0,originX:"center",originY:"center",fill:"transparent",stroke:"#C0C0C0",strokeWidth:1.5,selectable:false,evented:false}),
+        // Inner engraved ring
+        new fabric.Circle({radius:81,left:0,top:0,originX:"center",originY:"center",fill:"transparent",stroke:"#C8C8C8",strokeWidth:1.5,selectable:false,evented:false}),
+        // Innermost boundary (clip target)
+        new fabric.Circle({radius:79,left:0,top:0,originX:"center",originY:"center",fill:"transparent",stroke:"#888",strokeWidth:1,selectable:false,evented:false}),
+        // Star ornaments at 4 cardinal points
+        new fabric.IText("★",{left:0,top:-93,fontSize:10,fill:"#D8D8D8",originX:"center",originY:"center",selectable:false,evented:false}),
+        new fabric.IText("★",{left:0,top:93,fontSize:10,fill:"#D8D8D8",originX:"center",originY:"center",selectable:false,evented:false}),
+        new fabric.IText("★",{left:-93,top:0,fontSize:10,fill:"#D8D8D8",originX:"center",originY:"center",selectable:false,evented:false}),
+        new fabric.IText("★",{left:93,top:0,fontSize:10,fill:"#D8D8D8",originX:"center",originY:"center",selectable:false,evented:false}),
+        // Dot ornaments at diagonals
+        new fabric.IText("·",{left:-65,top:-65,fontSize:16,fill:"#C0C0C0",originX:"center",originY:"center",selectable:false,evented:false}),
+        new fabric.IText("·",{left:65,top:-65,fontSize:16,fill:"#C0C0C0",originX:"center",originY:"center",selectable:false,evented:false}),
+        new fabric.IText("·",{left:-65,top:65,fontSize:16,fill:"#C0C0C0",originX:"center",originY:"center",selectable:false,evented:false}),
+        new fabric.IText("·",{left:65,top:65,fontSize:16,fill:"#C0C0C0",originX:"center",originY:"center",selectable:false,evented:false}),
+      ];
+      const g = grp(items);
+      g.isPhotoFrame = true; g.frameShape = "ellipse"; g.frameRx = 79; g.frameRy = 79;
+      return g;
+    }
+  },
+  // ── Rose Gold Locket Photo Frame ──────────────────────────────────────────────
+  { id:"photo-frame-locket", name:"Rose Gold Locket", emoji:"💝", color:"#C08060",
+    build(){
+      const items = [
+        // Hanging ring at top
+        new fabric.Circle({radius:9,left:0,top:-106,originX:"center",originY:"center",fill:"transparent",stroke:"#C08060",strokeWidth:3,selectable:false,evented:false}),
+        new fabric.Line([0,-97,0,-115],{stroke:"#C08060",strokeWidth:3,selectable:false,evented:false}),
+        // Main rose-gold band
+        new fabric.Ellipse({rx:64,ry:90,left:0,top:0,originX:"center",originY:"center",fill:"transparent",stroke:"#C08060",strokeWidth:18,selectable:false,evented:false}),
+        // Rose sheen
+        new fabric.Ellipse({rx:64,ry:90,left:0,top:0,originX:"center",originY:"center",fill:"transparent",stroke:"rgba(255,200,180,0.20)",strokeWidth:18,selectable:false,evented:false}),
+        // Outer decorative line
+        new fabric.Ellipse({rx:73,ry:99,left:0,top:0,originX:"center",originY:"center",fill:"transparent",stroke:"#E8A87C",strokeWidth:1.5,selectable:false,evented:false}),
+        // Outer thin edge
+        new fabric.Ellipse({rx:76,ry:102,left:0,top:0,originX:"center",originY:"center",fill:"transparent",stroke:"#9A6040",strokeWidth:1,selectable:false,evented:false}),
+        // Inner decorative line
+        new fabric.Ellipse({rx:54,ry:80,left:0,top:0,originX:"center",originY:"center",fill:"transparent",stroke:"#E8A87C",strokeWidth:1.5,selectable:false,evented:false}),
+        // Innermost boundary (clip target)
+        new fabric.Ellipse({rx:52,ry:78,left:0,top:0,originX:"center",originY:"center",fill:"transparent",stroke:"#C08060",strokeWidth:1,selectable:false,evented:false}),
+        // Heart ornaments at 4 poles
+        new fabric.IText("♥",{left:0,top:-102,fontSize:10,fill:"#E8A87C",originX:"center",originY:"center",selectable:false,evented:false}),
+        new fabric.IText("♥",{left:0,top:102,fontSize:10,fill:"#E8A87C",originX:"center",originY:"center",selectable:false,evented:false}),
+        new fabric.IText("♥",{left:-76,top:0,fontSize:8,fill:"#E8A87C",originX:"center",originY:"center",selectable:false,evented:false}),
+        new fabric.IText("♥",{left:76,top:0,fontSize:8,fill:"#E8A87C",originX:"center",originY:"center",selectable:false,evented:false}),
+        // Wrinkle lines
+        new fabric.Line([-74,-26,-58,-20],{stroke:"rgba(150,80,50,0.35)",strokeWidth:0.8,selectable:false,evented:false}),
+        new fabric.Line([-74,26,-58,20],{stroke:"rgba(150,80,50,0.35)",strokeWidth:0.8,selectable:false,evented:false}),
+        new fabric.Line([58,-20,74,-26],{stroke:"rgba(150,80,50,0.35)",strokeWidth:0.8,selectable:false,evented:false}),
+        new fabric.Line([58,20,74,26],{stroke:"rgba(150,80,50,0.35)",strokeWidth:0.8,selectable:false,evented:false}),
+      ];
+      const g = grp(items);
+      g.isPhotoFrame = true; g.frameShape = "ellipse"; g.frameRx = 52; g.frameRy = 78;
+      return g;
+    }
+  },
 ];
 
 // ─── Built-in Templates ───────────────────────────────────────────────────────
@@ -1927,7 +2061,7 @@ const EditorCropModal = ({ fabricImg, onApply, onClose }) => {
   );
 };
 
-const PropertiesPanel = ({ obj, onUpdate, onCrop, onShapeCrop, isGroupChild = false }) => {
+const PropertiesPanel = ({ obj, onUpdate, onCrop, onShapeCrop, onFillFrame, isGroupChild = false }) => {
   if (!obj) return (
     <p className="text-white/20 text-xs text-center py-8 px-4">
       {t("tapToEdit")}
@@ -1950,6 +2084,21 @@ const PropertiesPanel = ({ obj, onUpdate, onCrop, onShapeCrop, isGroupChild = fa
             <rect x="2" y="14" width="8" height="8" rx="1"/><rect x="14" y="14" width="8" height="8" rx="1"/>
           </svg>
           <span className="text-violet-300 text-[10px]">{t("editingInsideGroup")}</span>
+        </div>
+      )}
+      {obj.isPhotoFrame && (
+        <div className="flex flex-col gap-2 px-1">
+          <p className="text-[10px] text-amber-400/70 uppercase tracking-widest font-semibold">Photo Frame</p>
+          <button
+            onClick={() => onFillFrame?.(obj)}
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-amber-600/20 hover:bg-amber-600/40 border border-amber-500/30 hover:border-amber-400/60 text-amber-300 hover:text-amber-100 text-xs font-semibold transition-all active:scale-95">
+            <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>
+              <circle cx="12" cy="13" r="4"/>
+            </svg>
+            Fill Frame with Photo
+          </button>
+          <p className="text-[9px] text-white/25 text-center leading-tight">Photo clips to the frame shape</p>
         </div>
       )}
       {isText && (
@@ -2716,12 +2865,14 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose }) =
     });
   }, []);
 
-  const canvasElRef  = useRef(null);
-  const fabricRef    = useRef(null);
-  const containerRef = useRef(null);
-  const historyRef   = useRef([]);
-  const histIdxRef   = useRef(-1);
-  const skipHistRef  = useRef(false);
+  const canvasElRef       = useRef(null);
+  const fabricRef         = useRef(null);
+  const containerRef      = useRef(null);
+  const historyRef        = useRef([]);
+  const histIdxRef        = useRef(-1);
+  const skipHistRef       = useRef(false);
+  const fillFrameInputRef = useRef(null);   // hidden <input type="file"> for photo frames
+  const fillFrameTargetRef = useRef(null);  // which frame is waiting for a photo
 
   const [activeTool,      setActiveTool]      = useState("select");
   const [activeObj,       setActiveObj]       = useState(null);
@@ -3188,6 +3339,71 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose }) =
     }
   }, [updateLayers, saveHistory]);
 
+  // ── Photo Frame fill ─────────────────────────────────────────────────────────
+  // Step 1: user clicks "Fill Frame with Photo" → store target + trigger file input
+  const handleFillFrame = useCallback((frameObj) => {
+    fillFrameTargetRef.current = frameObj;
+    fillFrameInputRef.current?.click();
+  }, []);
+
+  // Step 2: file chosen → load image, apply absolutePositioned clipPath, insert below frame
+  const onFillFrameFileChange = useCallback((e) => {
+    const file  = e.target.files?.[0];
+    const frame = fillFrameTargetRef.current;
+    if (!file || !frame) { e.target.value = ""; return; }
+
+    const url    = URL.createObjectURL(file);
+    const canvas = fabricRef.current;
+    const center = frame.getCenterPoint();
+    // Scale rx/ry by current frame scale so resized frames still clip correctly
+    const rx    = (frame.frameRx || 80) * (frame.scaleX || 1);
+    const ry    = (frame.frameRy || 80) * (frame.scaleY || 1);
+    const angle = frame.angle || 0;
+
+    fabric.Image.fromURL(url, (img) => {
+      // Scale photo to fully cover the hole with a small margin
+      const scale = Math.max((rx * 2) / img.width, (ry * 2) / img.height) * 1.05;
+
+      // ClipPath anchored absolutely at the frame's canvas center
+      const clipPath = frame.frameShape === "rect"
+        ? new fabric.Rect({
+            width: rx * 2, height: ry * 2,
+            left: center.x, top: center.y,
+            originX: "center", originY: "center",
+            absolutePositioned: true, angle,
+          })
+        : new fabric.Ellipse({
+            rx, ry,
+            left: center.x, top: center.y,
+            originX: "center", originY: "center",
+            absolutePositioned: true, angle,
+          });
+
+      img.set({
+        left: center.x, top: center.y,
+        scaleX: scale, scaleY: scale,
+        originX: "center", originY: "center",
+        angle, clipPath,
+        selectable: true, evented: true,
+      });
+
+      // Remove any previously filled photo for this frame
+      if (frame._filledPhoto) canvas.remove(frame._filledPhoto);
+      frame._filledPhoto = img;
+
+      // Insert photo just BELOW the frame so frame decorations appear on top
+      const frameIdx = canvas.getObjects().indexOf(frame);
+      canvas.add(img);
+      canvas.moveTo(img, frameIdx);
+      canvas.renderAll();
+      updateLayers();
+      saveHistory();
+      URL.revokeObjectURL(url);
+      fillFrameTargetRef.current = null;
+      e.target.value = "";
+    }, { crossOrigin: "anonymous" });
+  }, [updateLayers, saveHistory]);
+
   // Apply crop result — replace the fabric Image with cropped version
   const applyCrop = useCallback((croppedUrl) => {
     const canvas = fabricRef.current;
@@ -3622,7 +3838,8 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose }) =
       isGroupChild={isGroupChild}
       onUpdate={() => { fabricRef.current?.renderAll(); setPropVer(v => v + 1); }}
       onCrop={(obj) => setCropTarget(obj)}
-      onShapeCrop={(obj) => setShapeCropTarget(obj)} />
+      onShapeCrop={(obj) => setShapeCropTarget(obj)}
+      onFillFrame={handleFillFrame} />
   );
   const graphicsPanel = (
     <GraphicsPanel onAdd={addImageFromUrl} onSetBackground={setPageBackground} onLoadTemplate={loadBuiltinTemplate} />
@@ -3724,6 +3941,8 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose }) =
             </button>
           ))}
           <div className="w-8 h-px bg-white/10 my-1" />
+          {/* Hidden file input for photo-frame fill (triggered programmatically) */}
+          <input type="file" accept="image/*" className="hidden" ref={fillFrameInputRef} onChange={onFillFrameFileChange} />
           {/* Upload image */}
           <label title={t("uploadImage")}
             className="w-10 h-10 flex items-center justify-center rounded-xl text-white/40 hover:bg-white/10 hover:text-white transition-all cursor-pointer">
