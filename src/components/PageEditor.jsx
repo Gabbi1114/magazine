@@ -755,12 +755,49 @@ const mkCirc  = (l,t,r,fill,extra={}) => new fabric.Circle({left:l,top:t,radius:
 const mkLines = (x1,x2,startY,n,gap,color="#e0e0e0") => Array.from({length:n},(_,i)=>mkLine(x1,startY+i*gap,x2,startY+i*gap,color));
 
 // ─── Wavy-blob helpers ────────────────────────────────────────────────────────
-// Path bounding box: x 0-472, y 0-552 → place at left:4 top:16 to get canvas (4-476, 16-568)
-const BLOB_PATH =
+// Six visually distinct blob shapes — each covers ~460×550 px of the 480×641 canvas.
+// Render with: left:4, top:16, originX:"left", originY:"top"
+const BLOB_PATHS = [
+  // 0 – smooth symmetric round (default)
   "M 46 18 Q 16 18 16 48 Q 0 165 16 282 Q 0 390 16 506 Q 16 535 46 535" +
   " Q 146 552 236 548 Q 326 552 426 535 Q 456 535 456 506" +
   " Q 472 390 456 276 Q 472 165 456 48 Q 456 18 426 18" +
-  " Q 326 0 236 18 Q 146 0 46 18 Z";
+  " Q 326 0 236 18 Q 146 0 46 18 Z",
+
+  // 1 – cloud top: three distinct bumps across the top edge
+  "M 16 86 Q 6 66 10 44 Q 52 0 96 40 Q 128 66 162 40" +
+  " Q 202 0 240 34 Q 278 0 318 40 Q 352 66 390 40" +
+  " Q 430 0 464 44 Q 470 66 462 86" +
+  " Q 480 188 458 296 Q 476 400 454 514" +
+  " Q 452 542 420 544 Q 320 562 236 556 Q 152 562 52 544" +
+  " Q 20 542 16 514 Q -2 400 14 296 Q -4 188 16 86 Z",
+
+  // 2 – tall narrow: tighter left/right margins, taller feel
+  "M 56 12 Q 28 12 24 44 Q 8 165 26 282 Q 6 392 24 512" +
+  " Q 22 542 58 542 Q 154 560 240 556 Q 326 560 422 542" +
+  " Q 458 542 458 512 Q 474 392 454 276 Q 476 165 456 42" +
+  " Q 454 12 422 12 Q 328 -4 240 10 Q 152 -4 56 12 Z",
+
+  // 3 – wide squat: extra-wide, lower height, thin top/bottom margins
+  "M 30 28 Q 4 28 2 60 Q -12 172 6 290 Q -12 398 4 514" +
+  " Q 2 548 34 550 Q 134 566 240 562 Q 346 566 446 550" +
+  " Q 478 548 478 514 Q 492 398 474 278 Q 492 172 476 58" +
+  " Q 476 28 444 28 Q 340 6 240 22 Q 140 6 30 28 Z",
+
+  // 4 – asymmetric: larger curve on the left, tighter on the right
+  "M 36 22 Q 6 28 4 60 Q -14 172 8 290 Q -12 398 4 512" +
+  " Q 2 544 40 546 Q 140 562 240 558 Q 340 562 436 548" +
+  " Q 466 546 468 514 Q 484 400 462 282 Q 478 170 456 56" +
+  " Q 454 24 418 24 Q 316 -2 240 14 Q 164 -2 36 22 Z",
+
+  // 5 – bubbly round: very generous curves, almost circular feel
+  "M 60 18 Q 22 18 18 58 Q 0 172 18 292 Q -2 400 16 516" +
+  " Q 14 550 60 552 Q 158 568 240 564 Q 322 568 420 552" +
+  " Q 466 550 464 516 Q 482 400 462 280 Q 480 172 464 56" +
+  " Q 462 18 420 18 Q 322 -2 240 16 Q 158 -2 60 18 Z",
+];
+// Default single path (keeps older references working)
+const BLOB_PATH = BLOB_PATHS[0];
 
 const mkDash = (x1, y1, x2, y2, stroke, sw = 1.2) =>
   new fabric.Line([x1, y1, x2, y2], {
@@ -778,8 +815,9 @@ function mkCloud(cx, cy, sz, fill, opacity = 0.30) {
 }
 
 // Push the blob, dashed lines, mini-clouds, and sparkle stars into array o
-function addBlobLayer(o, lineColor, accentColor) {
-  o.push(new fabric.Path(BLOB_PATH, {
+// blobIdx selects which BLOB_PATHS entry to use (0–5)
+function addBlobLayer(o, lineColor, accentColor, blobIdx = 0) {
+  o.push(new fabric.Path(BLOB_PATHS[blobIdx % BLOB_PATHS.length], {
     left: 4, top: 16,
     originX: "left", originY: "top",
     fill: "#FFFFFF",
@@ -804,7 +842,7 @@ function addBlobLayer(o, lineColor, accentColor) {
 // ─── Character template factory ───────────────────────────────────────────────
 // Design: solid bg → wavy white blob → dashed lines → decorations
 //         → character image bottom-right → name italic at bottom centre
-function makeCharTemplate({ id, name, emoji, bg1, titleColor, lineColor, footerEmojis }) {
+function makeCharTemplate({ id, name, emoji, bg1, titleColor, lineColor, footerEmojis, blobStyle = 0 }) {
   return {
     id, name, emoji,
     cardBg: bg1,
@@ -817,18 +855,18 @@ function makeCharTemplate({ id, name, emoji, bg1, titleColor, lineColor, footerE
         o.push(mkRect(0, 0, LW, LH, bg1));
 
         // 2. Blob + dashed lines + decorative clouds/stars
-        addBlobLayer(o, lineColor, bg1);
+        addBlobLayer(o, lineColor, bg1, blobStyle);
 
-        // 3. Character image — bottom-right, slightly outside canvas edge
+        // 3. Character image — bottom-right, fully within canvas bounds
         fabric.Image.fromURL("/characters/" + id + ".png", (img) => {
           if (img && img.width) {
-            const maxW = 210, maxH = 245;
+            const maxW = 200, maxH = 230;
             const s  = Math.min(maxW / img.width, maxH / img.height);
             const sw = img.width  * s;
             const sh = img.height * s;
             img.set({
-              left: LW - sw + 20,
-              top:  LH - sh + 20,
+              left: LW - sw - 4,   // 4 px from right edge — stays inside canvas
+              top:  LH - sh - 4,   // 4 px from bottom edge — stays inside canvas
               scaleX: s, scaleY: s,
               selectable: false, evented: false,
             });
@@ -858,7 +896,7 @@ function makeCharTemplate({ id, name, emoji, bg1, titleColor, lineColor, footerE
 // ─── Scene template factory ───────────────────────────────────────────────────
 // Design: full background photo → semi-transparent white blob → dashed lines
 //         → seasonal emoji accents → dark footer strip + title
-function makeSceneTemplate({ id, name, emoji, lineColor, titleColor, decorEmojis, overlayColor }) {
+function makeSceneTemplate({ id, name, emoji, lineColor, titleColor, decorEmojis, overlayColor, blobStyle = 0 }) {
   return {
     id, name, emoji,
     cardBg: lineColor || "#888",
@@ -887,7 +925,7 @@ function makeSceneTemplate({ id, name, emoji, lineColor, titleColor, decorEmojis
           }
 
           // Semi-transparent blob (lets photo bleed through slightly)
-          o.push(new fabric.Path(BLOB_PATH, {
+          o.push(new fabric.Path(BLOB_PATHS[blobStyle % BLOB_PATHS.length], {
             left: 4, top: 16,
             originX: "left", originY: "top",
             fill: "rgba(255,255,255,0.88)",
@@ -923,33 +961,33 @@ function makeSceneTemplate({ id, name, emoji, lineColor, titleColor, decorEmojis
 
 const BUILTIN_TEMPLATES = [
   // ── Cartoon Characters ──────────────────────────────────────────────────────
-  makeCharTemplate({ id:"hello-kitty",  name:"Hello Kitty",  emoji:"🎀", bg1:"#FF6B9D", titleColor:"#AD1457", lineColor:"#FFB3D9", footerEmojis:["🎀","🌸","🎀"] }),
-  makeCharTemplate({ id:"spider-man",   name:"Spider-Man",   emoji:"🕷️", bg1:"#CC0000",  titleColor:"#FFCDD2", lineColor:"#EF9A9A", footerEmojis:["🕸️","🕷️","🦸"] }),
-  makeCharTemplate({ id:"stitch",       name:"Stitch",       emoji:"💙", bg1:"#1E88E5", titleColor:"#BBDEFB", lineColor:"#90CAF9", footerEmojis:["🌊","🏄","💙"] }),
-  makeCharTemplate({ id:"pikachu",      name:"Pikachu",      emoji:"⚡", bg1:"#FFD700", titleColor:"#E65100", lineColor:"#FFE082", footerEmojis:["⚡","🔥","💛"] }),
-  makeCharTemplate({ id:"totoro",       name:"Totoro",       emoji:"🌿", bg1:"#4CAF50", titleColor:"#1B5E20", lineColor:"#A5D6A7", footerEmojis:["🍃","🌳","☂️"] }),
-  makeCharTemplate({ id:"doraemon",     name:"Doraemon",     emoji:"🔔", bg1:"#1565C0", titleColor:"#E3F2FD", lineColor:"#90CAF9", footerEmojis:["🔮","📦","🎩"] }),
-  makeCharTemplate({ id:"cinnamoroll",  name:"Cinnamoroll",  emoji:"☁️", bg1:"#42A5F5", titleColor:"#0D47A1", lineColor:"#BBDEFB", footerEmojis:["☁️","💙","🌟"] }),
-  makeCharTemplate({ id:"my-melody",    name:"My Melody",    emoji:"🌸", bg1:"#EC407A", titleColor:"#FCE4EC", lineColor:"#F48FB1", footerEmojis:["🌸","🎀","💗"] }),
+  makeCharTemplate({ id:"hello-kitty",  name:"Hello Kitty",  emoji:"🎀", bg1:"#FF6B9D", titleColor:"#AD1457", lineColor:"#FFB3D9", footerEmojis:["🎀","🌸","🎀"], blobStyle:0 }),
+  makeCharTemplate({ id:"spider-man",   name:"Spider-Man",   emoji:"🕷️", bg1:"#CC0000",  titleColor:"#FFCDD2", lineColor:"#EF9A9A", footerEmojis:["🕸️","🕷️","🦸"], blobStyle:3 }),
+  makeCharTemplate({ id:"stitch",       name:"Stitch",       emoji:"💙", bg1:"#1E88E5", titleColor:"#BBDEFB", lineColor:"#90CAF9", footerEmojis:["🌊","🏄","💙"],  blobStyle:1 }),
+  makeCharTemplate({ id:"pikachu",      name:"Pikachu",      emoji:"⚡", bg1:"#FFD700", titleColor:"#E65100", lineColor:"#FFE082", footerEmojis:["⚡","🔥","💛"],  blobStyle:5 }),
+  makeCharTemplate({ id:"totoro",       name:"Totoro",       emoji:"🌿", bg1:"#4CAF50", titleColor:"#1B5E20", lineColor:"#A5D6A7", footerEmojis:["🍃","🌳","☂️"], blobStyle:2 }),
+  makeCharTemplate({ id:"doraemon",     name:"Doraemon",     emoji:"🔔", bg1:"#1565C0", titleColor:"#E3F2FD", lineColor:"#90CAF9", footerEmojis:["🔮","📦","🎩"], blobStyle:4 }),
+  makeCharTemplate({ id:"cinnamoroll",  name:"Cinnamoroll",  emoji:"☁️", bg1:"#42A5F5", titleColor:"#0D47A1", lineColor:"#BBDEFB", footerEmojis:["☁️","💙","🌟"], blobStyle:1 }),
+  makeCharTemplate({ id:"my-melody",    name:"My Melody",    emoji:"🌸", bg1:"#EC407A", titleColor:"#FCE4EC", lineColor:"#F48FB1", footerEmojis:["🌸","🎀","💗"], blobStyle:0 }),
   // ── Superheroes ─────────────────────────────────────────────────────────────
-  makeCharTemplate({ id:"batman",       name:"Batman",       emoji:"🦇", bg1:"#1A1A2E", titleColor:"#FFD700", lineColor:"#4A4A6A", footerEmojis:["🦇","🌑","⚡"] }),
-  makeCharTemplate({ id:"superman",     name:"Superman",     emoji:"🦸", bg1:"#1565C0", titleColor:"#FFCDD2", lineColor:"#FFCDD2", footerEmojis:["🦸","⭐","💪"] }),
-  makeCharTemplate({ id:"avengers",     name:"Avengers",     emoji:"⭐", bg1:"#B71C1C", titleColor:"#FFD700", lineColor:"#EF9A9A", footerEmojis:["🛡️","🔨","⭐"] }),
+  makeCharTemplate({ id:"batman",       name:"Batman",       emoji:"🦇", bg1:"#1A1A2E", titleColor:"#FFD700", lineColor:"#4A4A6A", footerEmojis:["🦇","🌑","⚡"], blobStyle:3 }),
+  makeCharTemplate({ id:"superman",     name:"Superman",     emoji:"🦸", bg1:"#1565C0", titleColor:"#FFCDD2", lineColor:"#FFCDD2", footerEmojis:["🦸","⭐","💪"], blobStyle:4 }),
+  makeCharTemplate({ id:"avengers",     name:"Avengers",     emoji:"⭐", bg1:"#B71C1C", titleColor:"#FFD700", lineColor:"#EF9A9A", footerEmojis:["🛡️","🔨","⭐"], blobStyle:2 }),
   // ── Sanrio & Gaming ─────────────────────────────────────────────────────────
-  makeCharTemplate({ id:"kuromi",       name:"Kuromi",       emoji:"🖤", bg1:"#4A0072", titleColor:"#CE93D8", lineColor:"#9C27B0", footerEmojis:["🖤","💜","🌙"] }),
-  makeCharTemplate({ id:"barbie",       name:"Barbie",       emoji:"👛", bg1:"#FF1493", titleColor:"#FCE4EC", lineColor:"#FF80AB", footerEmojis:["👗","💄","✨"] }),
-  makeCharTemplate({ id:"sonic",        name:"Sonic",        emoji:"💨", bg1:"#1565C0", titleColor:"#E3F2FD", lineColor:"#90CAF9", footerEmojis:["💨","⭐","💙"] }),
+  makeCharTemplate({ id:"kuromi",       name:"Kuromi",       emoji:"🖤", bg1:"#4A0072", titleColor:"#CE93D8", lineColor:"#9C27B0", footerEmojis:["🖤","💜","🌙"], blobStyle:5 }),
+  makeCharTemplate({ id:"barbie",       name:"Barbie",       emoji:"👛", bg1:"#FF1493", titleColor:"#FCE4EC", lineColor:"#FF80AB", footerEmojis:["👗","💄","✨"], blobStyle:1 }),
+  makeCharTemplate({ id:"sonic",        name:"Sonic",        emoji:"💨", bg1:"#1565C0", titleColor:"#E3F2FD", lineColor:"#90CAF9", footerEmojis:["💨","⭐","💙"], blobStyle:4 }),
   // ── TV Shows ────────────────────────────────────────────────────────────────
-  makeCharTemplate({ id:"stranger-things", name:"Stranger Things", emoji:"🔦", bg1:"#0D0D0D", titleColor:"#FF1744", lineColor:"#4A0000", footerEmojis:["🔦","🕯️","🌲"] }),
-  makeCharTemplate({ id:"euphoria",        name:"Euphoria",        emoji:"✨", bg1:"#1A0040", titleColor:"#E040FB", lineColor:"#7B1FA2", footerEmojis:["✨","💜","🌙"] }),
+  makeCharTemplate({ id:"stranger-things", name:"Stranger Things", emoji:"🔦", bg1:"#0D0D0D", titleColor:"#FF1744", lineColor:"#4A0000", footerEmojis:["🔦","🕯️","🌲"], blobStyle:3 }),
+  makeCharTemplate({ id:"euphoria",        name:"Euphoria",        emoji:"✨", bg1:"#1A0040", titleColor:"#E040FB", lineColor:"#7B1FA2", footerEmojis:["✨","💜","🌙"], blobStyle:2 }),
   // ── Four Seasons ────────────────────────────────────────────────────────────
-  makeSceneTemplate({ id:"spring",      name:"Spring",       emoji:"🌸", lineColor:"#F48FB1", titleColor:"#FFFFFF", overlayColor:"#FCE4EC", decorEmojis:["🌸","🦋","🌷"] }),
-  makeSceneTemplate({ id:"summer",      name:"Summer",       emoji:"☀️", lineColor:"#FFE082", titleColor:"#FFFFFF", overlayColor:"#FFF8E1", decorEmojis:["🌊","🌴","🦀"] }),
-  makeSceneTemplate({ id:"autumn",      name:"Autumn",       emoji:"🍂", lineColor:"#FFCC80", titleColor:"#FFFFFF", overlayColor:"#FBE9E7", decorEmojis:["🍁","🎃","🍄"] }),
-  makeSceneTemplate({ id:"winter",      name:"Winter",       emoji:"❄️", lineColor:"#BBDEFB", titleColor:"#FFFFFF", overlayColor:"#E3F2FD", decorEmojis:["⛄","🎄","❄️"] }),
+  makeSceneTemplate({ id:"spring",      name:"Spring",       emoji:"🌸", lineColor:"#F48FB1", titleColor:"#FFFFFF", overlayColor:"#FCE4EC", decorEmojis:["🌸","🦋","🌷"], blobStyle:1 }),
+  makeSceneTemplate({ id:"summer",      name:"Summer",       emoji:"☀️", lineColor:"#FFE082", titleColor:"#FFFFFF", overlayColor:"#FFF8E1", decorEmojis:["🌊","🌴","🦀"], blobStyle:5 }),
+  makeSceneTemplate({ id:"autumn",      name:"Autumn",       emoji:"🍂", lineColor:"#FFCC80", titleColor:"#FFFFFF", overlayColor:"#FBE9E7", decorEmojis:["🍁","🎃","🍄"], blobStyle:0 }),
+  makeSceneTemplate({ id:"winter",      name:"Winter",       emoji:"❄️", lineColor:"#BBDEFB", titleColor:"#FFFFFF", overlayColor:"#E3F2FD", decorEmojis:["⛄","🎄","❄️"], blobStyle:2 }),
   // ── Travel & Vibes ──────────────────────────────────────────────────────────
-  makeSceneTemplate({ id:"travel-beach", name:"Beach Travel", emoji:"🌊", lineColor:"#B3E5FC", titleColor:"#FFFFFF", overlayColor:"#E1F5FE", decorEmojis:["🌴","🐠","⛵"] }),
-  makeSceneTemplate({ id:"night-city",   name:"Night City",   emoji:"🌃", lineColor:"#9575CD", titleColor:"#FFFFFF", overlayColor:"#0A0A2A", decorEmojis:["🌃","🌉","🎆"] }),
+  makeSceneTemplate({ id:"travel-beach", name:"Beach Travel", emoji:"🌊", lineColor:"#B3E5FC", titleColor:"#FFFFFF", overlayColor:"#E1F5FE", decorEmojis:["🌴","🐠","⛵"], blobStyle:4 }),
+  makeSceneTemplate({ id:"night-city",   name:"Night City",   emoji:"🌃", lineColor:"#9575CD", titleColor:"#FFFFFF", overlayColor:"#0A0A2A", decorEmojis:["🌃","🌉","🎆"], blobStyle:3 }),
 ];
 
 // ── legacy — keep sticker-only helpers below but BUILTIN_TEMPLATES now uses real images ──
