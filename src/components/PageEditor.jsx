@@ -779,16 +779,18 @@ const BLOB_PATHS = [
   " Q 454 12 422 12 Q 328 -4 240 10 Q 152 -4 56 12 Z",
 
   // 3 – wide squat: extra-wide, lower height, thin top/bottom margins
-  "M 30 28 Q 4 28 2 60 Q -12 172 6 290 Q -12 398 4 514" +
-  " Q 2 548 34 550 Q 134 566 240 562 Q 346 566 446 550" +
-  " Q 478 548 478 514 Q 492 398 474 278 Q 492 172 476 58" +
-  " Q 476 28 444 28 Q 340 6 240 22 Q 140 6 30 28 Z",
+  // (control points kept ≥ 8 on the left so the bounding-box shift never pushes the right side off-canvas)
+  "M 30 28 Q 8 28 8 60 Q 10 172 8 290 Q 10 398 8 514" +
+  " Q 8 548 36 550 Q 136 566 240 562 Q 344 566 444 550" +
+  " Q 468 548 466 514 Q 466 398 466 278 Q 468 172 464 58" +
+  " Q 462 28 440 28 Q 338 8 240 22 Q 142 8 30 28 Z",
 
   // 4 – asymmetric: larger curve on the left, tighter on the right
-  "M 36 22 Q 6 28 4 60 Q -14 172 8 290 Q -12 398 4 512" +
-  " Q 2 544 40 546 Q 140 562 240 558 Q 340 562 436 548" +
-  " Q 466 546 468 514 Q 484 400 462 282 Q 478 170 456 56" +
-  " Q 454 24 418 24 Q 316 -2 240 14 Q 164 -2 36 22 Z",
+  // (replaced -14/-12 left control points with 8 to prevent canvas overflow)
+  "M 36 22 Q 8 28 6 60 Q 8 172 8 290 Q 8 398 8 512" +
+  " Q 6 544 42 546 Q 142 562 240 558 Q 340 562 434 548" +
+  " Q 462 546 464 514 Q 462 400 460 282 Q 462 170 454 56" +
+  " Q 452 24 416 24 Q 314 -2 240 14 Q 166 -2 36 22 Z",
 
   // 5 – bubbly round: very generous curves, almost circular feel
   "M 60 18 Q 22 18 18 58 Q 0 172 18 292 Q -2 400 16 516" +
