@@ -814,9 +814,133 @@ function mkCloud(cx, cy, sz, fill, opacity = 0.30) {
   ];
 }
 
-// Push the blob, dashed lines, mini-clouds, and sparkle stars into array o
-// blobIdx selects which BLOB_PATHS entry to use (0–5)
-function addBlobLayer(o, lineColor, accentColor, blobIdx = 0) {
+// ─── Per-template border decorations ─────────────────────────────────────────
+// Scatters unique character-themed shapes around the white blob's border area.
+function addBlobDecorations(o, accentColor, decorStyle) {
+  // BIG  = positions near the blob's outer edge
+  // SMALL = positions slightly inward / between lines
+  const BIG  = [[26,42],[350,26],[452,90],[22,212],[460,332],[28,470]];
+  const SMALL = [[392,36],[54,104],[462,200],[30,376],[464,454],[210,22]];
+  const sp = (pts, char, sz, col, op) =>
+    pts.forEach(([x,y]) => o.push(mkText(char, x, y, sz, col, { opacity:op, selectable:false, evented:false })));
+
+  switch (decorStyle) {
+    case "hearts":      // Hello Kitty — scattered hearts
+      sp(BIG,   "♥", 14, accentColor, 0.44);
+      sp(SMALL, "♡",  9, accentColor, 0.28);
+      break;
+
+    case "webs":        // Spider-Man — concentric ring nodes
+      BIG.forEach(([cx,cy]) => {
+        o.push(mkCirc(cx, cy,  4, "transparent", { stroke: accentColor, strokeWidth: 1.5, opacity: 0.38 }));
+        o.push(mkCirc(cx, cy,  9, "transparent", { stroke: accentColor, strokeWidth: 0.8, opacity: 0.18 }));
+      });
+      sp(SMALL, "✦",  9, accentColor, 0.28);
+      break;
+
+    case "stitch":      // Stitch — alien blue circles
+      BIG.forEach(([cx,cy]) => o.push(mkCirc(cx, cy, 6, accentColor, { opacity: 0.30 })));
+      sp(SMALL, "✦", 10, accentColor, 0.32);
+      break;
+
+    case "lightning":   // Pikachu — sparkle diamonds
+      sp(BIG,   "✦", 14, accentColor, 0.48);
+      sp(SMALL, "◆",  8, "#FF8C00",   0.35);
+      break;
+
+    case "nature":      // Totoro — flowers + soft dots
+      sp(BIG,   "✿", 13, accentColor, 0.40);
+      sp(SMALL, "✦",  9, accentColor, 0.28);
+      BIG.forEach(([cx,cy]) => o.push(mkCirc(cx, cy, 3, accentColor, { opacity: 0.18 })));
+      break;
+
+    case "circles":     // Doraemon — concentric gadget circles
+      BIG.forEach(([cx,cy]) => {
+        o.push(mkCirc(cx, cy,  7, accentColor,   { opacity: 0.28 }));
+        o.push(mkCirc(cx, cy, 12, "transparent", { stroke: accentColor, strokeWidth: 1, opacity: 0.18 }));
+      });
+      sp(SMALL, "✦",  9, accentColor, 0.30);
+      break;
+
+    case "clouds":      // Cinnamoroll — fluffy cloud puffs
+      BIG.forEach(([cx,cy]) => mkCloud(cx, cy, 8, accentColor, 0.30).forEach(c => o.push(c)));
+      sp(SMALL, "✦",  9, accentColor, 0.35);
+      break;
+
+    case "flowers":     // My Melody — flowers + hearts
+      sp(BIG,   "✿", 13, accentColor, 0.44);
+      sp(SMALL, "♥",  8, accentColor, 0.28);
+      break;
+
+    case "bats":        // Batman — gold diamonds + triangles
+      sp(BIG,   "◆", 11, "#FFD700",   0.50);
+      sp(SMALL, "▲",  7, "#FFD700",   0.28);
+      break;
+
+    case "stars":       // Superman — gold stars
+      sp(BIG,   "★", 13, "#FFD700",   0.50);
+      sp(SMALL, "✦",  9, accentColor, 0.28);
+      break;
+
+    case "shield":      // Avengers — stars + diamonds
+      sp(BIG,   "★", 14, "#FFD700",   0.50);
+      sp(SMALL, "◆",  8, accentColor, 0.28);
+      break;
+
+    case "sparkles":    // Barbie — diamond sparkles + shine dots
+      sp(BIG,   "◆", 11, accentColor, 0.42);
+      sp(SMALL, "✦", 10, accentColor, 0.35);
+      BIG.forEach(([cx,cy]) => o.push(mkCirc(cx+6, cy-6, 2, "#FFFFFF", { opacity: 0.55 })));
+      break;
+
+    case "rings":       // Sonic — golden rings
+      BIG.forEach(([cx,cy]) => {
+        o.push(mkCirc(cx, cy,  9, "transparent", { stroke: "#FFD700", strokeWidth: 2.2, opacity: 0.45 }));
+        o.push(mkCirc(cx, cy, 14, "transparent", { stroke: "#FFD700", strokeWidth: 0.8, opacity: 0.18 }));
+      });
+      sp(SMALL, "✦", 10, accentColor, 0.32);
+      break;
+
+    case "petals":      // Spring — flower petals
+      sp(BIG,   "✿", 13, accentColor, 0.42);
+      sp(SMALL, "✦",  9, accentColor, 0.28);
+      break;
+
+    case "sun-rays":    // Summer — starburst sparkles
+      sp(BIG,   "✦", 15, accentColor, 0.50);
+      sp(SMALL, "◆",  8, accentColor, 0.28);
+      break;
+
+    case "autumn":      // Autumn — warm orange diamonds
+      sp(BIG,   "◆", 12, "#FF7043",   0.42);
+      sp(SMALL, "✦",  9, accentColor, 0.30);
+      break;
+
+    case "snowflakes":  // Winter — snowflakes
+      sp(BIG,   "❄", 14, accentColor, 0.52);
+      sp(SMALL, "✦",  9, accentColor, 0.30);
+      break;
+
+    case "waves":       // Beach — bubble circles + sparkles
+      BIG.forEach(([cx,cy]) => o.push(mkCirc(cx, cy, 6, accentColor, { opacity: 0.28 })));
+      sp(SMALL, "✦",  9, accentColor, 0.30);
+      break;
+
+    case "night":       // Night City — sparkles + gold stars
+      sp(BIG,   "✦", 15, accentColor, 0.55);
+      sp(SMALL, "★", 10, "#FFD700",   0.40);
+      break;
+
+    default:            // Fallback: original cloud + star
+      BIG.forEach(([cx,cy]) => mkCloud(cx, cy, 9, accentColor, 0.28).forEach(c => o.push(c)));
+      sp(SMALL, "✦", 12, accentColor, 0.42);
+  }
+}
+
+// Push the blob, per-template decorations, and dashed lines into array o.
+// blobIdx selects which BLOB_PATHS entry to use (0–5).
+// decorStyle selects the character-specific border decoration pattern.
+function addBlobLayer(o, lineColor, accentColor, blobIdx = 0, decorStyle = "default") {
   o.push(new fabric.Path(BLOB_PATHS[blobIdx % BLOB_PATHS.length], {
     left: 4, top: 16,
     originX: "left", originY: "top",
@@ -825,14 +949,7 @@ function addBlobLayer(o, lineColor, accentColor, blobIdx = 0) {
     selectable: false, evented: false,
     shadow: new fabric.Shadow({ color: "rgba(0,0,0,0.10)", blur: 18, offsetX: 2, offsetY: 4 }),
   }));
-  // Mini-clouds on the white blob using theme accent colour
-  [[26,42],[350,26],[452,90],[22,212],[460,332],[28,470]].forEach(
-    ([cx,cy]) => mkCloud(cx, cy, 9, accentColor, 0.28).forEach(c => o.push(c))
-  );
-  // Sparkle stars
-  [[392,36],[54,104],[462,200],[30,376],[464,454],[210,22]].forEach(
-    ([sx,sy]) => o.push(mkText("✦", sx, sy, 12, accentColor, { opacity:0.42, selectable:false, evented:false }))
-  );
+  addBlobDecorations(o, accentColor, decorStyle);
   // Dashed writing lines (7 lines, 46 px apart, inside blob)
   for (let i = 0; i < 7; i++) {
     o.push(mkDash(52, 115 + i * 46, 428, 115 + i * 46, lineColor));
@@ -842,7 +959,7 @@ function addBlobLayer(o, lineColor, accentColor, blobIdx = 0) {
 // ─── Character template factory ───────────────────────────────────────────────
 // Design: solid bg → wavy white blob → dashed lines → decorations
 //         → character image bottom-right → name italic at bottom centre
-function makeCharTemplate({ id, name, emoji, bg1, titleColor, lineColor, footerEmojis, blobStyle = 0 }) {
+function makeCharTemplate({ id, name, emoji, bg1, titleColor, lineColor, footerEmojis, blobStyle = 0, decorStyle = "default" }) {
   return {
     id, name, emoji,
     cardBg: bg1,
@@ -855,7 +972,7 @@ function makeCharTemplate({ id, name, emoji, bg1, titleColor, lineColor, footerE
         o.push(mkRect(0, 0, LW, LH, bg1));
 
         // 2. Blob + dashed lines + decorative clouds/stars
-        addBlobLayer(o, lineColor, bg1, blobStyle);
+        addBlobLayer(o, lineColor, bg1, blobStyle, decorStyle);
 
         // 3. Character image — bottom-right, fully within canvas bounds
         fabric.Image.fromURL("/characters/" + id + ".png", (img) => {
@@ -896,7 +1013,7 @@ function makeCharTemplate({ id, name, emoji, bg1, titleColor, lineColor, footerE
 // ─── Scene template factory ───────────────────────────────────────────────────
 // Design: full background photo → semi-transparent white blob → dashed lines
 //         → seasonal emoji accents → dark footer strip + title
-function makeSceneTemplate({ id, name, emoji, lineColor, titleColor, decorEmojis, overlayColor, blobStyle = 0 }) {
+function makeSceneTemplate({ id, name, emoji, lineColor, titleColor, decorEmojis, overlayColor, blobStyle = 0, decorStyle = "default" }) {
   return {
     id, name, emoji,
     cardBg: lineColor || "#888",
@@ -933,6 +1050,7 @@ function makeSceneTemplate({ id, name, emoji, lineColor, titleColor, decorEmojis
             shadow: new fabric.Shadow({ color: "rgba(0,0,0,0.15)", blur: 20, offsetX: 2, offsetY: 5 }),
           }));
 
+          addBlobDecorations(o, overlayColor || lineColor || "#aaa", decorStyle);
           // Dashed writing lines
           for (let i = 0; i < 7; i++) {
             o.push(mkDash(52, 115 + i * 46, 428, 115 + i * 46, lineColor || "#ccc"));
@@ -961,33 +1079,29 @@ function makeSceneTemplate({ id, name, emoji, lineColor, titleColor, decorEmojis
 
 const BUILTIN_TEMPLATES = [
   // ── Cartoon Characters ──────────────────────────────────────────────────────
-  makeCharTemplate({ id:"hello-kitty",  name:"Hello Kitty",  emoji:"🎀", bg1:"#FF6B9D", titleColor:"#AD1457", lineColor:"#FFB3D9", footerEmojis:["🎀","🌸","🎀"], blobStyle:0 }),
-  makeCharTemplate({ id:"spider-man",   name:"Spider-Man",   emoji:"🕷️", bg1:"#CC0000",  titleColor:"#FFCDD2", lineColor:"#EF9A9A", footerEmojis:["🕸️","🕷️","🦸"], blobStyle:3 }),
-  makeCharTemplate({ id:"stitch",       name:"Stitch",       emoji:"💙", bg1:"#1E88E5", titleColor:"#BBDEFB", lineColor:"#90CAF9", footerEmojis:["🌊","🏄","💙"],  blobStyle:1 }),
-  makeCharTemplate({ id:"pikachu",      name:"Pikachu",      emoji:"⚡", bg1:"#FFD700", titleColor:"#E65100", lineColor:"#FFE082", footerEmojis:["⚡","🔥","💛"],  blobStyle:5 }),
-  makeCharTemplate({ id:"totoro",       name:"Totoro",       emoji:"🌿", bg1:"#4CAF50", titleColor:"#1B5E20", lineColor:"#A5D6A7", footerEmojis:["🍃","🌳","☂️"], blobStyle:2 }),
-  makeCharTemplate({ id:"doraemon",     name:"Doraemon",     emoji:"🔔", bg1:"#1565C0", titleColor:"#E3F2FD", lineColor:"#90CAF9", footerEmojis:["🔮","📦","🎩"], blobStyle:4 }),
-  makeCharTemplate({ id:"cinnamoroll",  name:"Cinnamoroll",  emoji:"☁️", bg1:"#42A5F5", titleColor:"#0D47A1", lineColor:"#BBDEFB", footerEmojis:["☁️","💙","🌟"], blobStyle:1 }),
-  makeCharTemplate({ id:"my-melody",    name:"My Melody",    emoji:"🌸", bg1:"#EC407A", titleColor:"#FCE4EC", lineColor:"#F48FB1", footerEmojis:["🌸","🎀","💗"], blobStyle:0 }),
+  makeCharTemplate({ id:"hello-kitty",  name:"Hello Kitty",  emoji:"🎀", bg1:"#FF6B9D", titleColor:"#AD1457", lineColor:"#FFB3D9", footerEmojis:["🎀","🌸","🎀"], blobStyle:0, decorStyle:"hearts" }),
+  makeCharTemplate({ id:"spider-man",   name:"Spider-Man",   emoji:"🕷️", bg1:"#CC0000",  titleColor:"#FFCDD2", lineColor:"#EF9A9A", footerEmojis:["🕸️","🕷️","🦸"], blobStyle:3, decorStyle:"webs" }),
+  makeCharTemplate({ id:"stitch",       name:"Stitch",       emoji:"💙", bg1:"#1E88E5", titleColor:"#BBDEFB", lineColor:"#90CAF9", footerEmojis:["🌊","🏄","💙"],  blobStyle:1, decorStyle:"stitch" }),
+  makeCharTemplate({ id:"pikachu",      name:"Pikachu",      emoji:"⚡", bg1:"#FFD700", titleColor:"#E65100", lineColor:"#FFE082", footerEmojis:["⚡","🔥","💛"],  blobStyle:5, decorStyle:"lightning" }),
+  makeCharTemplate({ id:"totoro",       name:"Totoro",       emoji:"🌿", bg1:"#4CAF50", titleColor:"#1B5E20", lineColor:"#A5D6A7", footerEmojis:["🍃","🌳","☂️"], blobStyle:2, decorStyle:"nature" }),
+  makeCharTemplate({ id:"doraemon",     name:"Doraemon",     emoji:"🔔", bg1:"#1565C0", titleColor:"#E3F2FD", lineColor:"#90CAF9", footerEmojis:["🔮","📦","🎩"], blobStyle:4, decorStyle:"circles" }),
+  makeCharTemplate({ id:"cinnamoroll",  name:"Cinnamoroll",  emoji:"☁️", bg1:"#42A5F5", titleColor:"#0D47A1", lineColor:"#BBDEFB", footerEmojis:["☁️","💙","🌟"], blobStyle:1, decorStyle:"clouds" }),
+  makeCharTemplate({ id:"my-melody",    name:"My Melody",    emoji:"🌸", bg1:"#EC407A", titleColor:"#FCE4EC", lineColor:"#F48FB1", footerEmojis:["🌸","🎀","💗"], blobStyle:0, decorStyle:"flowers" }),
   // ── Superheroes ─────────────────────────────────────────────────────────────
-  makeCharTemplate({ id:"batman",       name:"Batman",       emoji:"🦇", bg1:"#1A1A2E", titleColor:"#FFD700", lineColor:"#4A4A6A", footerEmojis:["🦇","🌑","⚡"], blobStyle:3 }),
-  makeCharTemplate({ id:"superman",     name:"Superman",     emoji:"🦸", bg1:"#1565C0", titleColor:"#FFCDD2", lineColor:"#FFCDD2", footerEmojis:["🦸","⭐","💪"], blobStyle:4 }),
-  makeCharTemplate({ id:"avengers",     name:"Avengers",     emoji:"⭐", bg1:"#B71C1C", titleColor:"#FFD700", lineColor:"#EF9A9A", footerEmojis:["🛡️","🔨","⭐"], blobStyle:2 }),
+  makeCharTemplate({ id:"batman",       name:"Batman",       emoji:"🦇", bg1:"#1A1A2E", titleColor:"#FFD700", lineColor:"#4A4A6A", footerEmojis:["🦇","🌑","⚡"], blobStyle:3, decorStyle:"bats" }),
+  makeCharTemplate({ id:"superman",     name:"Superman",     emoji:"🦸", bg1:"#1565C0", titleColor:"#FFCDD2", lineColor:"#FFCDD2", footerEmojis:["🦸","⭐","💪"], blobStyle:4, decorStyle:"stars" }),
+  makeCharTemplate({ id:"avengers",     name:"Avengers",     emoji:"⭐", bg1:"#B71C1C", titleColor:"#FFD700", lineColor:"#EF9A9A", footerEmojis:["🛡️","🔨","⭐"], blobStyle:2, decorStyle:"shield" }),
   // ── Sanrio & Gaming ─────────────────────────────────────────────────────────
-  makeCharTemplate({ id:"kuromi",       name:"Kuromi",       emoji:"🖤", bg1:"#4A0072", titleColor:"#CE93D8", lineColor:"#9C27B0", footerEmojis:["🖤","💜","🌙"], blobStyle:5 }),
-  makeCharTemplate({ id:"barbie",       name:"Barbie",       emoji:"👛", bg1:"#FF1493", titleColor:"#FCE4EC", lineColor:"#FF80AB", footerEmojis:["👗","💄","✨"], blobStyle:1 }),
-  makeCharTemplate({ id:"sonic",        name:"Sonic",        emoji:"💨", bg1:"#1565C0", titleColor:"#E3F2FD", lineColor:"#90CAF9", footerEmojis:["💨","⭐","💙"], blobStyle:4 }),
-  // ── TV Shows ────────────────────────────────────────────────────────────────
-  makeCharTemplate({ id:"stranger-things", name:"Stranger Things", emoji:"🔦", bg1:"#0D0D0D", titleColor:"#FF1744", lineColor:"#4A0000", footerEmojis:["🔦","🕯️","🌲"], blobStyle:3 }),
-  makeCharTemplate({ id:"euphoria",        name:"Euphoria",        emoji:"✨", bg1:"#1A0040", titleColor:"#E040FB", lineColor:"#7B1FA2", footerEmojis:["✨","💜","🌙"], blobStyle:2 }),
+  makeCharTemplate({ id:"barbie",       name:"Barbie",       emoji:"👛", bg1:"#FF1493", titleColor:"#FCE4EC", lineColor:"#FF80AB", footerEmojis:["👗","💄","✨"], blobStyle:1, decorStyle:"sparkles" }),
+  makeCharTemplate({ id:"sonic",        name:"Sonic",        emoji:"💨", bg1:"#1565C0", titleColor:"#E3F2FD", lineColor:"#90CAF9", footerEmojis:["💨","⭐","💙"], blobStyle:4, decorStyle:"rings" }),
   // ── Four Seasons ────────────────────────────────────────────────────────────
-  makeSceneTemplate({ id:"spring",      name:"Spring",       emoji:"🌸", lineColor:"#F48FB1", titleColor:"#FFFFFF", overlayColor:"#FCE4EC", decorEmojis:["🌸","🦋","🌷"], blobStyle:1 }),
-  makeSceneTemplate({ id:"summer",      name:"Summer",       emoji:"☀️", lineColor:"#FFE082", titleColor:"#FFFFFF", overlayColor:"#FFF8E1", decorEmojis:["🌊","🌴","🦀"], blobStyle:5 }),
-  makeSceneTemplate({ id:"autumn",      name:"Autumn",       emoji:"🍂", lineColor:"#FFCC80", titleColor:"#FFFFFF", overlayColor:"#FBE9E7", decorEmojis:["🍁","🎃","🍄"], blobStyle:0 }),
-  makeSceneTemplate({ id:"winter",      name:"Winter",       emoji:"❄️", lineColor:"#BBDEFB", titleColor:"#FFFFFF", overlayColor:"#E3F2FD", decorEmojis:["⛄","🎄","❄️"], blobStyle:2 }),
+  makeSceneTemplate({ id:"spring",      name:"Spring",       emoji:"🌸", lineColor:"#F48FB1", titleColor:"#FFFFFF", overlayColor:"#FCE4EC", decorEmojis:["🌸","🦋","🌷"], blobStyle:1, decorStyle:"petals" }),
+  makeSceneTemplate({ id:"summer",      name:"Summer",       emoji:"☀️", lineColor:"#FFE082", titleColor:"#FFFFFF", overlayColor:"#FFF8E1", decorEmojis:["🌊","🌴","🦀"], blobStyle:5, decorStyle:"sun-rays" }),
+  makeSceneTemplate({ id:"autumn",      name:"Autumn",       emoji:"🍂", lineColor:"#FFCC80", titleColor:"#FFFFFF", overlayColor:"#FBE9E7", decorEmojis:["🍁","🎃","🍄"], blobStyle:0, decorStyle:"autumn" }),
+  makeSceneTemplate({ id:"winter",      name:"Winter",       emoji:"❄️", lineColor:"#BBDEFB", titleColor:"#FFFFFF", overlayColor:"#E3F2FD", decorEmojis:["⛄","🎄","❄️"], blobStyle:2, decorStyle:"snowflakes" }),
   // ── Travel & Vibes ──────────────────────────────────────────────────────────
-  makeSceneTemplate({ id:"travel-beach", name:"Beach Travel", emoji:"🌊", lineColor:"#B3E5FC", titleColor:"#FFFFFF", overlayColor:"#E1F5FE", decorEmojis:["🌴","🐠","⛵"], blobStyle:4 }),
-  makeSceneTemplate({ id:"night-city",   name:"Night City",   emoji:"🌃", lineColor:"#9575CD", titleColor:"#FFFFFF", overlayColor:"#0A0A2A", decorEmojis:["🌃","🌉","🎆"], blobStyle:3 }),
+  makeSceneTemplate({ id:"travel-beach", name:"Beach Travel", emoji:"🌊", lineColor:"#B3E5FC", titleColor:"#FFFFFF", overlayColor:"#E1F5FE", decorEmojis:["🌴","🐠","⛵"], blobStyle:4, decorStyle:"waves" }),
+  makeSceneTemplate({ id:"night-city",   name:"Night City",   emoji:"🌃", lineColor:"#9575CD", titleColor:"#FFFFFF", overlayColor:"#0A0A2A", decorEmojis:["🌃","🌉","🎆"], blobStyle:3, decorStyle:"night" }),
 ];
 
 // ── legacy — keep sticker-only helpers below but BUILTIN_TEMPLATES now uses real images ──
