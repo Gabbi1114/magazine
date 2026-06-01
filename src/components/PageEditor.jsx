@@ -778,6 +778,7 @@ const SCRAPBOOK_STICKERS = [
       ];
       const g = grp(items);
       g.isPhotoFrame = true; g.frameShape = "rect"; g.frameRx = 68; g.frameRy = 68;
+      g.framePhotoOffsetY = -14;
       return g;
     }
   },
@@ -821,6 +822,7 @@ const SCRAPBOOK_STICKERS = [
       ];
       const g = grp(items);
       g.isPhotoFrame = true; g.frameShape = "rect"; g.frameRx = 68; g.frameRy = 68;
+      g.framePhotoOffsetY = -14;
       return g;
     }
   },
@@ -875,6 +877,7 @@ const SCRAPBOOK_STICKERS = [
       ];
       const g = grp(items);
       g.isPhotoFrame = true; g.frameShape = "rect"; g.frameRx = 64; g.frameRy = 64;
+      g.framePhotoOffsetY = -12;
       return g;
     }
   },
@@ -913,6 +916,7 @@ const SCRAPBOOK_STICKERS = [
       ];
       const g = grp(items);
       g.isPhotoFrame = true; g.frameShape = "rect"; g.frameRx = 62; g.frameRy = 76;
+      g.framePhotoOffsetY = -15;
       return g;
     }
   },
@@ -2883,10 +2887,14 @@ const GraphicsPanel = ({ onAdd, onSetBackground, onLoadTemplate }) => {
 // onDone – optional callback after image is placed
 function _fillFrameWithUrl(frame, url, canvas, onDone) {
   if (!frame || !canvas) return;
-  const center = frame.getCenterPoint();
-  const rx     = (frame.frameRx || 80) * (frame.scaleX  || 1);
-  const ry     = (frame.frameRy || 80) * (frame.scaleY  || 1);
-  const angle  = frame.angle || 0;
+  const groupCenter = frame.getCenterPoint();
+  // Polaroid frames have a wide bottom strip, so the bounding-box center sits
+  // below the actual photo hole. framePhotoOffsetY corrects for this shift.
+  const offsetY = (frame.framePhotoOffsetY || 0) * (frame.scaleY || 1);
+  const center  = { x: groupCenter.x, y: groupCenter.y + offsetY };
+  const rx      = (frame.frameRx || 80) * (frame.scaleX  || 1);
+  const ry      = (frame.frameRy || 80) * (frame.scaleY  || 1);
+  const angle   = frame.angle || 0;
   fabric.Image.fromURL(url, (img) => {
     if (!img) return;
     // Scale photo to fully COVER the hole (like object-fit:cover)
@@ -3131,48 +3139,66 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose }) =
       canvas.renderAll();
       updateLayers();
     });
-    const onMod = (opt) => {
-      // ── Snap a dragged canvas image into any photo frame it lands on ──────────
-      if (opt && opt.action === "drag") {
-        const obj = opt.target;
-        if (obj && obj.type === "image" && !obj.isPhotoFrame) {
-          const center  = obj.getCenterPoint();
-          const allObjs = canvas.getObjects();
-          let frame = null;
-          for (let i = allObjs.length - 1; i >= 0; i--) {
-            if (allObjs[i].isPhotoFrame && allObjs[i].containsPoint(center)) { frame = allObjs[i]; break; }
-          }
-          if (frame) {
-            const fCenter  = frame.getCenterPoint();
-            const rx       = (frame.frameRx || 80) * (frame.scaleX || 1);
-            const ry       = (frame.frameRy || 80) * (frame.scaleY || 1);
-            const angle    = frame.angle || 0;
-            // Scale to cover the hole entirely (object-fit: cover)
-            const newScale = Math.max((rx * 2) / obj.width, (ry * 2) / obj.height) * 1.05;
-            const clipPath = frame.frameShape === "rect"
-              ? new fabric.Rect({ width:rx*2, height:ry*2, left:fCenter.x, top:fCenter.y,
-                  originX:"center", originY:"center", absolutePositioned:true, angle })
-              : new fabric.Ellipse({ rx, ry, left:fCenter.x, top:fCenter.y,
-                  originX:"center", originY:"center", absolutePositioned:true, angle });
-            // Remove previously filled photo for this frame
-            if (frame._filledPhoto && frame._filledPhoto !== obj) canvas.remove(frame._filledPhoto);
-            frame._filledPhoto = obj;
-            obj.set({ left:fCenter.x, top:fCenter.y, scaleX:newScale, scaleY:newScale,
-                      originX:"center", originY:"center", angle, clipPath });
-            // Place photo just BELOW the frame so the paper border stays on top
-            const frameIdx = canvas.getObjects().indexOf(frame);
-            canvas.moveTo(obj, frameIdx);
-            canvas.discardActiveObject();
-            canvas.renderAll();
-          }
-        }
-      }
-      updateLayers(); saveHistory(); setPropVer(v => v + 1);
-    };
+    const onMod = () => { updateLayers(); saveHistory(); setPropVer(v => v + 1); };
     canvas.on("object:added", onMod);
     canvas.on("object:removed", onMod);
     canvas.on("object:modified", onMod);
     canvas.on("text:changed", onMod);
+
+    // ── Snap a dragged canvas image into a photo frame on drop ───────────────
+    // Track which image object is currently being dragged
+    let _snapCandidate = null;
+    canvas.on("object:moving", (opt) => {
+      const obj = opt.target;
+      if (obj && obj.type === "image" && !obj.isPhotoFrame) _snapCandidate = obj;
+      else _snapCandidate = null;
+    });
+    canvas.on("mouse:up", () => {
+      const obj = _snapCandidate;
+      _snapCandidate = null;
+      if (!obj) return;
+      // Find which photo frame (if any) the image center overlaps using bounding rect
+      const imgCenter = obj.getCenterPoint();
+      const allObjs   = canvas.getObjects();
+      let frame = null;
+      for (let i = allObjs.length - 1; i >= 0; i--) {
+        const o = allObjs[i];
+        if (!o.isPhotoFrame) continue;
+        const br = o.getBoundingRect(true, true);
+        if (imgCenter.x >= br.left && imgCenter.x <= br.left + br.width &&
+            imgCenter.y >= br.top  && imgCenter.y <= br.top  + br.height) {
+          frame = o; break;
+        }
+      }
+      if (!frame) return;
+      // Compute photo-hole center (group bbox center + per-frame offset)
+      const groupCenter = frame.getCenterPoint();
+      const offsetY     = (frame.framePhotoOffsetY || 0) * (frame.scaleY || 1);
+      const photoCenter = { x: groupCenter.x, y: groupCenter.y + offsetY };
+      const rx          = (frame.frameRx || 68) * (frame.scaleX || 1);
+      const ry          = (frame.frameRy || 68) * (frame.scaleY || 1);
+      const angle       = frame.angle || 0;
+      const newScale    = Math.max((rx * 2) / obj.width, (ry * 2) / obj.height) * 1.05;
+      const clipPath    = frame.frameShape === "rect"
+        ? new fabric.Rect({ width: rx * 2, height: ry * 2,
+            left: photoCenter.x, top: photoCenter.y,
+            originX: "center", originY: "center", absolutePositioned: true, angle })
+        : new fabric.Ellipse({ rx, ry,
+            left: photoCenter.x, top: photoCenter.y,
+            originX: "center", originY: "center", absolutePositioned: true, angle });
+      if (frame._filledPhoto && frame._filledPhoto !== obj) canvas.remove(frame._filledPhoto);
+      frame._filledPhoto = obj;
+      obj.set({ left: photoCenter.x, top: photoCenter.y,
+                scaleX: newScale, scaleY: newScale,
+                originX: "center", originY: "center",
+                angle, clipPath });
+      obj.setCoords();
+      const frameIdx = canvas.getObjects().indexOf(frame);
+      canvas.moveTo(obj, frameIdx);
+      canvas.discardActiveObject();
+      canvas.renderAll();
+      updateLayers(); saveHistory();
+    });
 
     const onKey = (e) => {
       const el = document.activeElement;
