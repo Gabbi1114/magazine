@@ -745,137 +745,174 @@ const SCRAPBOOK_STICKERS = [
       ]);
     }
   },
-  // ── Victorian Oval Photo Frame ───────────────────────────────────────────────
-  { id:"photo-frame-oval", name:"Victorian Oval", emoji:"🖼️", color:"#C8952A",
+  // ── Classic Polaroid Photo Frame ─────────────────────────────────────────────
+  // Photo area 136×136 is centered at group origin (0,0).
+  // Drag any image file onto this frame to fill it automatically.
+  { id:"photo-frame-polaroid", name:"Classic Polaroid", emoji:"📷", color:"#EDD9AA",
     build(){
       const items = [
-        // Outer thin border
-        new fabric.Ellipse({rx:95,ry:118,left:0,top:0,originX:"center",originY:"center",fill:"transparent",stroke:"#5C3D0A",strokeWidth:1.5,selectable:false,evented:false}),
-        // Main thick gold band
-        new fabric.Ellipse({rx:84,ry:106,left:0,top:0,originX:"center",originY:"center",fill:"transparent",stroke:"#C8952A",strokeWidth:22,selectable:false,evented:false}),
-        // Sepia wash over band
-        new fabric.Ellipse({rx:84,ry:106,left:0,top:0,originX:"center",originY:"center",fill:"transparent",stroke:"rgba(80,40,5,0.22)",strokeWidth:22,selectable:false,evented:false}),
-        // Inner decorative gold ring
-        new fabric.Ellipse({rx:72,ry:94,left:0,top:0,originX:"center",originY:"center",fill:"transparent",stroke:"#D4A256",strokeWidth:1.5,selectable:false,evented:false}),
-        // Innermost boundary (clip target)
-        new fabric.Ellipse({rx:70,ry:92,left:0,top:0,originX:"center",originY:"center",fill:"transparent",stroke:"#8B6914",strokeWidth:1,selectable:false,evented:false}),
-        // Cardinal ornaments
-        new fabric.IText("◆",{left:0,top:-120,fontSize:12,fill:"#C8952A",originX:"center",originY:"center",selectable:false,evented:false}),
-        new fabric.IText("◆",{left:0,top:120,fontSize:12,fill:"#C8952A",originX:"center",originY:"center",selectable:false,evented:false}),
-        new fabric.IText("◆",{left:-96,top:0,fontSize:10,fill:"#C8952A",originX:"center",originY:"center",selectable:false,evented:false}),
-        new fabric.IText("◆",{left:96,top:0,fontSize:10,fill:"#C8952A",originX:"center",originY:"center",selectable:false,evented:false}),
-        // Aging wrinkle lines
-        new fabric.Line([-94,-28,-76,-22],{stroke:"rgba(80,40,5,0.40)",strokeWidth:0.8,selectable:false,evented:false}),
-        new fabric.Line([-94,28,-76,22],{stroke:"rgba(80,40,5,0.40)",strokeWidth:0.8,selectable:false,evented:false}),
-        new fabric.Line([76,-22,94,-28],{stroke:"rgba(80,40,5,0.40)",strokeWidth:0.8,selectable:false,evented:false}),
-        new fabric.Line([76,22,94,28],{stroke:"rgba(80,40,5,0.40)",strokeWidth:0.8,selectable:false,evented:false}),
-        new fabric.Line([-16,-116,-10,-96],{stroke:"rgba(80,40,5,0.35)",strokeWidth:0.8,selectable:false,evented:false}),
-        new fabric.Line([10,-116,16,-96],{stroke:"rgba(80,40,5,0.35)",strokeWidth:0.8,selectable:false,evented:false}),
-        new fabric.Line([-16,116,-10,96],{stroke:"rgba(80,40,5,0.35)",strokeWidth:0.8,selectable:false,evented:false}),
-        new fabric.Line([10,116,16,96],{stroke:"rgba(80,40,5,0.35)",strokeWidth:0.8,selectable:false,evented:false}),
+        // Aged cream body — photo 136×136 at y=0, body center shifts down 14px
+        new fabric.Rect({width:162,height:190,left:0,top:14,originX:"center",originY:"center",
+          fill:"#EDD9AA",stroke:"rgba(90,60,15,0.35)",strokeWidth:1.5,rx:2,ry:2,selectable:false,evented:false}),
+        // Dark aging wash along edges
+        new fabric.Rect({width:162,height:9,left:0,top:-77,originX:"center",originY:"center",
+          fill:"rgba(60,35,5,0.30)",rx:2,ry:0,selectable:false,evented:false}),
+        new fabric.Rect({width:162,height:9,left:0,top:106,originX:"center",originY:"center",
+          fill:"rgba(60,35,5,0.22)",rx:0,ry:2,selectable:false,evented:false}),
+        new fabric.Rect({width:9,height:190,left:-76,top:14,originX:"center",originY:"center",
+          fill:"rgba(60,35,5,0.20)",selectable:false,evented:false}),
+        new fabric.Rect({width:9,height:190,left:76,top:14,originX:"center",originY:"center",
+          fill:"rgba(60,35,5,0.20)",selectable:false,evented:false}),
+        // Photo interior (very dark)
+        new fabric.Rect({width:136,height:136,left:0,top:0,originX:"center",originY:"center",
+          fill:"#141008",rx:1,ry:1,selectable:false,evented:false}),
+        // Subtle inner glow around photo edge
+        new fabric.Rect({width:136,height:136,left:0,top:0,originX:"center",originY:"center",
+          fill:"transparent",stroke:"rgba(255,255,255,0.07)",strokeWidth:1.5,rx:1,selectable:false,evented:false}),
+        // Film scratches (diagonal, very faint)
+        new fabric.Line([-52,-60,58,56],{stroke:"rgba(255,255,255,0.07)",strokeWidth:0.7,selectable:false,evented:false}),
+        new fabric.Line([28,-64,-44,58],{stroke:"rgba(255,255,255,0.05)",strokeWidth:0.6,selectable:false,evented:false}),
+        new fabric.Line([-18,-67,8,64],{stroke:"rgba(255,255,255,0.04)",strokeWidth:0.9,selectable:false,evented:false}),
+        // Faint ruled line on bottom write-on strip
+        new fabric.Line([-62,90,62,90],{stroke:"rgba(120,85,30,0.32)",strokeWidth:0.7,selectable:false,evented:false}),
       ];
       const g = grp(items);
-      g.isPhotoFrame = true; g.frameShape = "ellipse"; g.frameRx = 70; g.frameRy = 92;
+      g.isPhotoFrame = true; g.frameShape = "rect"; g.frameRx = 68; g.frameRy = 68;
       return g;
     }
   },
-  // ── Walnut Rectangle Photo Frame ─────────────────────────────────────────────
-  { id:"photo-frame-rect", name:"Walnut Frame", emoji:"🖼️", color:"#3D1C02",
+  // ── Washi-Tape Polaroid ───────────────────────────────────────────────────────
+  { id:"photo-frame-tape", name:"Tape Polaroid", emoji:"📸", color:"#EDD9AA",
     build(){
       const items = [
-        // Main dark walnut band
-        new fabric.Rect({width:186,height:216,left:0,top:0,originX:"center",originY:"center",fill:"transparent",stroke:"#3D1C02",strokeWidth:28,rx:4,ry:4,selectable:false,evented:false}),
-        // Outer gold trim
-        new fabric.Rect({width:215,height:245,left:0,top:0,originX:"center",originY:"center",fill:"transparent",stroke:"#B8860B",strokeWidth:2,rx:5,ry:5,selectable:false,evented:false}),
-        // Outer dark edge
-        new fabric.Rect({width:219,height:249,left:0,top:0,originX:"center",originY:"center",fill:"transparent",stroke:"#5C3D0A",strokeWidth:1,rx:6,ry:6,selectable:false,evented:false}),
-        // Inner gold trim
-        new fabric.Rect({width:158,height:188,left:0,top:0,originX:"center",originY:"center",fill:"transparent",stroke:"#D4A256",strokeWidth:2,rx:2,ry:2,selectable:false,evented:false}),
-        // Innermost boundary (clip target)
-        new fabric.Rect({width:154,height:184,left:0,top:0,originX:"center",originY:"center",fill:"transparent",stroke:"#8B6914",strokeWidth:1,rx:2,ry:2,selectable:false,evented:false}),
-        // Corner bracket ornaments
-        new fabric.IText("◆",{left:-104,top:-120,fontSize:11,fill:"#B8860B",originX:"center",originY:"center",selectable:false,evented:false}),
-        new fabric.IText("◆",{left:104,top:-120,fontSize:11,fill:"#B8860B",originX:"center",originY:"center",selectable:false,evented:false}),
-        new fabric.IText("◆",{left:-104,top:120,fontSize:11,fill:"#B8860B",originX:"center",originY:"center",selectable:false,evented:false}),
-        new fabric.IText("◆",{left:104,top:120,fontSize:11,fill:"#B8860B",originX:"center",originY:"center",selectable:false,evented:false}),
-        // Mid-edge dash ornaments
-        new fabric.IText("—",{left:0,top:-124,fontSize:11,fill:"#B8860B",originX:"center",originY:"center",selectable:false,evented:false}),
-        new fabric.IText("—",{left:0,top:124,fontSize:11,fill:"#B8860B",originX:"center",originY:"center",selectable:false,evented:false}),
-        // Wrinkle lines
-        new fabric.Line([-106,-60,-92,-52],{stroke:"rgba(80,40,5,0.40)",strokeWidth:0.8,selectable:false,evented:false}),
-        new fabric.Line([-106,60,-92,52],{stroke:"rgba(80,40,5,0.40)",strokeWidth:0.8,selectable:false,evented:false}),
-        new fabric.Line([92,-52,106,-60],{stroke:"rgba(80,40,5,0.40)",strokeWidth:0.8,selectable:false,evented:false}),
-        new fabric.Line([92,52,106,60],{stroke:"rgba(80,40,5,0.40)",strokeWidth:0.8,selectable:false,evented:false}),
+        // Body
+        new fabric.Rect({width:162,height:190,left:0,top:14,originX:"center",originY:"center",
+          fill:"#EDD9AA",stroke:"rgba(90,60,15,0.35)",strokeWidth:1.5,rx:2,ry:2,selectable:false,evented:false}),
+        // Edge aging
+        new fabric.Rect({width:162,height:8,left:0,top:-77,originX:"center",originY:"center",
+          fill:"rgba(60,35,5,0.28)",rx:2,ry:0,selectable:false,evented:false}),
+        new fabric.Rect({width:162,height:8,left:0,top:106,originX:"center",originY:"center",
+          fill:"rgba(60,35,5,0.18)",rx:0,ry:2,selectable:false,evented:false}),
+        new fabric.Rect({width:8,height:190,left:-76,top:14,originX:"center",originY:"center",
+          fill:"rgba(60,35,5,0.18)",selectable:false,evented:false}),
+        new fabric.Rect({width:8,height:190,left:76,top:14,originX:"center",originY:"center",
+          fill:"rgba(60,35,5,0.18)",selectable:false,evented:false}),
+        // Photo interior
+        new fabric.Rect({width:136,height:136,left:0,top:0,originX:"center",originY:"center",
+          fill:"#141008",rx:1,ry:1,selectable:false,evented:false}),
+        new fabric.Rect({width:136,height:136,left:0,top:0,originX:"center",originY:"center",
+          fill:"transparent",stroke:"rgba(255,255,255,0.06)",strokeWidth:1.5,selectable:false,evented:false}),
+        // Film scratches
+        new fabric.Line([-44,-58,52,54],{stroke:"rgba(255,255,255,0.07)",strokeWidth:0.7,selectable:false,evented:false}),
+        new fabric.Line([18,-63,-38,56],{stroke:"rgba(255,255,255,0.05)",strokeWidth:0.6,selectable:false,evented:false}),
+        // Top-left tape strip (diagonal)
+        new fabric.Rect({width:46,height:14,left:-64,top:-80,angle:45,originX:"center",originY:"center",
+          fill:"rgba(188,150,60,0.70)",stroke:"rgba(130,100,20,0.25)",strokeWidth:0.8,selectable:false,evented:false}),
+        // Tape sheen
+        new fabric.Rect({width:46,height:5,left:-64,top:-82,angle:45,originX:"center",originY:"center",
+          fill:"rgba(255,240,180,0.20)",selectable:false,evented:false}),
+        // Top-right tape strip
+        new fabric.Rect({width:46,height:14,left:64,top:-80,angle:-45,originX:"center",originY:"center",
+          fill:"rgba(188,150,60,0.70)",stroke:"rgba(130,100,20,0.25)",strokeWidth:0.8,selectable:false,evented:false}),
+        new fabric.Rect({width:46,height:5,left:64,top:-82,angle:-45,originX:"center",originY:"center",
+          fill:"rgba(255,240,180,0.20)",selectable:false,evented:false}),
+        // Bottom write-on line
+        new fabric.Line([-62,90,62,90],{stroke:"rgba(120,85,30,0.30)",strokeWidth:0.7,selectable:false,evented:false}),
       ];
       const g = grp(items);
-      g.isPhotoFrame = true; g.frameShape = "rect"; g.frameRx = 77; g.frameRy = 92;
+      g.isPhotoFrame = true; g.frameShape = "rect"; g.frameRx = 68; g.frameRy = 68;
       return g;
     }
   },
-  // ── Silver Medallion Photo Frame ──────────────────────────────────────────────
-  { id:"photo-frame-circle", name:"Silver Medallion", emoji:"🥈", color:"#A8A8A8",
+  // ── Worn / Grunge Polaroid ────────────────────────────────────────────────────
+  // Photo area 128×128. Extra heavy aging, corner grime, dust specks.
+  { id:"photo-frame-grunge", name:"Worn Polaroid", emoji:"🎞️", color:"#B09060",
     build(){
+      // body 156×180, center at (0,12) so photo 128×128 gets 14px top, 38px bottom
       const items = [
-        // Outer dashed rope ring
-        new fabric.Circle({radius:102,left:0,top:0,originX:"center",originY:"center",fill:"transparent",stroke:"#888",strokeWidth:2,strokeDashArray:[4,3],selectable:false,evented:false}),
-        // Main silver band
-        new fabric.Circle({radius:92,left:0,top:0,originX:"center",originY:"center",fill:"transparent",stroke:"#A0A0A0",strokeWidth:20,selectable:false,evented:false}),
-        // Sheen overlay
-        new fabric.Circle({radius:92,left:0,top:0,originX:"center",originY:"center",fill:"transparent",stroke:"rgba(255,255,255,0.18)",strokeWidth:20,selectable:false,evented:false}),
-        // Outer engraved ring
-        new fabric.Circle({radius:103,left:0,top:0,originX:"center",originY:"center",fill:"transparent",stroke:"#C0C0C0",strokeWidth:1.5,selectable:false,evented:false}),
-        // Inner engraved ring
-        new fabric.Circle({radius:81,left:0,top:0,originX:"center",originY:"center",fill:"transparent",stroke:"#C8C8C8",strokeWidth:1.5,selectable:false,evented:false}),
-        // Innermost boundary (clip target)
-        new fabric.Circle({radius:79,left:0,top:0,originX:"center",originY:"center",fill:"transparent",stroke:"#888",strokeWidth:1,selectable:false,evented:false}),
-        // Star ornaments at 4 cardinal points
-        new fabric.IText("★",{left:0,top:-93,fontSize:10,fill:"#D8D8D8",originX:"center",originY:"center",selectable:false,evented:false}),
-        new fabric.IText("★",{left:0,top:93,fontSize:10,fill:"#D8D8D8",originX:"center",originY:"center",selectable:false,evented:false}),
-        new fabric.IText("★",{left:-93,top:0,fontSize:10,fill:"#D8D8D8",originX:"center",originY:"center",selectable:false,evented:false}),
-        new fabric.IText("★",{left:93,top:0,fontSize:10,fill:"#D8D8D8",originX:"center",originY:"center",selectable:false,evented:false}),
-        // Dot ornaments at diagonals
-        new fabric.IText("·",{left:-65,top:-65,fontSize:16,fill:"#C0C0C0",originX:"center",originY:"center",selectable:false,evented:false}),
-        new fabric.IText("·",{left:65,top:-65,fontSize:16,fill:"#C0C0C0",originX:"center",originY:"center",selectable:false,evented:false}),
-        new fabric.IText("·",{left:-65,top:65,fontSize:16,fill:"#C0C0C0",originX:"center",originY:"center",selectable:false,evented:false}),
-        new fabric.IText("·",{left:65,top:65,fontSize:16,fill:"#C0C0C0",originX:"center",originY:"center",selectable:false,evented:false}),
+        // Body (darker, more aged)
+        new fabric.Rect({width:156,height:180,left:0,top:12,originX:"center",originY:"center",
+          fill:"#D4B880",stroke:"rgba(50,25,5,0.55)",strokeWidth:2,rx:2,ry:2,selectable:false,evented:false}),
+        // Heavy grime — top
+        new fabric.Rect({width:156,height:14,left:0,top:-77,originX:"center",originY:"center",
+          fill:"rgba(30,15,3,0.52)",rx:2,ry:0,selectable:false,evented:false}),
+        // Heavy grime — bottom
+        new fabric.Rect({width:156,height:14,left:0,top:100,originX:"center",originY:"center",
+          fill:"rgba(30,15,3,0.40)",rx:0,ry:2,selectable:false,evented:false}),
+        // Heavy grime — sides
+        new fabric.Rect({width:14,height:180,left:-71,top:12,originX:"center",originY:"center",
+          fill:"rgba(30,15,3,0.36)",selectable:false,evented:false}),
+        new fabric.Rect({width:14,height:180,left:71,top:12,originX:"center",originY:"center",
+          fill:"rgba(30,15,3,0.36)",selectable:false,evented:false}),
+        // Corner grime blobs
+        new fabric.Rect({width:28,height:28,left:-62,top:-72,angle:18,originX:"center",originY:"center",
+          fill:"rgba(20,10,2,0.50)",rx:5,selectable:false,evented:false}),
+        new fabric.Rect({width:28,height:28,left:62,top:-72,angle:-18,originX:"center",originY:"center",
+          fill:"rgba(20,10,2,0.50)",rx:5,selectable:false,evented:false}),
+        new fabric.Rect({width:24,height:24,left:-62,top:98,angle:12,originX:"center",originY:"center",
+          fill:"rgba(20,10,2,0.38)",rx:5,selectable:false,evented:false}),
+        new fabric.Rect({width:24,height:24,left:62,top:98,angle:-12,originX:"center",originY:"center",
+          fill:"rgba(20,10,2,0.38)",rx:5,selectable:false,evented:false}),
+        // Photo interior
+        new fabric.Rect({width:128,height:128,left:0,top:0,originX:"center",originY:"center",
+          fill:"#0E0905",rx:1,ry:1,selectable:false,evented:false}),
+        new fabric.Rect({width:128,height:128,left:0,top:0,originX:"center",originY:"center",
+          fill:"transparent",stroke:"rgba(255,255,255,0.05)",strokeWidth:1.5,selectable:false,evented:false}),
+        // Heavy scratches
+        new fabric.Line([-54,-54,52,52],{stroke:"rgba(255,255,255,0.09)",strokeWidth:1,selectable:false,evented:false}),
+        new fabric.Line([40,-60,-48,58],{stroke:"rgba(255,255,255,0.07)",strokeWidth:0.8,selectable:false,evented:false}),
+        new fabric.Line([-8,-63,4,62],{stroke:"rgba(255,255,255,0.06)",strokeWidth:1.2,selectable:false,evented:false}),
+        new fabric.Line([-60,18,60,28],{stroke:"rgba(255,255,255,0.05)",strokeWidth:0.7,selectable:false,evented:false}),
+        // Dust/halation blobs on photo
+        new fabric.Circle({radius:4,left:-28,top:22,originX:"center",originY:"center",
+          fill:"rgba(255,255,255,0.08)",selectable:false,evented:false}),
+        new fabric.Circle({radius:2.5,left:38,top:-24,originX:"center",originY:"center",
+          fill:"rgba(255,255,255,0.07)",selectable:false,evented:false}),
+        new fabric.Circle({radius:5,left:8,top:36,originX:"center",originY:"center",
+          fill:"rgba(255,255,255,0.05)",selectable:false,evented:false}),
+        // Bottom write line
+        new fabric.Line([-54,75,54,75],{stroke:"rgba(100,65,15,0.28)",strokeWidth:0.7,selectable:false,evented:false}),
       ];
       const g = grp(items);
-      g.isPhotoFrame = true; g.frameShape = "ellipse"; g.frameRx = 79; g.frameRy = 79;
+      g.isPhotoFrame = true; g.frameShape = "rect"; g.frameRx = 64; g.frameRy = 64;
       return g;
     }
   },
-  // ── Rose Gold Locket Photo Frame ──────────────────────────────────────────────
-  { id:"photo-frame-locket", name:"Rose Gold Locket", emoji:"💝", color:"#C08060",
+  // ── Portrait Polaroid ─────────────────────────────────────────────────────────
+  // Taller portrait format (124×152 photo), with inner double border.
+  { id:"photo-frame-portrait", name:"Portrait Frame", emoji:"🖼️", color:"#EDD9AA",
     build(){
+      // body 148×206, center (0,15) → top border 12px, bottom strip 42px
       const items = [
-        // Hanging ring at top
-        new fabric.Circle({radius:9,left:0,top:-106,originX:"center",originY:"center",fill:"transparent",stroke:"#C08060",strokeWidth:3,selectable:false,evented:false}),
-        new fabric.Line([0,-97,0,-115],{stroke:"#C08060",strokeWidth:3,selectable:false,evented:false}),
-        // Main rose-gold band
-        new fabric.Ellipse({rx:64,ry:90,left:0,top:0,originX:"center",originY:"center",fill:"transparent",stroke:"#C08060",strokeWidth:18,selectable:false,evented:false}),
-        // Rose sheen
-        new fabric.Ellipse({rx:64,ry:90,left:0,top:0,originX:"center",originY:"center",fill:"transparent",stroke:"rgba(255,200,180,0.20)",strokeWidth:18,selectable:false,evented:false}),
-        // Outer decorative line
-        new fabric.Ellipse({rx:73,ry:99,left:0,top:0,originX:"center",originY:"center",fill:"transparent",stroke:"#E8A87C",strokeWidth:1.5,selectable:false,evented:false}),
-        // Outer thin edge
-        new fabric.Ellipse({rx:76,ry:102,left:0,top:0,originX:"center",originY:"center",fill:"transparent",stroke:"#9A6040",strokeWidth:1,selectable:false,evented:false}),
-        // Inner decorative line
-        new fabric.Ellipse({rx:54,ry:80,left:0,top:0,originX:"center",originY:"center",fill:"transparent",stroke:"#E8A87C",strokeWidth:1.5,selectable:false,evented:false}),
-        // Innermost boundary (clip target)
-        new fabric.Ellipse({rx:52,ry:78,left:0,top:0,originX:"center",originY:"center",fill:"transparent",stroke:"#C08060",strokeWidth:1,selectable:false,evented:false}),
-        // Heart ornaments at 4 poles
-        new fabric.IText("♥",{left:0,top:-102,fontSize:10,fill:"#E8A87C",originX:"center",originY:"center",selectable:false,evented:false}),
-        new fabric.IText("♥",{left:0,top:102,fontSize:10,fill:"#E8A87C",originX:"center",originY:"center",selectable:false,evented:false}),
-        new fabric.IText("♥",{left:-76,top:0,fontSize:8,fill:"#E8A87C",originX:"center",originY:"center",selectable:false,evented:false}),
-        new fabric.IText("♥",{left:76,top:0,fontSize:8,fill:"#E8A87C",originX:"center",originY:"center",selectable:false,evented:false}),
-        // Wrinkle lines
-        new fabric.Line([-74,-26,-58,-20],{stroke:"rgba(150,80,50,0.35)",strokeWidth:0.8,selectable:false,evented:false}),
-        new fabric.Line([-74,26,-58,20],{stroke:"rgba(150,80,50,0.35)",strokeWidth:0.8,selectable:false,evented:false}),
-        new fabric.Line([58,-20,74,-26],{stroke:"rgba(150,80,50,0.35)",strokeWidth:0.8,selectable:false,evented:false}),
-        new fabric.Line([58,20,74,26],{stroke:"rgba(150,80,50,0.35)",strokeWidth:0.8,selectable:false,evented:false}),
+        // Body
+        new fabric.Rect({width:148,height:206,left:0,top:15,originX:"center",originY:"center",
+          fill:"#EDD9AA",stroke:"rgba(90,60,15,0.35)",strokeWidth:1.5,rx:2,ry:2,selectable:false,evented:false}),
+        // Edge aging
+        new fabric.Rect({width:148,height:9,left:0,top:-87,originX:"center",originY:"center",
+          fill:"rgba(60,35,5,0.30)",rx:2,ry:0,selectable:false,evented:false}),
+        new fabric.Rect({width:148,height:9,left:0,top:118,originX:"center",originY:"center",
+          fill:"rgba(60,35,5,0.20)",rx:0,ry:2,selectable:false,evented:false}),
+        new fabric.Rect({width:9,height:206,left:-69,top:15,originX:"center",originY:"center",
+          fill:"rgba(60,35,5,0.18)",selectable:false,evented:false}),
+        new fabric.Rect({width:9,height:206,left:69,top:15,originX:"center",originY:"center",
+          fill:"rgba(60,35,5,0.18)",selectable:false,evented:false}),
+        // Inner border accent (double-border effect)
+        new fabric.Rect({width:130,height:158,left:0,top:0,originX:"center",originY:"center",
+          fill:"transparent",stroke:"rgba(100,70,20,0.28)",strokeWidth:1,selectable:false,evented:false}),
+        // Photo interior
+        new fabric.Rect({width:124,height:152,left:0,top:0,originX:"center",originY:"center",
+          fill:"#141008",rx:1,ry:1,selectable:false,evented:false}),
+        new fabric.Rect({width:124,height:152,left:0,top:0,originX:"center",originY:"center",
+          fill:"transparent",stroke:"rgba(255,255,255,0.07)",strokeWidth:1.5,selectable:false,evented:false}),
+        // Film scratches
+        new fabric.Line([-46,-68,54,66],{stroke:"rgba(255,255,255,0.07)",strokeWidth:0.7,selectable:false,evented:false}),
+        new fabric.Line([24,-72,-38,70],{stroke:"rgba(255,255,255,0.05)",strokeWidth:0.6,selectable:false,evented:false}),
+        new fabric.Line([-12,-74,6,72],{stroke:"rgba(255,255,255,0.04)",strokeWidth:0.8,selectable:false,evented:false}),
+        // Bottom write line
+        new fabric.Line([-54,98,54,98],{stroke:"rgba(120,85,30,0.30)",strokeWidth:0.7,selectable:false,evented:false}),
       ];
       const g = grp(items);
-      g.isPhotoFrame = true; g.frameShape = "ellipse"; g.frameRx = 52; g.frameRy = 78;
+      g.isPhotoFrame = true; g.frameShape = "rect"; g.frameRx = 62; g.frameRy = 76;
       return g;
     }
   },
@@ -2846,6 +2883,53 @@ const GraphicsPanel = ({ onAdd, onSetBackground, onLoadTemplate }) => {
 };
 
 // ─── Main Editor ──────────────────────────────────────────────────────────────
+// ─── Photo-frame fill helper (shared by button click AND drag-drop) ───────────
+// frame  – Fabric Group with isPhotoFrame:true + frameShape/frameRx/frameRy
+// url    – object URL (will be auto-revoked) or data URL
+// canvas – fabric.Canvas instance
+// onDone – optional callback after image is placed
+function _fillFrameWithUrl(frame, url, canvas, onDone) {
+  if (!frame || !canvas) return;
+  const center = frame.getCenterPoint();
+  const rx     = (frame.frameRx || 80) * (frame.scaleX  || 1);
+  const ry     = (frame.frameRy || 80) * (frame.scaleY  || 1);
+  const angle  = frame.angle || 0;
+  fabric.Image.fromURL(url, (img) => {
+    if (!img) return;
+    // Scale photo to fully COVER the hole (like object-fit:cover)
+    const scale = Math.max((rx * 2) / img.width, (ry * 2) / img.height) * 1.05;
+    const clipPath = frame.frameShape === "rect"
+      ? new fabric.Rect({
+          width: rx * 2, height: ry * 2,
+          left: center.x, top: center.y,
+          originX: "center", originY: "center",
+          absolutePositioned: true, angle,
+        })
+      : new fabric.Ellipse({
+          rx, ry,
+          left: center.x, top: center.y,
+          originX: "center", originY: "center",
+          absolutePositioned: true, angle,
+        });
+    img.set({
+      left: center.x, top: center.y,
+      scaleX: scale, scaleY: scale,
+      originX: "center", originY: "center",
+      angle, clipPath, selectable: true, evented: true,
+    });
+    // Remove previously filled photo for this frame
+    if (frame._filledPhoto) canvas.remove(frame._filledPhoto);
+    frame._filledPhoto = img;
+    // Place photo just BELOW the frame so the frame border renders on top
+    const frameIdx = canvas.getObjects().indexOf(frame);
+    canvas.add(img);
+    canvas.moveTo(img, frameIdx);
+    canvas.renderAll();
+    if (url.startsWith("blob:")) URL.revokeObjectURL(url);
+    onDone?.();
+  }, { crossOrigin: "anonymous" });
+}
+
 export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose }) => {
   // ── Language ─────────────────────────────────────────────────────────────────
   const [lang, setLang] = useState("en");
@@ -3346,63 +3430,48 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose }) =
     fillFrameInputRef.current?.click();
   }, []);
 
-  // Step 2: file chosen → load image, apply absolutePositioned clipPath, insert below frame
+  // Step 2: file chosen → delegate to shared helper
   const onFillFrameFileChange = useCallback((e) => {
     const file  = e.target.files?.[0];
     const frame = fillFrameTargetRef.current;
     if (!file || !frame) { e.target.value = ""; return; }
-
-    const url    = URL.createObjectURL(file);
-    const canvas = fabricRef.current;
-    const center = frame.getCenterPoint();
-    // Scale rx/ry by current frame scale so resized frames still clip correctly
-    const rx    = (frame.frameRx || 80) * (frame.scaleX || 1);
-    const ry    = (frame.frameRy || 80) * (frame.scaleY || 1);
-    const angle = frame.angle || 0;
-
-    fabric.Image.fromURL(url, (img) => {
-      // Scale photo to fully cover the hole with a small margin
-      const scale = Math.max((rx * 2) / img.width, (ry * 2) / img.height) * 1.05;
-
-      // ClipPath anchored absolutely at the frame's canvas center
-      const clipPath = frame.frameShape === "rect"
-        ? new fabric.Rect({
-            width: rx * 2, height: ry * 2,
-            left: center.x, top: center.y,
-            originX: "center", originY: "center",
-            absolutePositioned: true, angle,
-          })
-        : new fabric.Ellipse({
-            rx, ry,
-            left: center.x, top: center.y,
-            originX: "center", originY: "center",
-            absolutePositioned: true, angle,
-          });
-
-      img.set({
-        left: center.x, top: center.y,
-        scaleX: scale, scaleY: scale,
-        originX: "center", originY: "center",
-        angle, clipPath,
-        selectable: true, evented: true,
-      });
-
-      // Remove any previously filled photo for this frame
-      if (frame._filledPhoto) canvas.remove(frame._filledPhoto);
-      frame._filledPhoto = img;
-
-      // Insert photo just BELOW the frame so frame decorations appear on top
-      const frameIdx = canvas.getObjects().indexOf(frame);
-      canvas.add(img);
-      canvas.moveTo(img, frameIdx);
-      canvas.renderAll();
-      updateLayers();
-      saveHistory();
-      URL.revokeObjectURL(url);
-      fillFrameTargetRef.current = null;
-      e.target.value = "";
-    }, { crossOrigin: "anonymous" });
+    const url = URL.createObjectURL(file);
+    fillFrameTargetRef.current = null;
+    e.target.value = "";
+    _fillFrameWithUrl(frame, url, fabricRef.current, () => { updateLayers(); saveHistory(); });
   }, [updateLayers, saveHistory]);
+
+  // ── Drag-and-drop onto canvas: drop a photo directly onto any frame to fill it ─
+  const handleCanvasDrop = useCallback((e) => {
+    e.preventDefault();
+    const canvas   = fabricRef.current;
+    const canvasEl = canvasElRef.current;
+    if (!canvas || !canvasEl) return;
+    const imgFile = Array.from(e.dataTransfer.files || []).find(f => f.type.startsWith("image/"));
+    if (!imgFile) return;
+
+    // Convert browser coords → canvas pixel coords
+    const rect  = canvasEl.getBoundingClientRect();
+    const x     = (e.clientX - rect.left)  * (canvasEl.width  / rect.width);
+    const y     = (e.clientY - rect.top)   * (canvasEl.height / rect.height);
+    const point = new fabric.Point(x, y);
+
+    // Find the topmost photo frame under the drop point
+    const objs = canvas.getObjects();
+    let frame = null;
+    for (let i = objs.length - 1; i >= 0; i--) {
+      if (objs[i].isPhotoFrame && objs[i].containsPoint(point)) { frame = objs[i]; break; }
+    }
+
+    if (frame) {
+      // Fill the frame the photo was dropped onto
+      const url = URL.createObjectURL(imgFile);
+      _fillFrameWithUrl(frame, url, canvas, () => { updateLayers(); saveHistory(); });
+    } else {
+      // No frame hit — add as a regular image
+      addImage(imgFile);
+    }
+  }, [updateLayers, saveHistory, addImage]);
 
   // Apply crop result — replace the fabric Image with cropped version
   const applyCrop = useCallback((croppedUrl) => {
@@ -3982,7 +4051,10 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose }) =
         {/* Canvas area */}
         <div ref={containerRef}
           className="flex-1 relative flex items-center justify-center bg-[#0a0918] overflow-hidden">
-          <div className="rounded-lg overflow-hidden shadow-2xl shadow-black/60 ring-1 ring-white/10">
+          <div
+            className="rounded-lg overflow-hidden shadow-2xl shadow-black/60 ring-1 ring-white/10"
+            onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; }}
+            onDrop={handleCanvasDrop}>
             <canvas ref={canvasElRef} />
           </div>
           {/* Group edit hint */}
