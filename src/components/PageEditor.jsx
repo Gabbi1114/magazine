@@ -2098,7 +2098,7 @@ const EditorCropModal = ({ fabricImg, onApply, onClose }) => {
   );
 };
 
-const PropertiesPanel = ({ obj, onUpdate, onCrop, onShapeCrop, onFillFrame, isGroupChild = false }) => {
+const PropertiesPanel = ({ obj, onUpdate, onCrop, onShapeCrop, isGroupChild = false }) => {
   if (!obj) return (
     <p className="text-white/20 text-xs text-center py-8 px-4">
       {t("tapToEdit")}
@@ -2124,18 +2124,11 @@ const PropertiesPanel = ({ obj, onUpdate, onCrop, onShapeCrop, onFillFrame, isGr
         </div>
       )}
       {obj.isPhotoFrame && (
-        <div className="flex flex-col gap-2 px-1">
-          <p className="text-[10px] text-amber-400/70 uppercase tracking-widest font-semibold">Photo Frame</p>
-          <button
-            onClick={() => onFillFrame?.(obj)}
-            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-amber-600/20 hover:bg-amber-600/40 border border-amber-500/30 hover:border-amber-400/60 text-amber-300 hover:text-amber-100 text-xs font-semibold transition-all active:scale-95">
-            <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-              <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>
-              <circle cx="12" cy="13" r="4"/>
-            </svg>
-            Fill Frame with Photo
-          </button>
-          <p className="text-[9px] text-white/25 text-center leading-tight">Photo clips to the frame shape</p>
+        <div className="flex items-center gap-2 px-1 py-1.5 rounded-xl bg-amber-500/8 border border-amber-500/15">
+          <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="text-amber-400/60 shrink-0">
+            <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/>
+          </svg>
+          <span className="text-[10px] text-amber-300/60 leading-tight">Drag any photo on canvas onto this frame to fill it</span>
         </div>
       )}
       {isText && (
@@ -2955,8 +2948,6 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose }) =
   const historyRef        = useRef([]);
   const histIdxRef        = useRef(-1);
   const skipHistRef       = useRef(false);
-  const fillFrameInputRef = useRef(null);   // hidden <input type="file"> for photo frames
-  const fillFrameTargetRef = useRef(null);  // which frame is waiting for a photo
 
   const [activeTool,      setActiveTool]      = useState("select");
   const [activeObj,       setActiveObj]       = useState(null);
@@ -3140,7 +3131,44 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose }) =
       canvas.renderAll();
       updateLayers();
     });
-    const onMod = () => { updateLayers(); saveHistory(); setPropVer(v => v + 1); };
+    const onMod = (opt) => {
+      // ── Snap a dragged canvas image into any photo frame it lands on ──────────
+      if (opt && opt.action === "drag") {
+        const obj = opt.target;
+        if (obj && obj.type === "image" && !obj.isPhotoFrame) {
+          const center  = obj.getCenterPoint();
+          const allObjs = canvas.getObjects();
+          let frame = null;
+          for (let i = allObjs.length - 1; i >= 0; i--) {
+            if (allObjs[i].isPhotoFrame && allObjs[i].containsPoint(center)) { frame = allObjs[i]; break; }
+          }
+          if (frame) {
+            const fCenter  = frame.getCenterPoint();
+            const rx       = (frame.frameRx || 80) * (frame.scaleX || 1);
+            const ry       = (frame.frameRy || 80) * (frame.scaleY || 1);
+            const angle    = frame.angle || 0;
+            // Scale to cover the hole entirely (object-fit: cover)
+            const newScale = Math.max((rx * 2) / obj.width, (ry * 2) / obj.height) * 1.05;
+            const clipPath = frame.frameShape === "rect"
+              ? new fabric.Rect({ width:rx*2, height:ry*2, left:fCenter.x, top:fCenter.y,
+                  originX:"center", originY:"center", absolutePositioned:true, angle })
+              : new fabric.Ellipse({ rx, ry, left:fCenter.x, top:fCenter.y,
+                  originX:"center", originY:"center", absolutePositioned:true, angle });
+            // Remove previously filled photo for this frame
+            if (frame._filledPhoto && frame._filledPhoto !== obj) canvas.remove(frame._filledPhoto);
+            frame._filledPhoto = obj;
+            obj.set({ left:fCenter.x, top:fCenter.y, scaleX:newScale, scaleY:newScale,
+                      originX:"center", originY:"center", angle, clipPath });
+            // Place photo just BELOW the frame so the paper border stays on top
+            const frameIdx = canvas.getObjects().indexOf(frame);
+            canvas.moveTo(obj, frameIdx);
+            canvas.discardActiveObject();
+            canvas.renderAll();
+          }
+        }
+      }
+      updateLayers(); saveHistory(); setPropVer(v => v + 1);
+    };
     canvas.on("object:added", onMod);
     canvas.on("object:removed", onMod);
     canvas.on("object:modified", onMod);
@@ -3423,23 +3451,7 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose }) =
     }
   }, [updateLayers, saveHistory]);
 
-  // ── Photo Frame fill ─────────────────────────────────────────────────────────
-  // Step 1: user clicks "Fill Frame with Photo" → store target + trigger file input
-  const handleFillFrame = useCallback((frameObj) => {
-    fillFrameTargetRef.current = frameObj;
-    fillFrameInputRef.current?.click();
-  }, []);
-
-  // Step 2: file chosen → delegate to shared helper
-  const onFillFrameFileChange = useCallback((e) => {
-    const file  = e.target.files?.[0];
-    const frame = fillFrameTargetRef.current;
-    if (!file || !frame) { e.target.value = ""; return; }
-    const url = URL.createObjectURL(file);
-    fillFrameTargetRef.current = null;
-    e.target.value = "";
-    _fillFrameWithUrl(frame, url, fabricRef.current, () => { updateLayers(); saveHistory(); });
-  }, [updateLayers, saveHistory]);
+  // (Photo-frame fill via button removed — frames are filled by dragging a canvas image onto them)
 
   // ── Drag-and-drop onto canvas: drop a photo directly onto any frame to fill it ─
   const handleCanvasDrop = useCallback((e) => {
@@ -3907,8 +3919,7 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose }) =
       isGroupChild={isGroupChild}
       onUpdate={() => { fabricRef.current?.renderAll(); setPropVer(v => v + 1); }}
       onCrop={(obj) => setCropTarget(obj)}
-      onShapeCrop={(obj) => setShapeCropTarget(obj)}
-      onFillFrame={handleFillFrame} />
+      onShapeCrop={(obj) => setShapeCropTarget(obj)} />
   );
   const graphicsPanel = (
     <GraphicsPanel onAdd={addImageFromUrl} onSetBackground={setPageBackground} onLoadTemplate={loadBuiltinTemplate} />
@@ -4010,8 +4021,6 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose }) =
             </button>
           ))}
           <div className="w-8 h-px bg-white/10 my-1" />
-          {/* Hidden file input for photo-frame fill (triggered programmatically) */}
-          <input type="file" accept="image/*" className="hidden" ref={fillFrameInputRef} onChange={onFillFrameFileChange} />
           {/* Upload image */}
           <label title={t("uploadImage")}
             className="w-10 h-10 flex items-center justify-center rounded-xl text-white/40 hover:bg-white/10 hover:text-white transition-all cursor-pointer">
