@@ -819,10 +819,10 @@ function mkCloud(cx, cy, sz, fill, opacity = 0.30) {
 // ─── Per-template border decorations ─────────────────────────────────────────
 // Scatters unique character-themed shapes around the white blob's border area.
 function addBlobDecorations(o, accentColor, decorStyle) {
-  // BIG  = positions near the blob's outer edge
-  // SMALL = positions slightly inward / between lines
-  const BIG  = [[26,42],[350,26],[452,90],[22,212],[460,332],[28,470]];
-  const SMALL = [[392,36],[54,104],[462,200],[30,376],[464,454],[210,22]];
+  // BIG  = 3 on left side + 3 on right side, evenly spaced vertically
+  // SMALL = 3 along top edge + 3 along bottom edge, evenly spaced horizontally
+  const BIG  = [[22,80],[22,270],[22,460],[452,80],[452,270],[452,460]];
+  const SMALL = [[100,26],[240,22],[380,26],[100,532],[240,538],[380,532]];
   const sp = (pts, char, sz, col, op) =>
     pts.forEach(([x,y]) => o.push(mkText(char, x, y, sz, col, { opacity:op, selectable:false, evented:false })));
 
@@ -992,15 +992,7 @@ function makeCharTemplate({ id, name, emoji, bg1, titleColor, lineColor, footerE
             o.push(img);
           }
 
-          // 4. Character name — italic, bottom centre, on the bg colour strip
-          o.push(mkText(name, LW / 2, LH - 24, 22, titleColor, {
-            fontStyle: "italic",
-            fontFamily: "Georgia, serif",
-            fontWeight: "bold",
-            selectable: true,
-          }));
-
-          // 5. Small emoji accents inside blob (left side, away from character)
+          // 4. Small emoji accents inside blob (left side, away from character)
           (footerEmojis || [emoji, emoji, emoji]).slice(0, 3).forEach((e, i) =>
             o.push(mkText(e, 60 + i * 100, 510, 20, "#555", { selectable: true }))
           );
@@ -1062,15 +1054,6 @@ function makeSceneTemplate({ id, name, emoji, lineColor, titleColor, decorEmojis
           (decorEmojis || [emoji, emoji, emoji]).slice(0, 3).forEach((e, i) =>
             o.push(mkText(e, 60 + i * 100, 510, 22, "#444", { selectable: true }))
           );
-
-          // Dark footer strip + name
-          o.push(mkRect(0, LH - 68, LW, 68, "rgba(0,0,0,0.50)", 0, { selectable: false, evented: false }));
-          o.push(mkText(name, LW / 2, LH - 24, 22, titleColor || "#fff", {
-            fontStyle: "italic",
-            fontFamily: "Georgia, serif",
-            fontWeight: "bold",
-            selectable: true,
-          }));
 
           resolve(o);
         });
