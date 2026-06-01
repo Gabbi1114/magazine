@@ -746,16 +746,28 @@ const SCRAPBOOK_STICKERS = [
     }
   },
   // ── Classic Polaroid Photo Frame ─────────────────────────────────────────────
+  // Design: 4 border strips leave the photo window open (transparent center).
+  // Render order: [0] dark hole placeholder → [1] photo (inserted on snap) → [2-5] border strips
+  // Pre-group bbox: x:-81..81  y:-81..109  → center (0,14)  → framePhotoOffsetY=-14
   { id:"photo-frame-polaroid", name:"Classic Polaroid", emoji:"📷", color:"#EDD9AA",
     build(){
       const items = [
-        // Cream body
-        new fabric.Rect({width:162,height:190,left:0,top:14,originX:"center",originY:"center",
-          fill:"#EDD9AA",stroke:"rgba(90,60,15,0.40)",strokeWidth:1.5,rx:2,ry:2,selectable:false,evented:false}),
-        // Photo hole — hidden when a photo is inserted
+        // [0] Dark placeholder — hidden once a photo is snapped in
         new fabric.Rect({width:136,height:136,left:0,top:0,originX:"center",originY:"center",
           fill:"#141008",rx:1,ry:1,selectable:false,evented:false,isPhotoHole:true}),
-        // Bottom write-on line
+        // [1] Top cream strip  (y: -81 → -68 in pre-group space)
+        new fabric.Rect({width:162,height:13,left:0,top:-74.5,originX:"center",originY:"center",
+          fill:"#EDD9AA",stroke:"rgba(90,60,15,0.40)",strokeWidth:1.5,selectable:false,evented:false}),
+        // [2] Bottom cream strip / write-on area  (y: 68 → 109)
+        new fabric.Rect({width:162,height:41,left:0,top:88.5,originX:"center",originY:"center",
+          fill:"#EDD9AA",stroke:"rgba(90,60,15,0.40)",strokeWidth:1.5,selectable:false,evented:false}),
+        // [3] Left border  (x: -81 → -68)
+        new fabric.Rect({width:13,height:136,left:-74.5,top:0,originX:"center",originY:"center",
+          fill:"#EDD9AA",stroke:"rgba(90,60,15,0.40)",strokeWidth:1.5,selectable:false,evented:false}),
+        // [4] Right border  (x: 68 → 81)
+        new fabric.Rect({width:13,height:136,left:74.5,top:0,originX:"center",originY:"center",
+          fill:"#EDD9AA",stroke:"rgba(90,60,15,0.40)",strokeWidth:1.5,selectable:false,evented:false}),
+        // [5] Write-on line
         new fabric.Line([-62,90,62,90],{stroke:"rgba(120,85,30,0.35)",strokeWidth:0.8,selectable:false,evented:false}),
       ];
       const g = grp(items);
@@ -765,22 +777,33 @@ const SCRAPBOOK_STICKERS = [
     }
   },
   // ── Washi-Tape Polaroid ───────────────────────────────────────────────────────
+  // Tapes are positioned at the top corners of the PHOTO (within body bounds) so the
+  // overall bbox stays identical to Classic Polaroid → framePhotoOffsetY=-14 unchanged.
   { id:"photo-frame-tape", name:"Tape Polaroid", emoji:"📸", color:"#EDD9AA",
     build(){
       const items = [
-        // Body
-        new fabric.Rect({width:162,height:190,left:0,top:14,originX:"center",originY:"center",
-          fill:"#EDD9AA",stroke:"rgba(90,60,15,0.40)",strokeWidth:1.5,rx:2,ry:2,selectable:false,evented:false}),
-        // Photo hole
+        // [0] Dark placeholder
         new fabric.Rect({width:136,height:136,left:0,top:0,originX:"center",originY:"center",
           fill:"#141008",rx:1,ry:1,selectable:false,evented:false,isPhotoHole:true}),
-        // Tape strips (top-left and top-right)
-        new fabric.Rect({width:46,height:14,left:-64,top:-80,angle:45,originX:"center",originY:"center",
-          fill:"rgba(188,150,60,0.72)",stroke:"rgba(130,100,20,0.25)",strokeWidth:0.8,selectable:false,evented:false}),
-        new fabric.Rect({width:46,height:14,left:64,top:-80,angle:-45,originX:"center",originY:"center",
-          fill:"rgba(188,150,60,0.72)",stroke:"rgba(130,100,20,0.25)",strokeWidth:0.8,selectable:false,evented:false}),
-        // Bottom write-on line
+        // [1] Top strip
+        new fabric.Rect({width:162,height:13,left:0,top:-74.5,originX:"center",originY:"center",
+          fill:"#EDD9AA",stroke:"rgba(90,60,15,0.40)",strokeWidth:1.5,selectable:false,evented:false}),
+        // [2] Bottom strip
+        new fabric.Rect({width:162,height:41,left:0,top:88.5,originX:"center",originY:"center",
+          fill:"#EDD9AA",stroke:"rgba(90,60,15,0.40)",strokeWidth:1.5,selectable:false,evented:false}),
+        // [3] Left border
+        new fabric.Rect({width:13,height:136,left:-74.5,top:0,originX:"center",originY:"center",
+          fill:"#EDD9AA",stroke:"rgba(90,60,15,0.40)",strokeWidth:1.5,selectable:false,evented:false}),
+        // [4] Right border
+        new fabric.Rect({width:13,height:136,left:74.5,top:0,originX:"center",originY:"center",
+          fill:"#EDD9AA",stroke:"rgba(90,60,15,0.40)",strokeWidth:1.5,selectable:false,evented:false}),
+        // [5] Write-on line
         new fabric.Line([-62,90,62,90],{stroke:"rgba(120,85,30,0.35)",strokeWidth:0.8,selectable:false,evented:false}),
+        // [6-7] Washi-tape strips at photo top-corners (inside body bbox)
+        new fabric.Rect({width:40,height:12,left:-55,top:-55,angle:45,originX:"center",originY:"center",
+          fill:"rgba(188,150,60,0.72)",stroke:"rgba(130,100,20,0.25)",strokeWidth:0.8,selectable:false,evented:false}),
+        new fabric.Rect({width:40,height:12,left:55,top:-55,angle:-45,originX:"center",originY:"center",
+          fill:"rgba(188,150,60,0.72)",stroke:"rgba(130,100,20,0.25)",strokeWidth:0.8,selectable:false,evented:false}),
       ];
       const g = grp(items);
       g.isPhotoFrame = true; g.frameShape = "rect"; g.frameRx = 68; g.frameRy = 68;
@@ -789,16 +812,26 @@ const SCRAPBOOK_STICKERS = [
     }
   },
   // ── Worn / Grunge Polaroid ────────────────────────────────────────────────────
+  // Pre-group bbox: x:-78..78  y:-78..102  → center (0,12)  → framePhotoOffsetY=-12
   { id:"photo-frame-grunge", name:"Worn Polaroid", emoji:"🎞️", color:"#B09060",
     build(){
       const items = [
-        // Aged body
-        new fabric.Rect({width:156,height:180,left:0,top:12,originX:"center",originY:"center",
-          fill:"#C8A870",stroke:"rgba(50,25,5,0.60)",strokeWidth:2,rx:2,ry:2,selectable:false,evented:false}),
-        // Photo hole
+        // [0] Dark placeholder
         new fabric.Rect({width:128,height:128,left:0,top:0,originX:"center",originY:"center",
           fill:"#0E0905",rx:1,ry:1,selectable:false,evented:false,isPhotoHole:true}),
-        // Bottom write line
+        // [1] Top aged strip  (y: -78 → -64)
+        new fabric.Rect({width:156,height:14,left:0,top:-71,originX:"center",originY:"center",
+          fill:"#C8A870",stroke:"rgba(50,25,5,0.60)",strokeWidth:2,selectable:false,evented:false}),
+        // [2] Bottom strip  (y: 64 → 102)
+        new fabric.Rect({width:156,height:38,left:0,top:83,originX:"center",originY:"center",
+          fill:"#C8A870",stroke:"rgba(50,25,5,0.60)",strokeWidth:2,selectable:false,evented:false}),
+        // [3] Left border  (x: -78 → -64)
+        new fabric.Rect({width:14,height:128,left:-71,top:0,originX:"center",originY:"center",
+          fill:"#C8A870",stroke:"rgba(50,25,5,0.60)",strokeWidth:2,selectable:false,evented:false}),
+        // [4] Right border  (x: 64 → 78)
+        new fabric.Rect({width:14,height:128,left:71,top:0,originX:"center",originY:"center",
+          fill:"#C8A870",stroke:"rgba(50,25,5,0.60)",strokeWidth:2,selectable:false,evented:false}),
+        // [5] Write line
         new fabric.Line([-54,75,54,75],{stroke:"rgba(100,65,15,0.35)",strokeWidth:0.8,selectable:false,evented:false}),
       ];
       const g = grp(items);
@@ -808,19 +841,29 @@ const SCRAPBOOK_STICKERS = [
     }
   },
   // ── Portrait Polaroid ─────────────────────────────────────────────────────────
+  // Pre-group bbox: x:-74..74  y:-88..118  → center (0,15)  → framePhotoOffsetY=-15
   { id:"photo-frame-portrait", name:"Portrait Frame", emoji:"🖼️", color:"#EDD9AA",
     build(){
       const items = [
-        // Body
-        new fabric.Rect({width:148,height:206,left:0,top:15,originX:"center",originY:"center",
-          fill:"#EDD9AA",stroke:"rgba(90,60,15,0.40)",strokeWidth:1.5,rx:2,ry:2,selectable:false,evented:false}),
-        // Inner accent border
-        new fabric.Rect({width:130,height:158,left:0,top:0,originX:"center",originY:"center",
-          fill:"transparent",stroke:"rgba(100,70,20,0.30)",strokeWidth:1,selectable:false,evented:false}),
-        // Photo hole
+        // [0] Dark placeholder
         new fabric.Rect({width:124,height:152,left:0,top:0,originX:"center",originY:"center",
           fill:"#141008",rx:1,ry:1,selectable:false,evented:false,isPhotoHole:true}),
-        // Bottom write line
+        // [1] Top strip  (y: -88 → -76)
+        new fabric.Rect({width:148,height:12,left:0,top:-82,originX:"center",originY:"center",
+          fill:"#EDD9AA",stroke:"rgba(90,60,15,0.40)",strokeWidth:1.5,selectable:false,evented:false}),
+        // [2] Bottom strip  (y: 76 → 118)
+        new fabric.Rect({width:148,height:42,left:0,top:97,originX:"center",originY:"center",
+          fill:"#EDD9AA",stroke:"rgba(90,60,15,0.40)",strokeWidth:1.5,selectable:false,evented:false}),
+        // [3] Left border  (x: -74 → -62)
+        new fabric.Rect({width:12,height:152,left:-68,top:0,originX:"center",originY:"center",
+          fill:"#EDD9AA",stroke:"rgba(90,60,15,0.40)",strokeWidth:1.5,selectable:false,evented:false}),
+        // [4] Right border  (x: 62 → 74)
+        new fabric.Rect({width:12,height:152,left:68,top:0,originX:"center",originY:"center",
+          fill:"#EDD9AA",stroke:"rgba(90,60,15,0.40)",strokeWidth:1.5,selectable:false,evented:false}),
+        // [5] Inner accent border — renders over photo as decorative inset
+        new fabric.Rect({width:130,height:158,left:0,top:0,originX:"center",originY:"center",
+          fill:"transparent",stroke:"rgba(100,70,20,0.30)",strokeWidth:1,selectable:false,evented:false}),
+        // [6] Write line
         new fabric.Line([-54,98,54,98],{stroke:"rgba(120,85,30,0.35)",strokeWidth:0.8,selectable:false,evented:false}),
       ];
       const g = grp(items);
@@ -2808,8 +2851,9 @@ function _fillFrameWithUrl(frame, url, canvas, onDone) {
       originX: "center", originY: "center",
       angle: 0,
       selectable: false, evented: false,
+      // ClipPath is in render-space (after photo scale), so divide by s to get canvas-pixel-correct clip
       clipPath: new fabric.Rect({
-        width: localRx * 2, height: localRy * 2,
+        width: (localRx * 2) / s, height: (localRy * 2) / s,
         left: 0, top: 0,
         originX: "center", originY: "center",
       }),
@@ -2819,8 +2863,11 @@ function _fillFrameWithUrl(frame, url, canvas, onDone) {
       frame._objects = frame._objects.filter(o => o !== frame._filledPhoto);
     }
     frame._filledPhoto = img;
-    // Insert at index 0 (behind all frame shapes)
-    frame._objects.unshift(img);
+    // Insert AFTER the photo-hole placeholder so photo renders on top of it
+    // but BEFORE all the border strips (which are at higher indices)
+    const holeIdx = frame._objects.findIndex(o => o.isPhotoHole);
+    const insertAt = holeIdx >= 0 ? holeIdx + 1 : 0;
+    frame._objects.splice(insertAt, 0, img);
     img.group  = frame;
     img.canvas = canvas;
     img.setCoords();
@@ -3049,18 +3096,19 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose }) =
       const localY  = frame.framePhotoOffsetY || 0;
       const localRx = frame.frameRx || 68;
       const localRy = frame.frameRy || 68;
-      // Scale in group-LOCAL pixels (frameRx/Ry are already in local space)
+      // Scale so photo fills the hole (in group-local pixels)
       const s = Math.max((localRx * 2) / photo.width, (localRy * 2) / photo.height) * 1.05;
       photo.set({
         left: 0, top: localY,
         scaleX: s, scaleY: s,
         originX: "center", originY: "center",
-        angle: 0,           // group handles rotation
+        angle: 0,
         selectable: false,
         evented: false,
-        // Clip in PHOTO-LOCAL space (not absolutePositioned) so it moves with the group
+        // ClipPath is evaluated in render-space (after photo scale is applied),
+        // so divide by s so the clip covers exactly localRx*2 × localRy*2 canvas pixels.
         clipPath: new fabric.Rect({
-          width: localRx * 2, height: localRy * 2,
+          width: (localRx * 2) / s, height: (localRy * 2) / s,
           left: 0, top: 0,
           originX: "center", originY: "center",
         }),
@@ -3072,21 +3120,26 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose }) =
       }
       frame._filledPhoto = photo;
 
-      // Remove from top-level canvas if it was there
+      // Remove from top-level canvas
       const wasOnCanvas = canvas.getObjects().includes(photo);
       if (wasOnCanvas) {
         canvas._objects = canvas._objects.filter(o => o !== photo);
       }
 
-      // Insert at index 0 of the group (rendered FIRST = behind all frame shapes)
-      if (!frame._objects.includes(photo)) {
-        frame._objects.unshift(photo);
+      // Insert AFTER the photo-hole placeholder (index 0) so the photo renders in front
+      // of the dark placeholder but behind all the border strips above it.
+      if (frame._objects.includes(photo)) {
+        frame._objects.splice(frame._objects.indexOf(photo), 1);
       }
+      const holeIdx = frame._objects.findIndex(o => o.isPhotoHole);
+      const insertAt = holeIdx >= 0 ? holeIdx + 1 : 0;
+      frame._objects.splice(insertAt, 0, photo);
+
       photo.group  = frame;
       photo.canvas = canvas;
       photo.setCoords();
 
-      // Hide the dark photo-hole placeholder rect
+      // Hide the dark placeholder
       frame._objects.forEach(o => { if (o.isPhotoHole) o.visible = false; });
 
       frame.dirty = true;
