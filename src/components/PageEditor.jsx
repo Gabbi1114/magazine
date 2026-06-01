@@ -130,6 +130,28 @@ const FONTS = [
   "Space Mono","Orbitron","Press Start 2P","VT323","Silkscreen",
 ];
 
+// ─── SVG path helpers used by shaped photo frames ────────────────────────────
+// All paths are centered at (0,0) in group-local space.
+const _svgCircle = r =>
+  `M 0,${-r} A ${r},${r} 0 1,0 0,${r} A ${r},${r} 0 1,0 0,${-r} Z`;
+const _svgEllipse = (rx,ry) =>
+  `M 0,${-ry} A ${rx},${ry} 0 1,0 0,${ry} A ${rx},${ry} 0 1,0 0,${-ry} Z`;
+const _svgRoundedRect = (w,h,rx) => {
+  const hw=w/2, hh=h/2, r=Math.min(rx, hw, hh);
+  return `M ${-hw+r},${-hh} H ${hw-r} A ${r},${r} 0 0,1 ${hw},${-hh+r}`+
+         ` V ${hh-r} A ${r},${r} 0 0,1 ${hw-r},${hh}`+
+         ` H ${-hw+r} A ${r},${r} 0 0,1 ${-hw},${hh-r}`+
+         ` V ${-hh+r} A ${r},${r} 0 0,1 ${-hw+r},${-hh} Z`;
+};
+const _svgPoly = (n,R,ao=0) => Array.from({length:n},(_,i)=>{
+  const a=(i*Math.PI*2/n)+ao;
+  return (i===0?'M':'L')+` ${(R*Math.cos(a)).toFixed(1)},${(R*Math.sin(a)).toFixed(1)}`;
+}).join(' ')+' Z';
+const _svgStar = (oR,iR,spikes=5) => Array.from({length:spikes*2},(_,i)=>{
+  const r=i%2===0?oR:iR, a=(i*Math.PI/spikes)-Math.PI/2;
+  return (i===0?'M':'L')+` ${(r*Math.cos(a)).toFixed(1)},${(r*Math.sin(a)).toFixed(1)}`;
+}).join(' ')+' Z';
+
 // ─── Scrapbook Sticker Elements ──────────────────────────────────────────────
 const grp = (items, opts={}) => new fabric.Group(items, { originX:"center", originY:"center", left:LW/2, top:LH/2, ...opts });
 
@@ -869,6 +891,159 @@ const SCRAPBOOK_STICKERS = [
       const g = grp(items);
       g.isPhotoFrame = true; g.frameShape = "rect"; g.frameRx = 62; g.frameRy = 76;
       g.framePhotoOffsetY = -15;
+      return g;
+    }
+  },
+
+  // ── Circle Photo Frame ───────────────────────────────────────────────────────
+  // Even-odd donut: outer circle (R=84) minus inner circle (R=70) = cream ring.
+  { id:"photo-frame-circle", name:"Circle Frame", emoji:"🔵", color:"#EDD9AA",
+    build(){
+      const R=70, OR=84;
+      const donut = _svgCircle(OR)+' '+_svgCircle(R);
+      const items = [
+        new fabric.Circle({radius:R, left:0, top:0, originX:"center", originY:"center",
+          fill:"#141008", selectable:false, evented:false, isPhotoHole:true}),
+        new fabric.Path(donut,{left:0,top:0,originX:"center",originY:"center",
+          fill:"#EDD9AA",fillRule:"evenodd",stroke:"rgba(90,60,15,0.35)",strokeWidth:1.5,
+          selectable:false,evented:false}),
+      ];
+      const g = grp(items);
+      g.isPhotoFrame=true; g.frameClipShape="circle"; g.frameR=R; g.framePhotoOffsetY=0;
+      return g;
+    }
+  },
+
+  // ── Oval Photo Frame ─────────────────────────────────────────────────────────
+  { id:"photo-frame-oval", name:"Oval Frame", emoji:"⬭", color:"#EDD9AA",
+    build(){
+      const rx=56, ry=76, bx=12, by=12;
+      const donut = _svgEllipse(rx+bx, ry+by)+' '+_svgEllipse(rx, ry);
+      const items = [
+        new fabric.Ellipse({rx, ry, left:0, top:0, originX:"center", originY:"center",
+          fill:"#141008", selectable:false, evented:false, isPhotoHole:true}),
+        new fabric.Path(donut,{left:0,top:0,originX:"center",originY:"center",
+          fill:"#EDD9AA",fillRule:"evenodd",stroke:"rgba(90,60,15,0.35)",strokeWidth:1.5,
+          selectable:false,evented:false}),
+      ];
+      const g = grp(items);
+      g.isPhotoFrame=true; g.frameClipShape="ellipse"; g.frameRx=rx; g.frameRy=ry; g.framePhotoOffsetY=0;
+      return g;
+    }
+  },
+
+  // ── Rounded-Square Photo Frame ────────────────────────────────────────────────
+  { id:"photo-frame-square", name:"Round Square", emoji:"🔲", color:"#EDD9AA",
+    build(){
+      const S=116, rx=30, B=14;
+      const OS=S+B*2, ORx=rx+5;
+      const donut = _svgRoundedRect(OS,OS,ORx)+' '+_svgRoundedRect(S,S,rx);
+      const items = [
+        new fabric.Rect({width:S,height:S,left:0,top:0,originX:"center",originY:"center",
+          rx,ry:rx,fill:"#141008",selectable:false,evented:false,isPhotoHole:true}),
+        new fabric.Path(donut,{left:0,top:0,originX:"center",originY:"center",
+          fill:"#EDD9AA",fillRule:"evenodd",stroke:"rgba(90,60,15,0.35)",strokeWidth:1.5,
+          selectable:false,evented:false}),
+      ];
+      const g = grp(items);
+      g.isPhotoFrame=true; g.frameClipShape="rect"; g.frameRx=S/2; g.frameRy=S/2;
+      g.frameClipRx=rx; g.framePhotoOffsetY=0;
+      return g;
+    }
+  },
+
+  // ── Arch Photo Frame ─────────────────────────────────────────────────────────
+  // Rectangle bottom + semicircle top. BBox x:-64..64, y:-70..70 → center=(0,0).
+  { id:"photo-frame-arch", name:"Arch Frame", emoji:"🏛️", color:"#EDD9AA",
+    build(){
+      const innerD="M -58,64 L -58,-4 A 60,60 0 0,1 58,-4 L 58,64 Z";
+      const outerD="M -64,70 L -64,-4 A 66,66 0 0,1 64,-4 L 64,70 Z";
+      const donut  = outerD+' '+innerD;
+      const items = [
+        new fabric.Path(innerD,{left:0,top:0,originX:"center",originY:"center",
+          fill:"#141008",selectable:false,evented:false,isPhotoHole:true}),
+        new fabric.Path(donut,{left:0,top:0,originX:"center",originY:"center",
+          fill:"#EDD9AA",fillRule:"evenodd",stroke:"rgba(90,60,15,0.35)",strokeWidth:1.5,
+          selectable:false,evented:false}),
+      ];
+      const g = grp(items);
+      g.isPhotoFrame=true; g.frameClipShape="path"; g.frameClipD=innerD; g.framePhotoOffsetY=0;
+      return g;
+    }
+  },
+
+  // ── Heart Photo Frame ────────────────────────────────────────────────────────
+  { id:"photo-frame-heart", name:"Heart Frame", emoji:"❤️", color:"#FFB3CC",
+    build(){
+      const innerD="M 0,57 C -14,43 -62,18 -62,-16 C -62,-48 -38,-62 0,-40 C 38,-62 62,-48 62,-16 C 62,18 14,43 0,57 Z";
+      const outerD="M 0,68 C -16,52 -72,21 -72,-18 C -72,-54 -44,-72 0,-49 C 44,-72 72,-54 72,-18 C 72,21 16,52 0,68 Z";
+      const donut  = outerD+' '+innerD;
+      const items = [
+        new fabric.Path(innerD,{left:0,top:0,originX:"center",originY:"center",
+          fill:"#2d0a0a",selectable:false,evented:false,isPhotoHole:true}),
+        new fabric.Path(donut,{left:0,top:0,originX:"center",originY:"center",
+          fill:"#FFB3CC",fillRule:"evenodd",stroke:"rgba(180,30,60,0.28)",strokeWidth:1.5,
+          selectable:false,evented:false}),
+      ];
+      const g = grp(items);
+      g.isPhotoFrame=true; g.frameClipShape="path"; g.frameClipD=innerD; g.framePhotoOffsetY=0;
+      return g;
+    }
+  },
+
+  // ── Hexagon Photo Frame ──────────────────────────────────────────────────────
+  { id:"photo-frame-hex", name:"Hex Frame", emoji:"⬡", color:"#EDD9AA",
+    build(){
+      const innerD = _svgPoly(6, 68, -Math.PI/2); // pointy-top hexagon
+      const outerD = _svgPoly(6, 80, -Math.PI/2);
+      const donut  = outerD+' '+innerD;
+      const items = [
+        new fabric.Path(innerD,{left:0,top:0,originX:"center",originY:"center",
+          fill:"#141008",selectable:false,evented:false,isPhotoHole:true}),
+        new fabric.Path(donut,{left:0,top:0,originX:"center",originY:"center",
+          fill:"#EDD9AA",fillRule:"evenodd",stroke:"rgba(90,60,15,0.35)",strokeWidth:1.5,
+          selectable:false,evented:false}),
+      ];
+      const g = grp(items);
+      g.isPhotoFrame=true; g.frameClipShape="path"; g.frameClipD=innerD; g.framePhotoOffsetY=0;
+      return g;
+    }
+  },
+
+  // ── Diamond Photo Frame ──────────────────────────────────────────────────────
+  { id:"photo-frame-diamond", name:"Diamond Frame", emoji:"💠", color:"#EDD9AA",
+    build(){
+      const innerD="M 0,-72 L 58,0 L 0,72 L -58,0 Z";
+      const outerD="M 0,-84 L 68,0 L 0,84 L -68,0 Z";
+      const donut  = outerD+' '+innerD;
+      const items = [
+        new fabric.Path(innerD,{left:0,top:0,originX:"center",originY:"center",
+          fill:"#141008",selectable:false,evented:false,isPhotoHole:true}),
+        new fabric.Path(donut,{left:0,top:0,originX:"center",originY:"center",
+          fill:"#EDD9AA",fillRule:"evenodd",stroke:"rgba(90,60,15,0.35)",strokeWidth:1.5,
+          selectable:false,evented:false}),
+      ];
+      const g = grp(items);
+      g.isPhotoFrame=true; g.frameClipShape="path"; g.frameClipD=innerD; g.framePhotoOffsetY=0;
+      return g;
+    }
+  },
+
+  // ── Star Photo Frame ─────────────────────────────────────────────────────────
+  { id:"photo-frame-star", name:"Star Frame", emoji:"⭐", color:"#FFD93D",
+    build(){
+      const innerD = _svgStar(62, 28);
+      const outerD = _svgStar(74, 33);
+      const donut  = outerD+' '+innerD;
+      const items = [
+        new fabric.Path(innerD,{left:0,top:0,originX:"center",originY:"center",
+          fill:"#141008",selectable:false,evented:false,isPhotoHole:true}),
+        new fabric.Path(donut,{left:0,top:0,originX:"center",originY:"center",
+          fill:"#FFD93D",fillRule:"evenodd",stroke:"rgba(160,120,0,0.35)",strokeWidth:1.5,
+          selectable:false,evented:false}),
+      ];
+      const g = grp(items);
+      g.isPhotoFrame=true; g.frameClipShape="path"; g.frameClipD=innerD; g.framePhotoOffsetY=0;
       return g;
     }
   },
@@ -2837,11 +3012,33 @@ const GraphicsPanel = ({ onAdd, onSetBackground, onLoadTemplate }) => {
 // url    – object URL (will be auto-revoked) or data URL
 // canvas – fabric.Canvas instance
 // onDone – optional callback after image is placed
+// Generates the correct clip path for a photo inside a shaped frame.
+// The clipPath is evaluated in render-space (AFTER the photo's scaleX/Y = s is applied),
+// so dimensions for rect/circle/ellipse are divided by s. For SVG path clips we
+// set scaleX/Y = 1/s on the Path object itself, which has the same effect.
+function _makeFrameClip(frame, s) {
+  const base = { left:0, top:0, originX:"center", originY:"center" };
+  if (frame.frameClipShape === "circle") {
+    return new fabric.Circle({ ...base, radius:(frame.frameR || 70)/s });
+  }
+  if (frame.frameClipShape === "ellipse") {
+    return new fabric.Ellipse({ ...base, rx:(frame.frameRx||60)/s, ry:(frame.frameRy||80)/s });
+  }
+  if (frame.frameClipShape === "path" && frame.frameClipD) {
+    return new fabric.Path(frame.frameClipD, { ...base, scaleX:1/s, scaleY:1/s });
+  }
+  // default: rect (with optional corner radius)
+  const rw = (frame.frameRx || 68) * 2;
+  const rh = (frame.frameRy || 68) * 2;
+  const rx = frame.frameClipRx ? frame.frameClipRx / s : 0;
+  return new fabric.Rect({ ...base, width:rw/s, height:rh/s, rx, ry:rx });
+}
+
 function _fillFrameWithUrl(frame, url, canvas, onDone) {
   if (!frame || !canvas) return;
   const localY  = frame.framePhotoOffsetY || 0;
-  const localRx = frame.frameRx || 80;
-  const localRy = frame.frameRy || 80;
+  const localRx = frame.frameRx || (frame.frameR || 80);
+  const localRy = frame.frameRy || (frame.frameR || 80);
   fabric.Image.fromURL(url, (img) => {
     if (!img) return;
     const s = Math.max((localRx * 2) / img.width, (localRy * 2) / img.height) * 1.05;
@@ -2851,20 +3048,15 @@ function _fillFrameWithUrl(frame, url, canvas, onDone) {
       originX: "center", originY: "center",
       angle: 0,
       selectable: false, evented: false,
-      // ClipPath is in render-space (after photo scale), so divide by s to get canvas-pixel-correct clip
-      clipPath: new fabric.Rect({
-        width: (localRx * 2) / s, height: (localRy * 2) / s,
-        left: 0, top: 0,
-        originX: "center", originY: "center",
-      }),
+      clipPath: _makeFrameClip(frame, s),
     });
     // Remove previous photo from group
     if (frame._filledPhoto) {
       frame._objects = frame._objects.filter(o => o !== frame._filledPhoto);
     }
     frame._filledPhoto = img;
-    // Insert AFTER the photo-hole placeholder so photo renders on top of it
-    // but BEFORE all the border strips (which are at higher indices)
+    // Insert AFTER the photo-hole placeholder so photo renders in front of it
+    // but BEFORE the border/frame shapes at higher indices
     const holeIdx = frame._objects.findIndex(o => o.isPhotoHole);
     const insertAt = holeIdx >= 0 ? holeIdx + 1 : 0;
     frame._objects.splice(insertAt, 0, img);
@@ -2956,7 +3148,7 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose }) =
     if (skipHistRef.current) return;
     const c = fabricRef.current;
     if (!c) return;
-    const json = JSON.stringify(c.toJSON(['isPhotoFrame','isPhotoHole','frameShape','frameRx','frameRy','framePhotoOffsetY','_filledPhotoId']));
+    const json = JSON.stringify(c.toJSON(['isPhotoFrame','isPhotoHole','frameShape','frameRx','frameRy','framePhotoOffsetY','_filledPhotoId','frameClipShape','frameClipD','frameR','frameClipRx']));
     historyRef.current = historyRef.current.slice(0, histIdxRef.current + 1);
     historyRef.current.push(json);
     histIdxRef.current = historyRef.current.length - 1;
@@ -3094,9 +3286,9 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose }) =
     // The photo-hole rect is hidden so the photo shows through.
     const snapPhotoIntoFrame = (photo, frame) => {
       const localY  = frame.framePhotoOffsetY || 0;
-      const localRx = frame.frameRx || 68;
-      const localRy = frame.frameRy || 68;
-      // Scale so photo fills the hole (in group-local pixels)
+      const localRx = frame.frameRx || (frame.frameR || 68);
+      const localRy = frame.frameRy || (frame.frameR || 68);
+      // Scale so photo fills the hole
       const s = Math.max((localRx * 2) / photo.width, (localRy * 2) / photo.height) * 1.05;
       photo.set({
         left: 0, top: localY,
@@ -3105,13 +3297,7 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose }) =
         angle: 0,
         selectable: false,
         evented: false,
-        // ClipPath is evaluated in render-space (after photo scale is applied),
-        // so divide by s so the clip covers exactly localRx*2 × localRy*2 canvas pixels.
-        clipPath: new fabric.Rect({
-          width: (localRx * 2) / s, height: (localRy * 2) / s,
-          left: 0, top: 0,
-          originX: "center", originY: "center",
-        }),
+        clipPath: _makeFrameClip(frame, s),
       });
 
       // Remove previous photo from group if different
