@@ -154,19 +154,29 @@ const _svgStar = (oR,iR,spikes=5) => Array.from({length:spikes*2},(_,i)=>{
 
 // ─── Scrapbook Sticker Elements ──────────────────────────────────────────────
 const grp = (items, opts={}) => new fabric.Group(items, { originX:"center", originY:"center", left:LW/2, top:LH/2, ...opts });
+// Wraps all body shapes into one nested sub-group so expanding a sticker in the
+// Layers panel shows at most [body_group, text1, text2] — not every individual shape.
+function _stickerGrp(bodyItems, textItems, opts = {}) {
+  const textsArr = Array.isArray(textItems) ? textItems
+    : textItems != null ? [textItems] : [];
+  const body = new fabric.Group(bodyItems, {
+    originX:"center", originY:"center",
+    selectable:false, evented:false,
+  });
+  return grp([body, ...textsArr], opts);
+}
 
 const SCRAPBOOK_STICKERS = [
   // ── Polaroid Frame ───────────────────────────────────────────────────────────
   { id:"polaroid", name:"Polaroid Frame", emoji:"📷", color:"#fff",
     build(){
       const W=152, H=178;
-      return grp([
+      return _stickerGrp([
         new fabric.Rect({left:-W/2,top:-H/2,width:W,height:H,fill:"#ffffff",rx:4,
           shadow:new fabric.Shadow({color:"rgba(0,0,0,0.28)",blur:14,offsetX:3,offsetY:5})}),
         new fabric.Rect({left:-W/2+9,top:-H/2+9,width:W-18,height:H-52,fill:"#d8d8d8",rx:2}),
         new fabric.IText("📷",{left:0,top:H/2-34,fontSize:15,originX:"center",originY:"center"}),
-        new fabric.IText("add caption…",{left:0,top:H/2-16,fontSize:9,fill:"#aaa",fontStyle:"italic",originX:"center",originY:"center",fontFamily:"Georgia"}),
-      ]);
+      ], new fabric.IText("add caption…",{left:0,top:H/2-16,fontSize:9,fill:"#aaa",fontStyle:"italic",originX:"center",originY:"center",fontFamily:"Georgia"}));
     }
   },
   // ── Pink Washi Tape ──────────────────────────────────────────────────────────
@@ -174,10 +184,10 @@ const SCRAPBOOK_STICKERS = [
     build(){
       const dots=[];
       for(let i=0;i<18;i++) dots.push(new fabric.Circle({left:-130+i*15,top:0,radius:3,fill:"rgba(255,255,255,0.5)",originX:"center",originY:"center"}));
-      return grp([
+      return _stickerGrp([
         new fabric.Rect({left:-140,top:-15,width:280,height:30,fill:"rgba(255,179,204,0.82)"}),
-        ...dots
-      ],{angle:-4});
+        ...dots,
+      ], null, {angle:-4});
     }
   },
   // ── Mint Washi Tape ──────────────────────────────────────────────────────────
@@ -185,10 +195,10 @@ const SCRAPBOOK_STICKERS = [
     build(){
       const stripes=[];
       for(let i=0;i<10;i++) stripes.push(new fabric.Rect({left:-130+i*28,top:-15,width:14,height:30,fill:"rgba(255,255,255,0.3)"}));
-      return grp([
+      return _stickerGrp([
         new fabric.Rect({left:-140,top:-15,width:280,height:30,fill:"rgba(178,240,216,0.85)"}),
-        ...stripes
-      ],{angle:3});
+        ...stripes,
+      ], null, {angle:3});
     }
   },
   // ── Blue Polka Washi Tape ────────────────────────────────────────────────────
@@ -196,10 +206,10 @@ const SCRAPBOOK_STICKERS = [
     build(){
       const dots=[];
       for(let i=0;i<14;i++) dots.push(new fabric.Circle({left:-100+i*15,top:0,radius:4,fill:"rgba(255,255,255,0.55)",originX:"center",originY:"center"}));
-      return grp([
+      return _stickerGrp([
         new fabric.Rect({left:-115,top:-13,width:230,height:26,fill:"rgba(126,200,227,0.88)"}),
-        ...dots
-      ],{angle:2});
+        ...dots,
+      ], null, {angle:2});
     }
   },
   // ── Yellow Star Washi Tape ───────────────────────────────────────────────────
@@ -207,10 +217,10 @@ const SCRAPBOOK_STICKERS = [
     build(){
       const stars=[];
       for(let i=0;i<11;i++) stars.push(new fabric.IText("★",{left:-110+i*22,top:0,fontSize:11,fill:"rgba(255,255,255,0.7)",originX:"center",originY:"center",fontFamily:"Arial"}));
-      return grp([
+      return _stickerGrp([
         new fabric.Rect({left:-120,top:-13,width:240,height:26,fill:"rgba(255,217,61,0.9)"}),
-        ...stars
-      ],{angle:-3});
+        ...stars,
+      ], null, {angle:-3});
     }
   },
   // ── Purple Striped Washi Tape ────────────────────────────────────────────────
@@ -218,53 +228,52 @@ const SCRAPBOOK_STICKERS = [
     build(){
       const stripes=[];
       for(let i=0;i<8;i++) stripes.push(new fabric.Rect({left:-112+i*32,top:-13,width:18,height:26,fill:"rgba(255,255,255,0.22)"}));
-      return grp([
+      return _stickerGrp([
         new fabric.Rect({left:-120,top:-13,width:240,height:26,fill:"rgba(192,132,252,0.88)"}),
-        ...stripes
-      ],{angle:1});
+        ...stripes,
+      ], null, {angle:1});
     }
   },
   // ── Yellow Sticky Note ───────────────────────────────────────────────────────
   { id:"sticky-note", name:"Sticky Note", emoji:"📝", color:"#FFE566",
     build(){
       const W=130,H=130;
-      return grp([
+      return _stickerGrp([
         new fabric.Rect({left:-W/2,top:-H/2,width:W,height:H,fill:"#FFE566",rx:2,
           shadow:new fabric.Shadow({color:"rgba(0,0,0,0.18)",blur:10,offsetX:3,offsetY:5})}),
         new fabric.Triangle({left:W/2-20,top:H/2-20,width:20,height:20,fill:"rgba(0,0,0,0.12)",angle:180}),
         new fabric.Line([-W/2+14,-H/2+36,W/2-14,-H/2+36],{stroke:"rgba(0,0,0,0.12)",strokeWidth:1}),
         new fabric.Line([-W/2+14,-H/2+52,W/2-14,-H/2+52],{stroke:"rgba(0,0,0,0.12)",strokeWidth:1}),
         new fabric.Line([-W/2+14,-H/2+68,W/2-14,-H/2+68],{stroke:"rgba(0,0,0,0.12)",strokeWidth:1}),
-        new fabric.IText("note here…",{left:0,top:-H/2+20,fontSize:11,fill:"#888",fontStyle:"italic",originX:"center",originY:"center",fontFamily:"Georgia"}),
-      ]);
+      ], new fabric.IText("note here…",{left:0,top:-H/2+20,fontSize:11,fill:"#888",fontStyle:"italic",originX:"center",originY:"center",fontFamily:"Georgia"}));
     }
   },
   // ── Pink Sticky Note ─────────────────────────────────────────────────────────
   { id:"sticky-pink", name:"Pink Sticky Note", emoji:"🩷", color:"#FFB3CC",
     build(){
       const W=130,H=130;
-      return grp([
+      return _stickerGrp([
         new fabric.Rect({left:-W/2,top:-H/2,width:W,height:H,fill:"#FFB3CC",rx:2,
           shadow:new fabric.Shadow({color:"rgba(0,0,0,0.18)",blur:10,offsetX:3,offsetY:5})}),
         new fabric.Triangle({left:W/2-20,top:H/2-20,width:20,height:20,fill:"rgba(0,0,0,0.1)",angle:180}),
         new fabric.Line([-W/2+14,-H/2+36,W/2-14,-H/2+36],{stroke:"rgba(255,255,255,0.5)",strokeWidth:1}),
         new fabric.Line([-W/2+14,-H/2+52,W/2-14,-H/2+52],{stroke:"rgba(255,255,255,0.5)",strokeWidth:1}),
         new fabric.Line([-W/2+14,-H/2+68,W/2-14,-H/2+68],{stroke:"rgba(255,255,255,0.5)",strokeWidth:1}),
-        new fabric.IText("♥ note ♥",{left:0,top:-H/2+20,fontSize:11,fill:"#ff6b9d",fontStyle:"italic",originX:"center",originY:"center",fontFamily:"Georgia"}),
-      ]);
+      ], new fabric.IText("♥ note ♥",{left:0,top:-H/2+20,fontSize:11,fill:"#ff6b9d",fontStyle:"italic",originX:"center",originY:"center",fontFamily:"Georgia"}));
     }
   },
   // ── Kraft Paper Tag ──────────────────────────────────────────────────────────
   { id:"kraft-tag", name:"Kraft Tag", emoji:"🏷️", color:"#C4956A",
     build(){
       const W=80, H=120;
-      return grp([
+      return _stickerGrp([
         new fabric.Rect({left:-W/2,top:-H/2+12,width:W,height:H,fill:"#D4A574",rx:6,
           shadow:new fabric.Shadow({color:"rgba(0,0,0,0.22)",blur:8,offsetX:2,offsetY:3})}),
         new fabric.Circle({left:0,top:-H/2+20,radius:7,fill:"none",stroke:"#8B6340",strokeWidth:2,originX:"center",originY:"center"}),
         new fabric.Line([0,-H/2+13,0,-H/2-2],{stroke:"#8B6340",strokeWidth:1.5}),
-        new fabric.IText("TAG",{left:0,top:-H/2+62,fontSize:14,fill:"#6B4226",fontWeight:"bold",originX:"center",originY:"center",fontFamily:"Georgia",letterSpacing:3}),
         new fabric.Line([-W/2+10,-H/2+80,W/2-10,-H/2+80],{stroke:"#8B6340",strokeWidth:0.8}),
+      ], [
+        new fabric.IText("TAG",{left:0,top:-H/2+62,fontSize:14,fill:"#6B4226",fontWeight:"bold",originX:"center",originY:"center",fontFamily:"Georgia",letterSpacing:3}),
         new fabric.IText("label text",{left:0,top:-H/2+94,fontSize:8,fill:"#8B6340",fontStyle:"italic",originX:"center",originY:"center",fontFamily:"Georgia"}),
       ]);
     }
@@ -273,9 +282,10 @@ const SCRAPBOOK_STICKERS = [
   { id:"stamp", name:"Round Stamp", emoji:"🔖", color:"#4A90D9",
     build(){
       const R=55;
-      return grp([
+      return _stickerGrp([
         new fabric.Circle({left:0,top:0,radius:R,fill:"none",stroke:"#2E5FA3",strokeWidth:3,strokeDashArray:[4,3],originX:"center",originY:"center"}),
         new fabric.Circle({left:0,top:0,radius:R-10,fill:"none",stroke:"#2E5FA3",strokeWidth:1,originX:"center",originY:"center"}),
+      ], [
         new fabric.IText("★  AMAZING  ★",{left:0,top:0,fontSize:11,fill:"#2E5FA3",fontWeight:"bold",letterSpacing:1,originX:"center",originY:"center",fontFamily:"Arial"}),
         new fabric.IText("scrapbook",{left:0,top:16,fontSize:9,fill:"#4A90D9",fontStyle:"italic",originX:"center",originY:"center",fontFamily:"Georgia"}),
       ]);
@@ -285,46 +295,42 @@ const SCRAPBOOK_STICKERS = [
   { id:"ribbon-banner", name:"Ribbon Banner", emoji:"🎗️", color:"#FF6B9D",
     build(){
       const pts=[{x:-120,y:-18},{x:120,y:-18},{x:132,y:0},{x:120,y:18},{x:-120,y:18},{x:-132,y:0}];
-      return grp([
+      return _stickerGrp([
         new fabric.Polygon(pts,{fill:"#FF6B9D",stroke:"#D4497A",strokeWidth:1}),
         new fabric.Triangle({left:-128,top:0,width:16,height:36,fill:"#C43060",originX:"center",originY:"center",angle:270}),
         new fabric.Triangle({left:128,top:0,width:16,height:36,fill:"#C43060",originX:"center",originY:"center",angle:90}),
-        new fabric.IText("✦  memories  ✦",{left:0,top:0,fontSize:15,fill:"#ffffff",fontWeight:"bold",originX:"center",originY:"center",fontFamily:"Georgia",letterSpacing:2}),
-      ]);
+      ], new fabric.IText("✦  memories  ✦",{left:0,top:0,fontSize:15,fill:"#ffffff",fontWeight:"bold",originX:"center",originY:"center",fontFamily:"Georgia",letterSpacing:2}));
     }
   },
   // ── Green Ribbon Banner ──────────────────────────────────────────────────────
   { id:"ribbon-green", name:"Green Banner", emoji:"🌿", color:"#6BCB77",
     build(){
       const pts=[{x:-110,y:-16},{x:110,y:-16},{x:122,y:0},{x:110,y:16},{x:-110,y:16},{x:-122,y:0}];
-      return grp([
+      return _stickerGrp([
         new fabric.Polygon(pts,{fill:"#6BCB77",stroke:"#4CAF50",strokeWidth:1}),
         new fabric.Triangle({left:-118,top:0,width:14,height:32,fill:"#388E3C",originX:"center",originY:"center",angle:270}),
         new fabric.Triangle({left:118,top:0,width:14,height:32,fill:"#388E3C",originX:"center",originY:"center",angle:90}),
-        new fabric.IText("✦  adventures  ✦",{left:0,top:0,fontSize:13,fill:"#ffffff",fontWeight:"bold",originX:"center",originY:"center",fontFamily:"Georgia",letterSpacing:1}),
-      ]);
+      ], new fabric.IText("✦  adventures  ✦",{left:0,top:0,fontSize:13,fill:"#ffffff",fontWeight:"bold",originX:"center",originY:"center",fontFamily:"Georgia",letterSpacing:1}));
     }
   },
   // ── Speech Bubble ────────────────────────────────────────────────────────────
   { id:"speech-bubble", name:"Speech Bubble", emoji:"💬", color:"#A78BFA",
     build(){
-      return grp([
+      return _stickerGrp([
         new fabric.Rect({left:0,top:0,width:160,height:80,fill:"#A78BFA",rx:16,originX:"center",originY:"center"}),
         new fabric.Triangle({left:20,top:30,width:22,height:22,fill:"#A78BFA",angle:200}),
-        new fabric.IText("write here!",{left:0,top:0,fontSize:14,fill:"#ffffff",fontWeight:"bold",originX:"center",originY:"center",fontFamily:"Arial"}),
-      ]);
+      ], new fabric.IText("write here!",{left:0,top:0,fontSize:14,fill:"#ffffff",fontWeight:"bold",originX:"center",originY:"center",fontFamily:"Arial"}));
     }
   },
   // ── Thought Bubble ───────────────────────────────────────────────────────────
   { id:"thought-bubble", name:"Thought Bubble", emoji:"💭", color:"#BAE6FD",
     build(){
-      return grp([
+      return _stickerGrp([
         new fabric.Ellipse({rx:70,ry:44,fill:"#e8f4ff",stroke:"#93C5FD",strokeWidth:2,originX:"center",originY:"center",left:0,top:0}),
         new fabric.Circle({left:-22,top:38,radius:10,fill:"#e8f4ff",stroke:"#93C5FD",strokeWidth:2,originX:"center",originY:"center"}),
         new fabric.Circle({left:-14,top:53,radius:6,fill:"#e8f4ff",stroke:"#93C5FD",strokeWidth:2,originX:"center",originY:"center"}),
         new fabric.Circle({left:-8,top:63,radius:3.5,fill:"#e8f4ff",stroke:"#93C5FD",strokeWidth:1.5,originX:"center",originY:"center"}),
-        new fabric.IText("hmm…",{left:0,top:0,fontSize:13,fill:"#60A5FA",fontStyle:"italic",originX:"center",originY:"center",fontFamily:"Georgia"}),
-      ]);
+      ], new fabric.IText("hmm…",{left:0,top:0,fontSize:13,fill:"#60A5FA",fontStyle:"italic",originX:"center",originY:"center",fontFamily:"Georgia"}));
     }
   },
   // ── Star Burst Label ─────────────────────────────────────────────────────────
@@ -335,8 +341,9 @@ const SCRAPBOOK_STICKERS = [
         const r=i%2===0?oR:iR, a=(i*Math.PI)/spikes-Math.PI/2;
         pts.push({x:r*Math.cos(a),y:r*Math.sin(a)});
       }
-      return grp([
+      return _stickerGrp([
         new fabric.Polygon(pts,{fill:"#FFD93D",stroke:"#E6B800",strokeWidth:1.5,originX:"center",originY:"center"}),
+      ], [
         new fabric.IText("WOW!",{left:0,top:-6,fontSize:18,fill:"#7A5C00",fontWeight:"bold",originX:"center",originY:"center",fontFamily:"Arial"}),
         new fabric.IText("awesome",{left:0,top:12,fontSize:8,fill:"#7A5C00",originX:"center",originY:"center",fontFamily:"Georgia",fontStyle:"italic"}),
       ]);
@@ -347,12 +354,11 @@ const SCRAPBOOK_STICKERS = [
     build(){
       const holes=[], W=220,H=70, holeY=[-H/2+8, H/2-8];
       for(let i=0;i<9;i++) holeY.forEach(y=>holes.push(new fabric.Rect({left:-W/2+10+i*23,top:y,width:14,height:10,fill:"#555",rx:2,originY:"center"})));
-      return grp([
+      return _stickerGrp([
         new fabric.Rect({left:-W/2,top:-H/2,width:W,height:H,fill:"#111",rx:4}),
         ...holes,
         new fabric.Rect({left:-W/2+10,top:-H/2+22,width:W-20,height:H-44,fill:"#444",rx:2}),
-        new fabric.IText("📽  your memory",{left:0,top:0,fontSize:11,fill:"rgba(255,255,255,0.7)",originX:"center",originY:"center",fontFamily:"Arial"}),
-      ]);
+      ], new fabric.IText("📽  your memory",{left:0,top:0,fontSize:11,fill:"rgba(255,255,255,0.7)",originX:"center",originY:"center",fontFamily:"Arial"}));
     }
   },
   // ── Torn Paper Edge ──────────────────────────────────────────────────────────
@@ -362,21 +368,19 @@ const SCRAPBOOK_STICKERS = [
       const pts=[{x:-W/2,y:-20}];
       for(let x=-W/2+12;x<W/2;x+=12) pts.push({x,y:Math.sin(x*0.25)*9+4});
       pts.push({x:W/2,y:-20},{x:W/2,y:30},{x:-W/2,y:30});
-      return grp([
+      return _stickerGrp([
         new fabric.Polygon(pts,{fill:"#f5efe6",stroke:"none",
           shadow:new fabric.Shadow({color:"rgba(0,0,0,0.15)",blur:8,offsetX:0,offsetY:3})}),
-        new fabric.IText("torn paper",{left:0,top:10,fontSize:11,fill:"#c4a882",fontStyle:"italic",originX:"center",originY:"center",fontFamily:"Georgia"}),
-      ]);
+      ], new fabric.IText("torn paper",{left:0,top:10,fontSize:11,fill:"#c4a882",fontStyle:"italic",originX:"center",originY:"center",fontFamily:"Georgia"}));
     }
   },
   // ── Heart Sticker ────────────────────────────────────────────────────────────
   { id:"heart-sticker", name:"Heart Sticker", emoji:"❤️", color:"#FF4D6D",
     build(){
-      return grp([
+      return _stickerGrp([
         new fabric.Path("M 0,-35 C 5,-50 30,-50 30,-28 C 30,-8 0,20 0,30 C 0,20 -30,-8 -30,-28 C -30,-50 -5,-50 0,-35 Z",
           {fill:"#FF4D6D",stroke:"#CC1B3A",strokeWidth:1.5,originX:"center",originY:"center",scaleX:1.4,scaleY:1.4}),
-        new fabric.IText("love",{left:0,top:4,fontSize:12,fill:"#ffffff",fontWeight:"bold",fontStyle:"italic",originX:"center",originY:"center",fontFamily:"Georgia"}),
-      ]);
+      ], new fabric.IText("love",{left:0,top:4,fontSize:12,fill:"#ffffff",fontWeight:"bold",fontStyle:"italic",originX:"center",originY:"center",fontFamily:"Georgia"}));
     }
   },
   // ── Postage Stamp ────────────────────────────────────────────────────────────
@@ -392,11 +396,12 @@ const SCRAPBOOK_STICKERS = [
         perfs.push(new fabric.Circle({left:-W/2,top:y,radius:4,fill:"#1a1a2e",originX:"center",originY:"center"}));
         perfs.push(new fabric.Circle({left:W/2,top:y,radius:4,fill:"#1a1a2e",originX:"center",originY:"center"}));
       }
-      return grp([
+      return _stickerGrp([
         new fabric.Rect({left:0,top:0,width:W+4,height:H+4,fill:"#c0c0c0",rx:2,originX:"center",originY:"center"}),
         new fabric.Rect({left:0,top:0,width:W,height:H,fill:"#ffffff",rx:2,originX:"center",originY:"center"}),
         ...perfs,
         new fabric.Rect({left:0,top:-12,width:W-16,height:H/2-4,fill:"#c8e6f5",rx:2,originX:"center",originY:"center"}),
+      ], [
         new fabric.IText("✉",{left:0,top:-16,fontSize:22,originX:"center",originY:"center"}),
         new fabric.IText("stamp",{left:0,top:H/2-18,fontSize:9,fill:"#888",fontStyle:"italic",originX:"center",originY:"center",fontFamily:"Georgia"}),
       ]);
@@ -405,32 +410,32 @@ const SCRAPBOOK_STICKERS = [
   // ── Push Pin ─────────────────────────────────────────────────────────────────
   { id:"push-pin", name:"Push Pin", emoji:"📌", color:"#FF6B6B",
     build(){
-      return grp([
+      return _stickerGrp([
         new fabric.Circle({left:0,top:-14,radius:18,fill:"#FF6B6B",stroke:"#CC3333",strokeWidth:1.5,originX:"center",originY:"center"}),
         new fabric.Circle({left:5,top:-20,radius:5,fill:"rgba(255,255,255,0.4)",originX:"center",originY:"center"}),
         new fabric.Rect({left:0,top:6,width:5,height:24,fill:"#aaa",rx:2,originX:"center",originY:"top"}),
-      ]);
+      ], null);
     }
   },
   // ── Paper Clip ───────────────────────────────────────────────────────────────
   { id:"paper-clip", name:"Paper Clip", emoji:"📎", color:"#999",
     build(){
-      return grp([
+      return _stickerGrp([
         new fabric.Rect({left:0,top:0,width:14,height:90,fill:"none",stroke:"#999",strokeWidth:3.5,rx:7,originX:"center",originY:"center"}),
         new fabric.Rect({left:0,top:-12,width:8,height:56,fill:"none",stroke:"#bbb",strokeWidth:3,rx:4,originX:"center",originY:"center"}),
-      ]);
+      ], null);
     }
   },
   // ── Bow Sticker ──────────────────────────────────────────────────────────────
   { id:"bow", name:"Bow Sticker", emoji:"🎀", color:"#FF6B9D",
     build(){
-      return grp([
+      return _stickerGrp([
         new fabric.Ellipse({rx:36,ry:22,fill:"#FF6B9D",stroke:"#CC3060",strokeWidth:1.5,left:-26,top:0,angle:-20,originX:"center",originY:"center"}),
         new fabric.Ellipse({rx:36,ry:22,fill:"#FF6B9D",stroke:"#CC3060",strokeWidth:1.5,left:26,top:0,angle:20,originX:"center",originY:"center"}),
         new fabric.Polygon([{x:0,y:4},{x:0,y:-4},{x:-50,y:18},{x:-46,y:24}],{fill:"#FF8FAB",stroke:"#CC3060",strokeWidth:1}),
         new fabric.Polygon([{x:0,y:4},{x:0,y:-4},{x:50,y:18},{x:46,y:24}],{fill:"#FF8FAB",stroke:"#CC3060",strokeWidth:1}),
         new fabric.Ellipse({rx:13,ry:11,fill:"#FF4D88",stroke:"#CC1B60",strokeWidth:1.5,left:0,top:0,originX:"center",originY:"center"}),
-      ]);
+      ], null);
     }
   },
   // ── Sun Sticker ──────────────────────────────────────────────────────────────
@@ -442,23 +447,23 @@ const SCRAPBOOK_STICKERS = [
         rays.push(new fabric.Line([Math.cos(a)*28,Math.sin(a)*28,Math.cos(a)*46,Math.sin(a)*46],
           {stroke:"#FFB800",strokeWidth:3.5,strokeLinecap:"round"}));
       }
-      return grp([
+      return _stickerGrp([
         ...rays,
         new fabric.Circle({left:0,top:0,radius:24,fill:"#FFD93D",stroke:"#FFC000",strokeWidth:2,originX:"center",originY:"center"}),
         new fabric.IText("☀",{left:0,top:0,fontSize:20,originX:"center",originY:"center"}),
-      ]);
+      ], null);
     }
   },
   // ── Crescent Moon & Stars ────────────────────────────────────────────────────
   { id:"moon-stars", name:"Moon & Stars", emoji:"🌙", color:"#C4B5FD",
     build(){
-      return grp([
+      return _stickerGrp([
         new fabric.Circle({left:0,top:0,radius:36,fill:"#C4B5FD",originX:"center",originY:"center"}),
         new fabric.Circle({left:14,top:-10,radius:26,fill:"#1a1a2e",originX:"center",originY:"center"}),
         new fabric.IText("★",{left:38,top:-28,fontSize:14,fill:"#FFD93D",originX:"center",originY:"center"}),
         new fabric.IText("✦",{left:50,top:10,fontSize:9,fill:"#FFD93D",originX:"center",originY:"center"}),
         new fabric.IText("★",{left:24,top:36,fontSize:11,fill:"#FFD93D",originX:"center",originY:"center"}),
-      ]);
+      ], null);
     }
   },
   // ── Rainbow ──────────────────────────────────────────────────────────────────
@@ -469,11 +474,11 @@ const SCRAPBOOK_STICKERS = [
         new fabric.Circle({left:0,top:0,radius:58-i*8,fill:"none",stroke:c,strokeWidth:5.5,
           startAngle:180,endAngle:360,originX:"center",originY:"center"})
       );
-      return grp([
+      return _stickerGrp([
         ...arcs,
         new fabric.Ellipse({rx:24,ry:15,fill:"white",left:-52,top:6,originX:"center",originY:"center"}),
         new fabric.Ellipse({rx:24,ry:15,fill:"white",left:52,top:6,originX:"center",originY:"center"}),
-      ]);
+      ], null);
     }
   },
   // ── Flower Sticker ───────────────────────────────────────────────────────────
@@ -486,11 +491,11 @@ const SCRAPBOOK_STICKERS = [
           left:Math.cos(a)*22,top:Math.sin(a)*22,angle:(a*180/Math.PI)+90,
           originX:"center",originY:"center"}));
       }
-      return grp([
+      return _stickerGrp([
         ...petals,
         new fabric.Circle({left:0,top:0,radius:16,fill:"#FFE566",stroke:"#E6B800",strokeWidth:1.5,originX:"center",originY:"center"}),
         new fabric.IText("✿",{left:0,top:0,fontSize:14,fill:"#E68900",originX:"center",originY:"center"}),
-      ]);
+      ], null);
     }
   },
   // ── Daisy Flower ─────────────────────────────────────────────────────────────
@@ -503,16 +508,16 @@ const SCRAPBOOK_STICKERS = [
           left:Math.cos(a)*20,top:Math.sin(a)*20,angle:(a*180/Math.PI)+90,
           originX:"center",originY:"center"}));
       }
-      return grp([
+      return _stickerGrp([
         ...petals,
         new fabric.Circle({left:0,top:0,radius:14,fill:"#FFD93D",stroke:"#E6B800",strokeWidth:1.5,originX:"center",originY:"center"}),
-      ]);
+      ], null);
     }
   },
   // ── Butterfly ────────────────────────────────────────────────────────────────
   { id:"butterfly", name:"Butterfly", emoji:"🦋", color:"#A78BFA",
     build(){
-      return grp([
+      return _stickerGrp([
         new fabric.Ellipse({rx:32,ry:22,fill:"#A78BFA",stroke:"#7C5CBF",strokeWidth:1.5,left:-24,top:-14,angle:-30,originX:"center",originY:"center"}),
         new fabric.Ellipse({rx:32,ry:22,fill:"#C4B5FD",stroke:"#7C5CBF",strokeWidth:1.5,left:24,top:-14,angle:30,originX:"center",originY:"center"}),
         new fabric.Ellipse({rx:22,ry:16,fill:"#7C5CBF",stroke:"#5A3FA0",strokeWidth:1.5,left:-22,top:14,angle:20,originX:"center",originY:"center"}),
@@ -522,40 +527,40 @@ const SCRAPBOOK_STICKERS = [
         new fabric.Path("M 0 -18 Q 14 -38 18 -44",{fill:"none",stroke:"#4A3580",strokeWidth:1.5,strokeLinecap:"round"}),
         new fabric.Circle({left:-18,top:-44,radius:3,fill:"#A78BFA",originX:"center",originY:"center"}),
         new fabric.Circle({left:18,top:-44,radius:3,fill:"#A78BFA",originX:"center",originY:"center"}),
-      ]);
+      ], null);
     }
   },
   // ── Leaf Sticker ─────────────────────────────────────────────────────────────
   { id:"leaf", name:"Leaf Sticker", emoji:"🍃", color:"#6BCB77",
     build(){
-      return grp([
+      return _stickerGrp([
         new fabric.Path("M 0 -50 C 30 -30 40 0 20 30 C 10 45 -10 45 -20 30 C -40 0 -30 -30 0 -50 Z",
           {fill:"#6BCB77",stroke:"#4CAF50",strokeWidth:1.5,originX:"center",originY:"center"}),
         new fabric.Path("M 0 -40 Q 8 0 0 28",{fill:"none",stroke:"rgba(255,255,255,0.6)",strokeWidth:1.5}),
         new fabric.Path("M 0 -10 Q 14 -6 20 2",{fill:"none",stroke:"rgba(255,255,255,0.4)",strokeWidth:1}),
         new fabric.Path("M 0 -10 Q -14 -6 -20 2",{fill:"none",stroke:"rgba(255,255,255,0.4)",strokeWidth:1}),
-      ]);
+      ], null);
     }
   },
   // ── Love Letter ──────────────────────────────────────────────────────────────
   { id:"envelope", name:"Love Letter", emoji:"💌", color:"#FF6B9D",
     build(){
       const W=110,H=80;
-      return grp([
+      return _stickerGrp([
         new fabric.Rect({left:0,top:0,width:W,height:H,fill:"#fff0f5",stroke:"#FFB3CC",strokeWidth:2,rx:4,originX:"center",originY:"center"}),
         new fabric.Polygon([{x:-W/2,y:-H/2},{x:W/2,y:-H/2},{x:0,y:2}],{fill:"#FFB3CC",stroke:"#FF8FAB",strokeWidth:1}),
         new fabric.Polygon([{x:-W/2,y:H/2},{x:W/2,y:H/2},{x:0,y:6}],{fill:"#FFD0E4",stroke:"#FFB3CC",strokeWidth:1}),
         new fabric.Polygon([{x:-W/2,y:-H/2},{x:-W/2,y:H/2},{x:0,y:6}],{fill:"#ffe0ee",stroke:"#FFB3CC",strokeWidth:1}),
         new fabric.Polygon([{x:W/2,y:-H/2},{x:W/2,y:H/2},{x:0,y:6}],{fill:"#ffe0ee",stroke:"#FFB3CC",strokeWidth:1}),
         new fabric.IText("♥",{left:0,top:20,fontSize:18,fill:"#FF6B9D",originX:"center",originY:"center"}),
-      ]);
+      ], null);
     }
   },
   // ── Event Ticket ─────────────────────────────────────────────────────────────
   { id:"ticket", name:"Event Ticket", emoji:"🎟️", color:"#6BCB77",
     build(){
       const W=180,H=70;
-      return grp([
+      return _stickerGrp([
         new fabric.Rect({left:0,top:0,width:W,height:H,fill:"#6BCB77",rx:6,originX:"center",originY:"center",
           shadow:new fabric.Shadow({color:"rgba(0,0,0,0.2)",blur:8,offsetX:2,offsetY:3})}),
         new fabric.Line([-W/2+50,-H/2,-W/2+50,H/2],{stroke:"rgba(255,255,255,0.5)",strokeWidth:1.5,strokeDashArray:[4,3]}),
@@ -563,8 +568,7 @@ const SCRAPBOOK_STICKERS = [
         new fabric.Circle({left:-W/2+50,top:H/2,radius:8,fill:"#1a1a2e",originX:"center",originY:"center"}),
         new fabric.IText("ADMIT",{left:-W/2+24,top:-4,fontSize:9,fill:"rgba(255,255,255,0.8)",fontWeight:"bold",originX:"center",originY:"center",letterSpacing:1}),
         new fabric.IText("ONE",{left:-W/2+24,top:8,fontSize:9,fill:"rgba(255,255,255,0.8)",fontWeight:"bold",originX:"center",originY:"center",letterSpacing:1}),
-        new fabric.IText("✦  MEMORY  ✦",{left:W/2-58,top:0,fontSize:13,fill:"#ffffff",fontWeight:"bold",originX:"center",originY:"center",fontFamily:"Georgia"}),
-      ]);
+      ], new fabric.IText("✦  MEMORY  ✦",{left:W/2-58,top:0,fontSize:13,fill:"#ffffff",fontWeight:"bold",originX:"center",originY:"center",fontFamily:"Georgia"}));
     }
   },
   // ── Hexagon Badge ────────────────────────────────────────────────────────────
@@ -573,9 +577,10 @@ const SCRAPBOOK_STICKERS = [
       const R=50, pts=[];
       for(let i=0;i<6;i++){ const a=(i*Math.PI/3)-Math.PI/6; pts.push({x:R*Math.cos(a),y:R*Math.sin(a)}); }
       const inner=pts.map(p=>({x:p.x*0.72,y:p.y*0.72}));
-      return grp([
+      return _stickerGrp([
         new fabric.Polygon(pts,{fill:"#4A90D9",stroke:"#2E5FA3",strokeWidth:2,originX:"center",originY:"center"}),
         new fabric.Polygon(inner,{fill:"none",stroke:"rgba(255,255,255,0.3)",strokeWidth:1,originX:"center",originY:"center"}),
+      ], [
         new fabric.IText("BEST",{left:0,top:-6,fontSize:13,fill:"#ffffff",fontWeight:"bold",originX:"center",originY:"center",letterSpacing:2}),
         new fabric.IText("moment",{left:0,top:10,fontSize:8,fill:"rgba(255,255,255,0.8)",originX:"center",originY:"center",fontFamily:"Georgia",fontStyle:"italic"}),
       ]);
@@ -584,9 +589,10 @@ const SCRAPBOOK_STICKERS = [
   // ── Vintage Oval Label ───────────────────────────────────────────────────────
   { id:"oval-label", name:"Oval Label", emoji:"🏷️", color:"#D4A574",
     build(){
-      return grp([
+      return _stickerGrp([
         new fabric.Ellipse({rx:68,ry:44,fill:"#F5ECD7",stroke:"#C4956A",strokeWidth:2,originX:"center",originY:"center"}),
         new fabric.Ellipse({rx:58,ry:34,fill:"none",stroke:"#C4956A",strokeWidth:1,strokeDashArray:[3,3],originX:"center",originY:"center"}),
+      ], [
         new fabric.IText("vintage",{left:0,top:-5,fontSize:14,fill:"#8B6340",fontStyle:"italic",fontWeight:"bold",originX:"center",originY:"center",fontFamily:"Georgia"}),
         new fabric.IText("✦ label ✦",{left:0,top:12,fontSize:9,fill:"#C4956A",originX:"center",originY:"center",fontFamily:"Georgia"}),
       ]);
@@ -596,23 +602,22 @@ const SCRAPBOOK_STICKERS = [
   { id:"bookmark", name:"Bookmark", emoji:"🔖", color:"#7B68EE",
     build(){
       const W=50,H=100;
-      return grp([
+      return _stickerGrp([
         new fabric.Polygon([{x:-W/2,y:-H/2},{x:W/2,y:-H/2},{x:W/2,y:H/2},{x:0,y:H/2-16},{x:-W/2,y:H/2}],
           {fill:"#7B68EE",stroke:"#5A4DC4",strokeWidth:1.5,
             shadow:new fabric.Shadow({color:"rgba(0,0,0,0.25)",blur:8,offsetX:2,offsetY:3})}),
         new fabric.IText("✦",{left:0,top:-10,fontSize:16,fill:"rgba(255,255,255,0.9)",originX:"center",originY:"center"}),
         new fabric.Line([-W/2+10,10,W/2-10,10],{stroke:"rgba(255,255,255,0.4)",strokeWidth:1}),
-        new fabric.IText("mark",{left:0,top:26,fontSize:8,fill:"rgba(255,255,255,0.7)",originX:"center",originY:"center",fontFamily:"Georgia",fontStyle:"italic"}),
-      ]);
+      ], new fabric.IText("mark",{left:0,top:26,fontSize:8,fill:"rgba(255,255,255,0.7)",originX:"center",originY:"center",fontFamily:"Georgia",fontStyle:"italic"}));
     }
   },
   // ── Arrow Sticker ────────────────────────────────────────────────────────────
   { id:"arrow", name:"Arrow Sticker", emoji:"➡️", color:"#FF6B9D",
     build(){
-      return grp([
+      return _stickerGrp([
         new fabric.Path("M -60 0 Q -20 -18 20 0 L 20 -18 L 62 0 L 20 18 L 20 0 Q -20 18 -60 0 Z",
           {fill:"#FF6B9D",stroke:"#CC3060",strokeWidth:1.5,originX:"center",originY:"center"}),
-      ]);
+      ], null);
     }
   },
   // ── Laurel Wreath ────────────────────────────────────────────────────────────
@@ -629,19 +634,20 @@ const SCRAPBOOK_STICKERS = [
         leaves.push(new fabric.Ellipse({rx:8,ry:16,fill:"#4CAF50",stroke:"#388E3C",strokeWidth:1,
           left:r*Math.cos(a),top:r*Math.sin(a),angle:a*180/Math.PI+90,originX:"center",originY:"center"}));
       }
-      return grp([
+      return _stickerGrp([
         ...leaves,
         new fabric.IText("★",{left:0,top:0,fontSize:22,fill:"#FFD93D",originX:"center",originY:"center"}),
-      ]);
+      ], null);
     }
   },
   // ── Date Circle Badge ────────────────────────────────────────────────────────
   { id:"date-badge", name:"Date Badge", emoji:"📅", color:"#FF6B9D",
     build(){
-      return grp([
+      return _stickerGrp([
         new fabric.Circle({left:0,top:0,radius:46,fill:"#FF6B9D",stroke:"#CC3060",strokeWidth:3,originX:"center",originY:"center"}),
         new fabric.Circle({left:0,top:0,radius:38,fill:"none",stroke:"rgba(255,255,255,0.4)",strokeWidth:1,originX:"center",originY:"center"}),
         new fabric.Rect({left:0,top:-20,width:70,height:20,fill:"#CC3060",rx:3,originX:"center",originY:"center"}),
+      ], [
         new fabric.IText("MONTH",{left:0,top:-20,fontSize:8,fill:"#fff",fontWeight:"bold",letterSpacing:2,originX:"center",originY:"center"}),
         new fabric.IText("00",{left:0,top:10,fontSize:24,fill:"#ffffff",fontWeight:"bold",originX:"center",originY:"center"}),
       ]);
@@ -651,7 +657,7 @@ const SCRAPBOOK_STICKERS = [
   { id:"camera", name:"Camera Sticker", emoji:"📸", color:"#333",
     build(){
       const W=100,H=72;
-      return grp([
+      return _stickerGrp([
         new fabric.Rect({left:0,top:0,width:W,height:H,fill:"#2d2d2d",rx:10,originX:"center",originY:"center",
           shadow:new fabric.Shadow({color:"rgba(0,0,0,0.3)",blur:10,offsetX:2,offsetY:4})}),
         new fabric.Rect({left:0,top:-H/2+8,width:20,height:12,fill:"#444",rx:2,originX:"center",originY:"top"}),
@@ -659,7 +665,7 @@ const SCRAPBOOK_STICKERS = [
         new fabric.Circle({left:0,top:4,radius:22,fill:"#222",stroke:"#555",strokeWidth:3,originX:"center",originY:"center"}),
         new fabric.Circle({left:0,top:4,radius:14,fill:"#1a3a5c",stroke:"#444",strokeWidth:2,originX:"center",originY:"center"}),
         new fabric.Circle({left:-6,top:-2,radius:4,fill:"rgba(255,255,255,0.25)",originX:"center",originY:"center"}),
-      ]);
+      ], null);
     }
   },
   // ── Scallop Frame ────────────────────────────────────────────────────────────
@@ -668,11 +674,10 @@ const SCRAPBOOK_STICKERS = [
       const W=140,H=170, r=9, scallops=[];
       for(let x=-W/2+r;x<=W/2-r;x+=r*2){ scallops.push(new fabric.Circle({left:x,top:-H/2,radius:r,fill:"#FFB3CC",originX:"center",originY:"center"})); scallops.push(new fabric.Circle({left:x,top:H/2,radius:r,fill:"#FFB3CC",originX:"center",originY:"center"})); }
       for(let y=-H/2+r;y<=H/2-r;y+=r*2){ scallops.push(new fabric.Circle({left:-W/2,top:y,radius:r,fill:"#FFB3CC",originX:"center",originY:"center"})); scallops.push(new fabric.Circle({left:W/2,top:y,radius:r,fill:"#FFB3CC",originX:"center",originY:"center"})); }
-      return grp([
+      return _stickerGrp([
         new fabric.Rect({left:0,top:0,width:W,height:H,fill:"white",rx:4,originX:"center",originY:"center"}),
         ...scallops,
-        new fabric.IText("✿ photo ✿",{left:0,top:0,fontSize:11,fill:"#FFB3CC",fontStyle:"italic",originX:"center",originY:"center",fontFamily:"Georgia"}),
-      ]);
+      ], new fabric.IText("✿ photo ✿",{left:0,top:0,fontSize:11,fill:"#FFB3CC",fontStyle:"italic",originX:"center",originY:"center",fontFamily:"Georgia"}));
     }
   },
   // ── Corner Tape ──────────────────────────────────────────────────────────────
@@ -680,91 +685,87 @@ const SCRAPBOOK_STICKERS = [
     build(){
       const mk=(x,y,a)=>new fabric.Polygon([{x:0,y:0},{x:34,y:0},{x:34,y:12},{x:0,y:12}],
         {fill:"rgba(255,249,180,0.85)",stroke:"rgba(200,180,60,0.5)",strokeWidth:1,left:x,top:y,angle:a,originX:"center",originY:"center"});
-      return grp([
+      return _stickerGrp([
         new fabric.Rect({left:0,top:0,width:68,height:68,fill:"rgba(255,255,255,0.08)",stroke:"rgba(200,200,200,0.25)",strokeWidth:1,rx:2,originX:"center",originY:"center"}),
         mk(-44,-44,45), mk(44,-44,135), mk(44,44,225), mk(-44,44,315),
-      ]);
+      ], null);
     }
   },
   // ── Star Cluster ─────────────────────────────────────────────────────────────
   { id:"star-cluster", name:"Star Cluster", emoji:"⭐", color:"#FFD93D",
     build(){
-      return grp([
+      return _stickerGrp([
         new fabric.IText("★",{left:0,top:0,fontSize:52,fill:"#FFD93D",stroke:"#E6B800",strokeWidth:1,originX:"center",originY:"center"}),
         new fabric.IText("★",{left:-36,top:-12,fontSize:22,fill:"#FFE566",originX:"center",originY:"center"}),
         new fabric.IText("★",{left:38,top:-14,fontSize:18,fill:"#FFE566",originX:"center",originY:"center"}),
         new fabric.IText("✦",{left:-18,top:30,fontSize:14,fill:"#FFC000",originX:"center",originY:"center"}),
         new fabric.IText("✦",{left:22,top:28,fontSize:10,fill:"#FFC000",originX:"center",originY:"center"}),
-      ]);
+      ], null);
     }
   },
   // ── Diamond Badge ────────────────────────────────────────────────────────────
   { id:"diamond", name:"Diamond Badge", emoji:"💎", color:"#67E8F9",
     build(){
       const pts=[{x:0,y:-56},{x:46,y:-14},{x:28,y:52},{x:-28,y:52},{x:-46,y:-14}];
-      return grp([
+      return _stickerGrp([
         new fabric.Polygon(pts,{fill:"#67E8F9",stroke:"#06B6D4",strokeWidth:2,originX:"center",originY:"center"}),
         new fabric.Polygon([{x:0,y:-56},{x:46,y:-14},{x:0,y:4}],{fill:"rgba(255,255,255,0.35)",stroke:"none",originX:"center",originY:"center"}),
         new fabric.Polygon([{x:0,y:-56},{x:-46,y:-14},{x:0,y:4}],{fill:"rgba(255,255,255,0.18)",stroke:"none",originX:"center",originY:"center"}),
         new fabric.IText("💎",{left:0,top:14,fontSize:18,originX:"center",originY:"center"}),
-      ]);
+      ], null);
     }
   },
   // ── Shooting Star ────────────────────────────────────────────────────────────
   { id:"shooting-star", name:"Shooting Star", emoji:"🌠", color:"#FFD93D",
     build(){
-      return grp([
-        new fabric.Line([-80,0,80,0],{stroke:"rgba(255,217,61,0.0)",strokeWidth:0}), // spacer
+      return _stickerGrp([
+        new fabric.Line([-80,0,80,0],{stroke:"rgba(255,217,61,0.0)",strokeWidth:0}),
         new fabric.IText("★",{left:40,top:0,fontSize:30,fill:"#FFD93D",stroke:"#E6B800",strokeWidth:1,originX:"center",originY:"center"}),
         new fabric.Line([-60,-10,24,-4],{stroke:"#FFE566",strokeWidth:3,strokeLinecap:"round",opacity:0.9}),
         new fabric.Line([-40,6,20,4],{stroke:"#FFD93D",strokeWidth:2,strokeLinecap:"round",opacity:0.6}),
         new fabric.Line([-20,14,18,10],{stroke:"#FFB800",strokeWidth:1.5,strokeLinecap:"round",opacity:0.4}),
         new fabric.IText("✦",{left:-52,top:-18,fontSize:10,fill:"#FFE566",originX:"center",originY:"center"}),
         new fabric.IText("✦",{left:62,top:-22,fontSize:8,fill:"#FFF0A0",originX:"center",originY:"center"}),
-      ]);
+      ], null);
     }
   },
   // ── Cloud Sticker ────────────────────────────────────────────────────────────
   { id:"cloud", name:"Cloud Sticker", emoji:"☁️", color:"#BAE6FD",
     build(){
-      return grp([
+      return _stickerGrp([
         new fabric.Circle({left:-28,top:8,radius:26,fill:"#DBEAFE",stroke:"#93C5FD",strokeWidth:1.5,originX:"center",originY:"center"}),
         new fabric.Circle({left:10,top:0,radius:32,fill:"#DBEAFE",stroke:"#93C5FD",strokeWidth:1.5,originX:"center",originY:"center"}),
         new fabric.Circle({left:42,top:8,radius:22,fill:"#DBEAFE",stroke:"#93C5FD",strokeWidth:1.5,originX:"center",originY:"center"}),
         new fabric.Rect({left:6,top:24,width:82,height:24,fill:"#DBEAFE",rx:2,originX:"center",originY:"center"}),
         new fabric.IText("☁",{left:6,top:20,fontSize:14,fill:"#60A5FA",originX:"center",originY:"center"}),
-      ]);
+      ], null);
     }
   },
   // ── Ice Cream Sticker ────────────────────────────────────────────────────────
   { id:"ice-cream", name:"Ice Cream", emoji:"🍦", color:"#FFC0CB",
     build(){
-      return grp([
-        // cone
+      return _stickerGrp([
         new fabric.Polygon([{x:0,y:70},{x:-30,y:0},{x:30,y:0}],{fill:"#D4A574",stroke:"#B8860B",strokeWidth:1.5}),
-        // cross-hatch
         new fabric.Line([-20,0,0,60],{stroke:"rgba(139,100,20,0.4)",strokeWidth:1}),
         new fabric.Line([0,0,0,60],{stroke:"rgba(139,100,20,0.4)",strokeWidth:1}),
         new fabric.Line([20,0,0,60],{stroke:"rgba(139,100,20,0.4)",strokeWidth:1}),
-        // scoop
         new fabric.Circle({left:0,top:-14,radius:32,fill:"#FFB3CC",stroke:"#FF8FAB",strokeWidth:1.5,originX:"center",originY:"center"}),
-        // shine
         new fabric.Circle({left:-10,top:-22,radius:7,fill:"rgba(255,255,255,0.4)",originX:"center",originY:"center"}),
         new fabric.IText("🍓",{left:0,top:-14,fontSize:12,originX:"center",originY:"center"}),
-      ]);
+      ], null);
     }
   },
   // ── Music Note ───────────────────────────────────────────────────────────────
   { id:"music-note", name:"Music Note", emoji:"🎵", color:"#A78BFA",
     build(){
-      return grp([
+      return _stickerGrp([
         new fabric.Path("M 12 -40 L 12 16",{fill:"none",stroke:"#7C5CBF",strokeWidth:4,strokeLinecap:"round"}),
         new fabric.Path("M 12 -40 L 38 -52 L 38 -24 L 12 -12",{fill:"#A78BFA",stroke:"#7C5CBF",strokeWidth:1.5}),
         new fabric.Ellipse({rx:14,ry:10,fill:"#A78BFA",stroke:"#7C5CBF",strokeWidth:1.5,left:2,top:22,angle:-20,originX:"center",originY:"center"}),
         new fabric.Path("M -18 -16 L -18 34",{fill:"none",stroke:"#7C5CBF",strokeWidth:4,strokeLinecap:"round"}),
         new fabric.Path("M -18 -16 L 8 -28 L 8 -2 L -18 -2",{fill:"#C4B5FD",stroke:"#7C5CBF",strokeWidth:1.5}),
         new fabric.Ellipse({rx:13,ry:9,fill:"#C4B5FD",stroke:"#7C5CBF",strokeWidth:1.5,left:-26,top:40,angle:-20,originX:"center",originY:"center"}),
-      ]);
+      ], null);
     }
   },
   // ── Classic Polaroid Photo Frame ─────────────────────────────────────────────
