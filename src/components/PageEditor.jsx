@@ -2941,16 +2941,30 @@ const GraphicsPanel = ({ onAdd, onSetBackground, onLoadTemplate }) => {
   return (
     <div className="flex flex-col h-full">
 
-      {/* Mode tabs */}
-      <div className="flex-none flex gap-1 p-2" style={{ borderBottom:"1px solid rgba(232,96,42,0.15)" }}>
-        {PANEL_MODES.map((m) => (
-          <button key={m.id} onClick={() => switchMode(m)}
-            className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-xl text-[11px] font-bold transition-all border ${modeId === m.id ? m.accent.tab : "border-white/8 text-white/35 hover:text-white/60"}`}
-            style={modeId !== m.id ? { background:"rgba(255,255,255,0.03)" } : {}}>
-            {m.icon}
-            <span className="hidden sm:inline">{t(m.id)}</span>
-          </button>
-        ))}
+      {/* Mode tabs — 2-row layout so all 5 tabs always fit */}
+      <div className="flex-none px-2 pt-2 pb-1.5" style={{ borderBottom:"1px solid rgba(232,96,42,0.15)" }}>
+        {/* Row 1: Stickers · Templates · Elements */}
+        <div className="grid grid-cols-3 gap-1 mb-1">
+          {PANEL_MODES.slice(0, 3).map((m) => (
+            <button key={m.id} onClick={() => switchMode(m)}
+              className={`flex items-center justify-center gap-1 py-1.5 rounded-xl text-[10px] font-bold transition-all border truncate ${modeId === m.id ? m.accent.tab : "border-white/8 text-white/35 hover:text-white/60"}`}
+              style={modeId !== m.id ? { background:"rgba(255,255,255,0.03)" } : {}}>
+              {m.icon}
+              <span className="truncate">{t(m.id)}</span>
+            </button>
+          ))}
+        </div>
+        {/* Row 2: Backgrounds · Photos */}
+        <div className="grid grid-cols-2 gap-1">
+          {PANEL_MODES.slice(3).map((m) => (
+            <button key={m.id} onClick={() => switchMode(m)}
+              className={`flex items-center justify-center gap-1 py-1.5 rounded-xl text-[10px] font-bold transition-all border truncate ${modeId === m.id ? m.accent.tab : "border-white/8 text-white/35 hover:text-white/60"}`}
+              style={modeId !== m.id ? { background:"rgba(255,255,255,0.03)" } : {}}>
+              {m.icon}
+              <span className="truncate">{t(m.id)}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* ── Stickers: built-in elements ── */}
