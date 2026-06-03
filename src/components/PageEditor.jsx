@@ -107,11 +107,11 @@ const LH = Math.round(LW / PAGE_RATIO); // 641
 
 const PIXABAY_KEY = "55314355-2ac2d0d5baf91c7b7d16552d0";
 
-// ── Google Custom Search — paste your keys here ───────────────────────────────
-// 1. API key:  console.cloud.google.com → enable "Custom Search API" → create key
-// 2. CX id:    programmablesearchengine.google.com → New engine → search whole web
-const GOOGLE_API_KEY = "";   // ← paste your Google API key here
-const GOOGLE_CX      = "";   // ← paste your Search Engine CX ID here
+// ── Photo search APIs (Photos tab) ───────────────────────────────────────────
+// Unsplash: free, register at unsplash.com/developers
+const UNSPLASH_KEY = "";   // ← paste your Unsplash Access Key here (free)
+// Pexels:   free, register at pexels.com/api
+const PEXELS_KEY   = "";   // ← paste your Pexels API key here   (free)
 
 // System fonts (no loading needed) + Google Fonts
 const SYSTEM_FONTS = ["Arial", "Georgia", "Times New Roman", "Verdana", "Trebuchet MS", "Courier New", "Impact"];
@@ -2769,10 +2769,10 @@ const PANEL_MODES = [
     label:   "Photos",
     icon:    <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>,
     accent:  { tab:"bg-rose-600/20 border-rose-500/40 text-rose-300", btn:"bg-rose-500 hover:bg-rose-400", chip:"hover:bg-rose-600/30 hover:border-rose-400/40", spin:"border-t-rose-400", focus:"focus:border-rose-400/50", thumb:"hover:border-rose-400/50", overlay:"group-hover:bg-rose-600/20", filter:"bg-rose-600 border-rose-500" },
-    photos:  true,   // uses Google Custom Search instead of Pixabay
-    placeholder: "Search photos… (celebrities, people, places)",
+    photos:  true,   // uses Unsplash + Pexels + URL paste
+    placeholder: "Search photos… (portraits, fashion, nature, places)",
     quickLabel:  "Popular searches",
-    quick: ["celebrity portrait","taylor swift","BTS","anime character","k-pop idol","movie poster","fashion model","nature landscape"],
+    quick: ["portrait","fashion model","aesthetic","k-pop style","wedding","nature","city night","vintage"],
     action: "add",
     thumbRatio: "3/4",
     actionLabel: "+",
@@ -2787,6 +2787,8 @@ const GraphicsPanel = ({ onAdd, onSetBackground, onLoadTemplate }) => {
   const [loading,   setLoading]   = useState(false);
   const [searched,  setSearched]  = useState(false);
   const [adding,    setAdding]    = useState(null);
+  const [pasteUrl,  setPasteUrl]  = useState("");
+  const [pasteErr,  setPasteErr]  = useState(false);
 
   const mode = PANEL_MODES.find(m => m.id === modeId);
 
@@ -2823,31 +2825,56 @@ const GraphicsPanel = ({ onAdd, onSetBackground, onLoadTemplate }) => {
     setLoading(true);
     setSearched(true);
     try {
-      // ── Google Custom Search (Photos tab) ────────────────────────────────────
+      // ── Unsplash + Pexels (Photos tab) — free, unlimited ────────────────────
       if (mode.photos) {
-        if (!GOOGLE_API_KEY || !GOOGLE_CX) {
-          setResults([{ _noKey: true }]);
-          setLoading(false);
-          return;
+        const hits = [];
+
+        // 1. Try Unsplash first (better quality)
+        if (UNSPLASH_KEY) {
+          try {
+            const res  = await fetch(
+              `https://api.unsplash.com/search/photos?query=${encodeURIComponent(q)}&per_page=20&client_id=${UNSPLASH_KEY}`
+            );
+            const data = await res.json();
+            (data.results || []).forEach(p => hits.push({
+              _photo:        true,
+              _src:          "Unsplash",
+              id:            p.id,
+              previewURL:    p.urls.small,
+              webformatURL:  p.urls.regular,
+              largeImageURL: p.urls.full,
+              tags:          p.alt_description || p.description || q,
+              credit:        p.user?.name,
+            }));
+          } catch (e) { console.warn("Unsplash error", e); }
         }
-        const url =
-          `https://www.googleapis.com/customsearch/v1` +
-          `?key=${GOOGLE_API_KEY}&cx=${GOOGLE_CX}` +
-          `&searchType=image&safe=active&num=10` +
-          `&q=${encodeURIComponent(q)}`;
-        const res  = await fetch(url);
-        const data = await res.json();
-        // Normalise Google results → same shape used by result renderer
-        const hits = (data.items || []).map(item => ({
-          _google:       true,
-          id:            item.cacheId || item.link,
-          previewURL:    item.image?.thumbnailLink || item.link,
-          webformatURL:  item.link,
-          largeImageURL: item.link,
-          tags:          item.title,
-          pageURL:       item.image?.contextLink || "",
-        }));
-        setResults(hits);
+
+        // 2. Pexels — adds more variety (or sole source if no Unsplash key)
+        if (PEXELS_KEY) {
+          try {
+            const res  = await fetch(
+              `https://api.pexels.com/v1/search?query=${encodeURIComponent(q)}&per_page=20`,
+              { headers: { Authorization: PEXELS_KEY } }
+            );
+            const data = await res.json();
+            (data.photos || []).forEach(p => hits.push({
+              _photo:        true,
+              _src:          "Pexels",
+              id:            `px-${p.id}`,
+              previewURL:    p.src.medium,
+              webformatURL:  p.src.large,
+              largeImageURL: p.src.original,
+              tags:          p.alt || q,
+              credit:        p.photographer,
+            }));
+          } catch (e) { console.warn("Pexels error", e); }
+        }
+
+        if (!UNSPLASH_KEY && !PEXELS_KEY) {
+          setResults([{ _noKey: true }]);
+        } else {
+          setResults(hits);
+        }
         setLoading(false);
         return;
       }
@@ -2884,28 +2911,29 @@ const GraphicsPanel = ({ onAdd, onSetBackground, onLoadTemplate }) => {
   const handleClick = async (hit) => {
     setAdding(hit.id);
     try {
-      if (mode.action === "add") {
-        // Google results: try full URL directly (many support hotlinking), fallback to blob
-        if (hit._google) {
-          // Try adding via URL first; if it fails CORS, fetchAsBlob as backup
-          try {
-            const burl = await fetchAsBlob(hit.webformatURL);
-            onAdd(burl);
-          } catch {
-            onAdd(hit.webformatURL);
-          }
-        } else {
-          const burl = await fetchAsBlob(hit.webformatURL);
-          onAdd(burl);
-        }
-      } else {
-        const burl = await fetchAsBlob(hit.largeImageURL || hit.webformatURL);
-        onSetBackground(burl);
-      }
+      const srcUrl = mode.action === "add" ? hit.webformatURL : (hit.largeImageURL || hit.webformatURL);
+      const burl   = await fetchAsBlob(srcUrl);
+      if (mode.action === "add") onAdd(burl);
+      else onSetBackground(burl);
     } catch (e) {
       console.warn("Could not load image:", e);
     }
     setAdding(null);
+  };
+
+  const handlePasteUrl = async () => {
+    const url = pasteUrl.trim();
+    if (!url) return;
+    setPasteErr(false);
+    try {
+      const burl = await fetchAsBlob(url);
+      onAdd(burl);
+      setPasteUrl("");
+    } catch {
+      // If blob fetch fails (CORS), pass URL directly — fabric handles crossOrigin
+      try { onAdd(url); setPasteUrl(""); }
+      catch { setPasteErr(true); }
+    }
   };
 
   const { accent } = mode;
@@ -3000,6 +3028,39 @@ const GraphicsPanel = ({ onAdd, onSetBackground, onLoadTemplate }) => {
         </div>
       ) : (
         <>
+          {/* ── Paste any image URL (Photos tab only) ── */}
+          {mode.photos && (
+            <div className="flex-none px-3 pt-2 pb-1">
+              <p className="text-[9px] uppercase tracking-widest font-bold mb-1.5 bg-clip-text text-transparent"
+                style={{ backgroundImage:"linear-gradient(90deg,#F0854A,#C4507A)" }}>
+                🌐 Paste any image URL (celebrity, Google Images…)
+              </p>
+              <div className="flex gap-1.5">
+                <input
+                  type="url"
+                  value={pasteUrl}
+                  onChange={e => { setPasteUrl(e.target.value); setPasteErr(false); }}
+                  onKeyDown={e => e.key === "Enter" && handlePasteUrl()}
+                  placeholder="https://…"
+                  className={`flex-1 bg-white/5 rounded-xl px-3 py-2 text-white text-[11px] placeholder-white/20 focus:outline-none border ${pasteErr ? "border-red-500/60" : "border-white/10 focus:border-rose-400/50"}`}
+                />
+                <button onClick={handlePasteUrl}
+                  className="px-3 py-2 rounded-xl text-white text-[11px] font-bold transition-all flex-none"
+                  style={{ background:"linear-gradient(135deg,#E8602A,#C4507A)" }}
+                  onMouseEnter={e=>e.currentTarget.style.background="linear-gradient(135deg,#F0784A,#D4608A)"}
+                  onMouseLeave={e=>e.currentTarget.style.background="linear-gradient(135deg,#E8602A,#C4507A)"}>
+                  Add
+                </button>
+              </div>
+              {pasteErr && <p className="text-red-400 text-[9px] mt-1">Could not load that image — try another URL</p>}
+              <div className="flex items-center gap-2 my-2">
+                <div className="flex-1 h-px bg-white/8" />
+                <span className="text-[9px] text-white/25 uppercase tracking-widest">or search below</span>
+                <div className="flex-1 h-px bg-white/8" />
+              </div>
+            </div>
+          )}
+
           {/* Search bar */}
           <div className="flex-none px-3 pt-1 pb-2 flex gap-2">
             <input
@@ -3053,36 +3114,28 @@ const GraphicsPanel = ({ onAdd, onSetBackground, onLoadTemplate }) => {
               </div>
             )}
 
-            {/* ── No Google key configured ── */}
+            {/* ── No photo API keys configured ── */}
             {!loading && results[0]?._noKey && (
-              <div className="flex flex-col items-center gap-3 px-2 py-6 text-center">
-                <div className="text-3xl">🔑</div>
-                <p className="text-white/70 text-xs font-semibold leading-relaxed">
-                  Google API key not set up yet
-                </p>
-                <p className="text-white/35 text-[10px] leading-relaxed">
-                  Open <span className="text-rose-300 font-mono">PageEditor.jsx</span> and paste your keys into:
-                </p>
-                <div className="w-full rounded-xl p-3 text-left text-[10px] font-mono leading-relaxed"
-                  style={{ background:"rgba(232,96,42,0.12)", border:"1px solid rgba(232,96,42,0.25)", color:"#F0854A" }}>
-                  {"GOOGLE_API_KEY = \"your-api-key\""}<br/>
-                  {"GOOGLE_CX      = \"your-cx-id\""}
+              <div className="flex flex-col gap-3 px-2 py-4">
+                <div className="rounded-xl p-3 text-[10px] font-mono leading-relaxed"
+                  style={{ background:"rgba(232,96,42,0.10)", border:"1px solid rgba(232,96,42,0.22)", color:"#F0854A" }}>
+                  {"UNSPLASH_KEY = \"your-key\"  // unsplash.com/developers"}<br/>
+                  {"PEXELS_KEY   = \"your-key\"  // pexels.com/api"}
                 </div>
-                <div className="flex flex-col gap-1.5 w-full text-[10px]">
-                  <a href="https://console.cloud.google.com" target="_blank" rel="noreferrer"
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-white/60 hover:text-white transition-all"
-                    style={{ background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.10)" }}>
-                    <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-                    1. Get API key → console.cloud.google.com
+                <div className="flex flex-col gap-1 text-[10px]">
+                  <a href="https://unsplash.com/developers" target="_blank" rel="noreferrer"
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-white/55 hover:text-white transition-all"
+                    style={{ background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.08)" }}>
+                    <svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                    Unsplash — free, unlimited photos
                   </a>
-                  <a href="https://programmablesearchengine.google.com" target="_blank" rel="noreferrer"
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-white/60 hover:text-white transition-all"
-                    style={{ background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.10)" }}>
-                    <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-                    2. Get CX ID → programmablesearchengine.google.com
+                  <a href="https://www.pexels.com/api/" target="_blank" rel="noreferrer"
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-white/55 hover:text-white transition-all"
+                    style={{ background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.08)" }}>
+                    <svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                    Pexels — free, unlimited photos
                   </a>
                 </div>
-                <p className="text-white/20 text-[9px]">Free: 100 searches/day</p>
               </div>
             )}
 
@@ -3124,7 +3177,7 @@ const GraphicsPanel = ({ onAdd, onSetBackground, onLoadTemplate }) => {
                   ))}
                 </div>
                 <p className="text-white/15 text-[9px] text-center mt-3">
-                  {mode.photos ? "Images via Google Search" : t("imagesVia")}
+                  {mode.photos ? "Photos via Unsplash & Pexels" : t("imagesVia")}
                 </p>
               </>
             )}
