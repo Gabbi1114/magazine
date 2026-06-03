@@ -2779,6 +2779,26 @@ const GraphicsPanel = ({ onAdd, onSetBackground, onLoadTemplate }) => {
     setImgType(m.defaultType || "illustration");
   };
 
+  // Keep only results whose primary tags actually match the search query.
+  // Pixabay matches on descriptions/filenames too, so "compass rose", pigs tagged
+  // with vague metadata, etc. slip through — this strips them out.
+  const filterByRelevance = (hits, q) => {
+    if (!hits.length) return hits;
+    const words = q.toLowerCase().trim().split(/\s+/);
+    const filtered = hits.filter(hit => {
+      const tags = hit.tags.toLowerCase().split(",").map(t => t.trim());
+      if (words.length === 1) {
+        // Single word: must appear as (or inside) one of the first 2 primary tags
+        return tags.slice(0, 2).some(tag => tag.includes(words[0]));
+      }
+      // Multi-word query: every word must exist somewhere in the top 3 tags combined
+      const top3 = tags.slice(0, 3).join(" ");
+      return words.every(w => top3.includes(w));
+    });
+    // Safety fallback: if the filter is too aggressive (< 3 survive), show everything
+    return filtered.length >= 3 ? filtered : hits;
+  };
+
   const doSearch = async (q = query, type = imgType) => {
     if (!q.trim()) return;
     setLoading(true);
@@ -2787,16 +2807,17 @@ const GraphicsPanel = ({ onAdd, onSetBackground, onLoadTemplate }) => {
       const isGraphicMode = mode.id === "stickers" || mode.id === "elements";
       // For graphic modes "all" is not ideal — default to vector for clean clipart
       const resolvedType = (isGraphicMode && type === "all") ? "vector" : type;
+      // Fetch more results (30) so after relevance filtering we still have a good grid
       const url =
         `https://pixabay.com/api/?key=${PIXABAY_KEY}` +
         `&q=${encodeURIComponent(q)}` +
         `&image_type=${resolvedType}` +
-        `&per_page=24&safesearch=true&min_width=200` +
+        `&per_page=30&safesearch=true&min_width=200` +
         (mode.id === "templates"  ? "&orientation=vertical" : "") +
         (isGraphicMode            ? "&colors=transparent"   : "");
       const res  = await fetch(url);
       const data = await res.json();
-      setResults(data.hits || []);
+      setResults(filterByRelevance(data.hits || [], q));
     } catch (e) {
       console.error("Pixabay error:", e);
       setResults([]);
