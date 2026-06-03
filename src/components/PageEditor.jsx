@@ -107,6 +107,12 @@ const LH = Math.round(LW / PAGE_RATIO); // 641
 
 const PIXABAY_KEY = "55314355-2ac2d0d5baf91c7b7d16552d0";
 
+// ── Google Custom Search — paste your keys here ───────────────────────────────
+// 1. API key:  console.cloud.google.com → enable "Custom Search API" → create key
+// 2. CX id:    programmablesearchengine.google.com → New engine → search whole web
+const GOOGLE_API_KEY = "";   // ← paste your Google API key here
+const GOOGLE_CX      = "";   // ← paste your Search Engine CX ID here
+
 // System fonts (no loading needed) + Google Fonts
 const SYSTEM_FONTS = ["Arial", "Georgia", "Times New Roman", "Verdana", "Trebuchet MS", "Courier New", "Impact"];
 const FONTS = [
@@ -2758,6 +2764,19 @@ const PANEL_MODES = [
     thumbRatio:  "3/4",
     actionLabel: "Set BG",
   },
+  {
+    id:      "photos",
+    label:   "Photos",
+    icon:    <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>,
+    accent:  { tab:"bg-rose-600/20 border-rose-500/40 text-rose-300", btn:"bg-rose-500 hover:bg-rose-400", chip:"hover:bg-rose-600/30 hover:border-rose-400/40", spin:"border-t-rose-400", focus:"focus:border-rose-400/50", thumb:"hover:border-rose-400/50", overlay:"group-hover:bg-rose-600/20", filter:"bg-rose-600 border-rose-500" },
+    photos:  true,   // uses Google Custom Search instead of Pixabay
+    placeholder: "Search photos… (celebrities, people, places)",
+    quickLabel:  "Popular searches",
+    quick: ["celebrity portrait","taylor swift","BTS","anime character","k-pop idol","movie poster","fashion model","nature landscape"],
+    action: "add",
+    thumbRatio: "3/4",
+    actionLabel: "+",
+  },
 ];
 
 const GraphicsPanel = ({ onAdd, onSetBackground, onLoadTemplate }) => {
@@ -2804,9 +2823,38 @@ const GraphicsPanel = ({ onAdd, onSetBackground, onLoadTemplate }) => {
     setLoading(true);
     setSearched(true);
     try {
+      // ── Google Custom Search (Photos tab) ────────────────────────────────────
+      if (mode.photos) {
+        if (!GOOGLE_API_KEY || !GOOGLE_CX) {
+          setResults([{ _noKey: true }]);
+          setLoading(false);
+          return;
+        }
+        const url =
+          `https://www.googleapis.com/customsearch/v1` +
+          `?key=${GOOGLE_API_KEY}&cx=${GOOGLE_CX}` +
+          `&searchType=image&safe=active&num=10` +
+          `&q=${encodeURIComponent(q)}`;
+        const res  = await fetch(url);
+        const data = await res.json();
+        // Normalise Google results → same shape used by result renderer
+        const hits = (data.items || []).map(item => ({
+          _google:       true,
+          id:            item.cacheId || item.link,
+          previewURL:    item.image?.thumbnailLink || item.link,
+          webformatURL:  item.link,
+          largeImageURL: item.link,
+          tags:          item.title,
+          pageURL:       item.image?.contextLink || "",
+        }));
+        setResults(hits);
+        setLoading(false);
+        return;
+      }
+
+      // ── Pixabay (all other tabs) ─────────────────────────────────────────────
       const isGraphicMode = mode.id === "stickers" || mode.id === "elements";
-      // For graphic modes "all" is not ideal — default to vector for clean clipart
-      const resolvedType = (isGraphicMode && type === "all") ? "vector" : type;
+      const resolvedType  = (isGraphicMode && type === "all") ? "vector" : type;
       // Fetch more results (30) so after relevance filtering we still have a good grid
       const url =
         `https://pixabay.com/api/?key=${PIXABAY_KEY}` +
@@ -2819,7 +2867,7 @@ const GraphicsPanel = ({ onAdd, onSetBackground, onLoadTemplate }) => {
       const data = await res.json();
       setResults(filterByRelevance(data.hits || [], q));
     } catch (e) {
-      console.error("Pixabay error:", e);
+      console.error("Search error:", e);
       setResults([]);
     }
     setLoading(false);
@@ -2835,13 +2883,27 @@ const GraphicsPanel = ({ onAdd, onSetBackground, onLoadTemplate }) => {
 
   const handleClick = async (hit) => {
     setAdding(hit.id);
-    if (mode.action === "add") {
-      const burl = await fetchAsBlob(hit.webformatURL);
-      onAdd(burl);
-    } else {
-      // template or bg — fill full canvas
-      const burl = await fetchAsBlob(hit.largeImageURL || hit.webformatURL);
-      onSetBackground(burl);
+    try {
+      if (mode.action === "add") {
+        // Google results: try full URL directly (many support hotlinking), fallback to blob
+        if (hit._google) {
+          // Try adding via URL first; if it fails CORS, fetchAsBlob as backup
+          try {
+            const burl = await fetchAsBlob(hit.webformatURL);
+            onAdd(burl);
+          } catch {
+            onAdd(hit.webformatURL);
+          }
+        } else {
+          const burl = await fetchAsBlob(hit.webformatURL);
+          onAdd(burl);
+        }
+      } else {
+        const burl = await fetchAsBlob(hit.largeImageURL || hit.webformatURL);
+        onSetBackground(burl);
+      }
+    } catch (e) {
+      console.warn("Could not load image:", e);
     }
     setAdding(null);
   };
@@ -2990,10 +3052,44 @@ const GraphicsPanel = ({ onAdd, onSetBackground, onLoadTemplate }) => {
                 <div className={`w-6 h-6 border-2 border-white/20 rounded-full animate-spin ${accent.spin}`} />
               </div>
             )}
-            {!loading && searched && results.length === 0 && (
+
+            {/* ── No Google key configured ── */}
+            {!loading && results[0]?._noKey && (
+              <div className="flex flex-col items-center gap-3 px-2 py-6 text-center">
+                <div className="text-3xl">🔑</div>
+                <p className="text-white/70 text-xs font-semibold leading-relaxed">
+                  Google API key not set up yet
+                </p>
+                <p className="text-white/35 text-[10px] leading-relaxed">
+                  Open <span className="text-rose-300 font-mono">PageEditor.jsx</span> and paste your keys into:
+                </p>
+                <div className="w-full rounded-xl p-3 text-left text-[10px] font-mono leading-relaxed"
+                  style={{ background:"rgba(232,96,42,0.12)", border:"1px solid rgba(232,96,42,0.25)", color:"#F0854A" }}>
+                  {"GOOGLE_API_KEY = \"your-api-key\""}<br/>
+                  {"GOOGLE_CX      = \"your-cx-id\""}
+                </div>
+                <div className="flex flex-col gap-1.5 w-full text-[10px]">
+                  <a href="https://console.cloud.google.com" target="_blank" rel="noreferrer"
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-white/60 hover:text-white transition-all"
+                    style={{ background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.10)" }}>
+                    <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                    1. Get API key → console.cloud.google.com
+                  </a>
+                  <a href="https://programmablesearchengine.google.com" target="_blank" rel="noreferrer"
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-white/60 hover:text-white transition-all"
+                    style={{ background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.10)" }}>
+                    <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                    2. Get CX ID → programmablesearchengine.google.com
+                  </a>
+                </div>
+                <p className="text-white/20 text-[9px]">Free: 100 searches/day</p>
+              </div>
+            )}
+
+            {!loading && searched && results.length === 0 && !results[0]?._noKey && (
               <p className="text-white/25 text-xs text-center py-8">{t("noResults")}</p>
             )}
-            {!loading && results.length > 0 && (
+            {!loading && results.length > 0 && !results[0]?._noKey && (
               <>
                 <p className="text-white/20 text-[10px] mb-2">{results.length} {t("results")}</p>
                 <div className={`grid gap-1.5 ${mode.id === "elements" ? "grid-cols-3" : "grid-cols-2"}`}>
@@ -3009,7 +3105,11 @@ const GraphicsPanel = ({ onAdd, onSetBackground, onLoadTemplate }) => {
                           : "rgba(255,255,255,0.05)"
                       }}
                     >
-                      <img src={hit.previewURL} alt={hit.tags} className={`w-full h-full ${mode.id === "elements" ? "object-contain" : "object-cover"}`} loading="lazy" />
+                      <img src={hit.previewURL} alt={hit.tags}
+                        className={`w-full h-full ${mode.id === "elements" ? "object-contain" : "object-cover"}`}
+                        loading="lazy"
+                        referrerPolicy="no-referrer"
+                        onError={e => { e.currentTarget.style.opacity = "0.2"; }} />
                       <div className={`absolute inset-0 transition-all flex items-center justify-center ${accent.overlay}`}>
                         {adding === hit.id
                           ? <div className="w-4 h-4 border-2 border-white/60 border-t-white rounded-full animate-spin" />
@@ -3023,7 +3123,9 @@ const GraphicsPanel = ({ onAdd, onSetBackground, onLoadTemplate }) => {
                     </button>
                   ))}
                 </div>
-                <p className="text-white/15 text-[9px] text-center mt-3">{t("imagesVia")}</p>
+                <p className="text-white/15 text-[9px] text-center mt-3">
+                  {mode.photos ? "Images via Google Search" : t("imagesVia")}
+                </p>
               </>
             )}
           </div>
