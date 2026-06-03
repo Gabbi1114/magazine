@@ -107,11 +107,6 @@ const LH = Math.round(LW / PAGE_RATIO); // 641
 
 const PIXABAY_KEY = "55314355-2ac2d0d5baf91c7b7d16552d0";
 
-// ── Photo search APIs (Photos tab) ───────────────────────────────────────────
-// Unsplash: free, register at unsplash.com/developers
-const UNSPLASH_KEY = "";   // ← paste your Unsplash Access Key here (free)
-// Pexels:   free, register at pexels.com/api
-const PEXELS_KEY   = "";   // ← paste your Pexels API key here   (free)
 
 // System fonts (no loading needed) + Google Fonts
 const SYSTEM_FONTS = ["Arial", "Georgia", "Times New Roman", "Verdana", "Trebuchet MS", "Courier New", "Impact"];
@@ -2764,19 +2759,6 @@ const PANEL_MODES = [
     thumbRatio:  "3/4",
     actionLabel: "Set BG",
   },
-  {
-    id:      "photos",
-    label:   "Photos",
-    icon:    <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>,
-    accent:  { tab:"bg-rose-600/20 border-rose-500/40 text-rose-300", btn:"bg-rose-500 hover:bg-rose-400", chip:"hover:bg-rose-600/30 hover:border-rose-400/40", spin:"border-t-rose-400", focus:"focus:border-rose-400/50", thumb:"hover:border-rose-400/50", overlay:"group-hover:bg-rose-600/20", filter:"bg-rose-600 border-rose-500" },
-    photos:  true,   // uses Unsplash + Pexels + URL paste
-    placeholder: "Search photos… (portraits, fashion, nature, places)",
-    quickLabel:  "Popular searches",
-    quick: ["portrait","fashion model","aesthetic","k-pop style","wedding","nature","city night","vintage"],
-    action: "add",
-    thumbRatio: "3/4",
-    actionLabel: "+",
-  },
 ];
 
 const GraphicsPanel = ({ onAdd, onSetBackground, onLoadTemplate }) => {
@@ -2787,8 +2769,6 @@ const GraphicsPanel = ({ onAdd, onSetBackground, onLoadTemplate }) => {
   const [loading,   setLoading]   = useState(false);
   const [searched,  setSearched]  = useState(false);
   const [adding,    setAdding]    = useState(null);
-  const [pasteUrl,  setPasteUrl]  = useState("");
-  const [pasteErr,  setPasteErr]  = useState(false);
 
   const mode = PANEL_MODES.find(m => m.id === modeId);
 
@@ -2825,61 +2805,7 @@ const GraphicsPanel = ({ onAdd, onSetBackground, onLoadTemplate }) => {
     setLoading(true);
     setSearched(true);
     try {
-      // ── Unsplash + Pexels (Photos tab) — free, unlimited ────────────────────
-      if (mode.photos) {
-        const hits = [];
-
-        // 1. Try Unsplash first (better quality)
-        if (UNSPLASH_KEY) {
-          try {
-            const res  = await fetch(
-              `https://api.unsplash.com/search/photos?query=${encodeURIComponent(q)}&per_page=20&client_id=${UNSPLASH_KEY}`
-            );
-            const data = await res.json();
-            (data.results || []).forEach(p => hits.push({
-              _photo:        true,
-              _src:          "Unsplash",
-              id:            p.id,
-              previewURL:    p.urls.small,
-              webformatURL:  p.urls.regular,
-              largeImageURL: p.urls.full,
-              tags:          p.alt_description || p.description || q,
-              credit:        p.user?.name,
-            }));
-          } catch (e) { console.warn("Unsplash error", e); }
-        }
-
-        // 2. Pexels — adds more variety (or sole source if no Unsplash key)
-        if (PEXELS_KEY) {
-          try {
-            const res  = await fetch(
-              `https://api.pexels.com/v1/search?query=${encodeURIComponent(q)}&per_page=20`,
-              { headers: { Authorization: PEXELS_KEY } }
-            );
-            const data = await res.json();
-            (data.photos || []).forEach(p => hits.push({
-              _photo:        true,
-              _src:          "Pexels",
-              id:            `px-${p.id}`,
-              previewURL:    p.src.medium,
-              webformatURL:  p.src.large,
-              largeImageURL: p.src.original,
-              tags:          p.alt || q,
-              credit:        p.photographer,
-            }));
-          } catch (e) { console.warn("Pexels error", e); }
-        }
-
-        if (!UNSPLASH_KEY && !PEXELS_KEY) {
-          setResults([{ _noKey: true }]);
-        } else {
-          setResults(hits);
-        }
-        setLoading(false);
-        return;
-      }
-
-      // ── Pixabay (all other tabs) ─────────────────────────────────────────────
+      // ── Pixabay ──────────────────────────────────────────────────────────────
       const isGraphicMode = mode.id === "stickers" || mode.id === "elements";
       const resolvedType  = (isGraphicMode && type === "all") ? "vector" : type;
       // Fetch more results (30) so after relevance filtering we still have a good grid
@@ -2921,50 +2847,22 @@ const GraphicsPanel = ({ onAdd, onSetBackground, onLoadTemplate }) => {
     setAdding(null);
   };
 
-  const handlePasteUrl = async () => {
-    const url = pasteUrl.trim();
-    if (!url) return;
-    setPasteErr(false);
-    try {
-      const burl = await fetchAsBlob(url);
-      onAdd(burl);
-      setPasteUrl("");
-    } catch {
-      // If blob fetch fails (CORS), pass URL directly — fabric handles crossOrigin
-      try { onAdd(url); setPasteUrl(""); }
-      catch { setPasteErr(true); }
-    }
-  };
 
   const { accent } = mode;
 
   return (
     <div className="flex flex-col h-full">
 
-      {/* Mode tabs — 2-row layout so all 5 tabs always fit */}
-      <div className="flex-none px-2 pt-2 pb-1.5" style={{ borderBottom:"1px solid rgba(232,96,42,0.15)" }}>
-        {/* Row 1: Stickers · Templates · Elements */}
-        <div className="grid grid-cols-3 gap-1 mb-1">
-          {PANEL_MODES.slice(0, 3).map((m) => (
-            <button key={m.id} onClick={() => switchMode(m)}
-              className={`flex items-center justify-center gap-1 py-1.5 rounded-xl text-[10px] font-bold transition-all border truncate ${modeId === m.id ? m.accent.tab : "border-white/8 text-white/35 hover:text-white/60"}`}
-              style={modeId !== m.id ? { background:"rgba(255,255,255,0.03)" } : {}}>
-              {m.icon}
-              <span className="truncate">{t(m.id)}</span>
-            </button>
-          ))}
-        </div>
-        {/* Row 2: Backgrounds · Photos */}
-        <div className="grid grid-cols-2 gap-1">
-          {PANEL_MODES.slice(3).map((m) => (
-            <button key={m.id} onClick={() => switchMode(m)}
-              className={`flex items-center justify-center gap-1 py-1.5 rounded-xl text-[10px] font-bold transition-all border truncate ${modeId === m.id ? m.accent.tab : "border-white/8 text-white/35 hover:text-white/60"}`}
-              style={modeId !== m.id ? { background:"rgba(255,255,255,0.03)" } : {}}>
-              {m.icon}
-              <span className="truncate">{t(m.id)}</span>
-            </button>
-          ))}
-        </div>
+      {/* Mode tabs — single row, 4 tabs */}
+      <div className="flex-none flex gap-1 p-2" style={{ borderBottom:"1px solid rgba(232,96,42,0.15)" }}>
+        {PANEL_MODES.map((m) => (
+          <button key={m.id} onClick={() => switchMode(m)}
+            className={`flex-1 flex items-center justify-center gap-1 py-1.5 rounded-xl text-[10px] font-bold transition-all border ${modeId === m.id ? m.accent.tab : "border-white/8 text-white/35 hover:text-white/60"}`}
+            style={modeId !== m.id ? { background:"rgba(255,255,255,0.03)" } : {}}>
+            {m.icon}
+            <span className="truncate">{t(m.id)}</span>
+          </button>
+        ))}
       </div>
 
       {/* ── Stickers: built-in elements ── */}
@@ -3042,39 +2940,6 @@ const GraphicsPanel = ({ onAdd, onSetBackground, onLoadTemplate }) => {
         </div>
       ) : (
         <>
-          {/* ── Paste any image URL (Photos tab only) ── */}
-          {mode.photos && (
-            <div className="flex-none px-3 pt-2 pb-1">
-              <p className="text-[9px] uppercase tracking-widest font-bold mb-1.5 bg-clip-text text-transparent"
-                style={{ backgroundImage:"linear-gradient(90deg,#F0854A,#C4507A)" }}>
-                🌐 Paste any image URL (celebrity, Google Images…)
-              </p>
-              <div className="flex gap-1.5">
-                <input
-                  type="url"
-                  value={pasteUrl}
-                  onChange={e => { setPasteUrl(e.target.value); setPasteErr(false); }}
-                  onKeyDown={e => e.key === "Enter" && handlePasteUrl()}
-                  placeholder="https://…"
-                  className={`flex-1 bg-white/5 rounded-xl px-3 py-2 text-white text-[11px] placeholder-white/20 focus:outline-none border ${pasteErr ? "border-red-500/60" : "border-white/10 focus:border-rose-400/50"}`}
-                />
-                <button onClick={handlePasteUrl}
-                  className="px-3 py-2 rounded-xl text-white text-[11px] font-bold transition-all flex-none"
-                  style={{ background:"linear-gradient(135deg,#E8602A,#C4507A)" }}
-                  onMouseEnter={e=>e.currentTarget.style.background="linear-gradient(135deg,#F0784A,#D4608A)"}
-                  onMouseLeave={e=>e.currentTarget.style.background="linear-gradient(135deg,#E8602A,#C4507A)"}>
-                  Add
-                </button>
-              </div>
-              {pasteErr && <p className="text-red-400 text-[9px] mt-1">Could not load that image — try another URL</p>}
-              <div className="flex items-center gap-2 my-2">
-                <div className="flex-1 h-px bg-white/8" />
-                <span className="text-[9px] text-white/25 uppercase tracking-widest">or search below</span>
-                <div className="flex-1 h-px bg-white/8" />
-              </div>
-            </div>
-          )}
-
           {/* Search bar */}
           <div className="flex-none px-3 pt-1 pb-2 flex gap-2">
             <input
@@ -3128,35 +2993,10 @@ const GraphicsPanel = ({ onAdd, onSetBackground, onLoadTemplate }) => {
               </div>
             )}
 
-            {/* ── No photo API keys configured ── */}
-            {!loading && results[0]?._noKey && (
-              <div className="flex flex-col gap-3 px-2 py-4">
-                <div className="rounded-xl p-3 text-[10px] font-mono leading-relaxed"
-                  style={{ background:"rgba(232,96,42,0.10)", border:"1px solid rgba(232,96,42,0.22)", color:"#F0854A" }}>
-                  {"UNSPLASH_KEY = \"your-key\"  // unsplash.com/developers"}<br/>
-                  {"PEXELS_KEY   = \"your-key\"  // pexels.com/api"}
-                </div>
-                <div className="flex flex-col gap-1 text-[10px]">
-                  <a href="https://unsplash.com/developers" target="_blank" rel="noreferrer"
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-white/55 hover:text-white transition-all"
-                    style={{ background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.08)" }}>
-                    <svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-                    Unsplash — free, unlimited photos
-                  </a>
-                  <a href="https://www.pexels.com/api/" target="_blank" rel="noreferrer"
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-white/55 hover:text-white transition-all"
-                    style={{ background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.08)" }}>
-                    <svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-                    Pexels — free, unlimited photos
-                  </a>
-                </div>
-              </div>
-            )}
-
-            {!loading && searched && results.length === 0 && !results[0]?._noKey && (
+            {!loading && searched && results.length === 0 && (
               <p className="text-white/25 text-xs text-center py-8">{t("noResults")}</p>
             )}
-            {!loading && results.length > 0 && !results[0]?._noKey && (
+            {!loading && results.length > 0 && (
               <>
                 <p className="text-white/20 text-[10px] mb-2">{results.length} {t("results")}</p>
                 <div className={`grid gap-1.5 ${mode.id === "elements" ? "grid-cols-3" : "grid-cols-2"}`}>
@@ -3190,9 +3030,7 @@ const GraphicsPanel = ({ onAdd, onSetBackground, onLoadTemplate }) => {
                     </button>
                   ))}
                 </div>
-                <p className="text-white/15 text-[9px] text-center mt-3">
-                  {mode.photos ? "Photos via Unsplash & Pexels" : t("imagesVia")}
-                </p>
+                <p className="text-white/15 text-[9px] text-center mt-3">{t("imagesVia")}</p>
               </>
             )}
           </div>
@@ -3304,6 +3142,21 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose }) =
   const [mobileTab,       setMobileTab]       = useState("layers");
   const [mobileExpanded,  setMobileExpanded]  = useState(false);
   const [graphicsOpen,    setGraphicsOpen]    = useState(false);
+  // ── Background music ──────────────────────────────────────────────────────
+  const [musicOpen,       setMusicOpen]       = useState(false);
+  const [musicInput,      setMusicInput]      = useState("");
+  const [musicVideoId,    setMusicVideoId]    = useState(null);
+  const [musicErr,        setMusicErr]        = useState(false);
+
+  const extractYtId = (url) => {
+    const m = url.match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+    return m?.[1] ?? null;
+  };
+  const loadTrack = () => {
+    const id = extractYtId(musicInput.trim());
+    if (id) { setMusicVideoId(id); setMusicErr(false); }
+    else setMusicErr(true);
+  };
   const [cropTarget,       setCropTarget]      = useState(null);
   const [shapeCropTarget,  setShapeCropTarget] = useState(null);
   const [groupChildEdit,   setGroupChildEdit]  = useState(null);
@@ -4466,6 +4319,33 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose }) =
               <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/>
             </svg>
           </button>
+
+          {/* Music divider */}
+          <div className="w-8 h-px my-1" style={{ background:"linear-gradient(90deg, transparent, rgba(232,96,42,0.4), transparent)" }} />
+
+          {/* Background music toggle */}
+          <div className="relative">
+            <button
+              title="Background Music"
+              onClick={() => setMusicOpen(v => !v)}
+              className="w-10 h-10 flex items-center justify-center rounded-xl transition-all"
+              style={musicOpen
+                ? { background:"linear-gradient(135deg, #E8602A, #C4507A)", color:"#fff", boxShadow:"0 4px 16px rgba(232,96,42,0.5)" }
+                : { color:"rgba(240,133,74,0.6)" }}
+              onMouseEnter={e=>{ if(!musicOpen){ e.currentTarget.style.background="rgba(232,96,42,0.18)"; e.currentTarget.style.color="#F0854A"; }}}
+              onMouseLeave={e=>{ if(!musicOpen){ e.currentTarget.style.background="transparent"; e.currentTarget.style.color="rgba(240,133,74,0.6)"; }}}>
+              {/* Music note icon */}
+              <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 18V5l12-2v13"/>
+                <circle cx="6" cy="18" r="3"/>
+                <circle cx="18" cy="16" r="3"/>
+              </svg>
+            </button>
+            {/* Green pulse dot when music is playing */}
+            {musicVideoId && (
+              <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            )}
+          </div>
         </div>
 
         {/* Desktop graphics panel (slides in from left) */}
@@ -4515,6 +4395,84 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose }) =
             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 px-3 py-1.5 rounded-full bg-violet-600/25 backdrop-blur-sm border border-violet-500/30 text-violet-300 text-[10px] pointer-events-none select-none">
               <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
               {t("editingGroupCanvas")}
+            </div>
+          )}
+
+          {/* ── Floating music player ── */}
+          {musicOpen && (
+            <div className="absolute left-3 bottom-4 z-40 w-72 rounded-2xl overflow-hidden shadow-2xl"
+              style={{ background:"linear-gradient(180deg,#2e1220 0%,#1e0c18 100%)", border:"1px solid rgba(232,96,42,0.35)" }}>
+              {/* Header */}
+              <div className="flex items-center justify-between px-3 py-2.5"
+                style={{ borderBottom:"1px solid rgba(232,96,42,0.15)" }}>
+                <div className="flex items-center gap-2">
+                  <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#F0854A" strokeWidth={2} strokeLinecap="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+                  <span className="text-xs font-bold bg-clip-text text-transparent"
+                    style={{ backgroundImage:"linear-gradient(90deg,#F0854A,#C4507A)" }}>Background Music</span>
+                  {musicVideoId && <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />}
+                </div>
+                <button onClick={() => setMusicOpen(false)}
+                  className="p-1 rounded-lg transition-all text-white/30 hover:text-white/70"
+                  onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,0.08)"}
+                  onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                  <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M18 6L6 18M6 6l12 12"/></svg>
+                </button>
+              </div>
+
+              {/* URL input */}
+              <div className="px-3 pt-3 pb-2">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={musicInput}
+                    onChange={e => { setMusicInput(e.target.value); setMusicErr(false); }}
+                    onKeyDown={e => e.key === "Enter" && loadTrack()}
+                    placeholder="Paste YouTube URL…"
+                    className={`flex-1 bg-white/5 rounded-xl px-3 py-2 text-white text-xs placeholder-white/25 focus:outline-none border transition-all ${musicErr ? "border-red-500/60" : "border-white/10 focus:border-orange-400/50"}`}
+                  />
+                  <button onClick={loadTrack}
+                    className="px-3 py-2 rounded-xl text-white text-xs font-bold transition-all flex-none"
+                    style={{ background:"linear-gradient(135deg,#E8602A,#C4507A)" }}
+                    onMouseEnter={e=>e.currentTarget.style.opacity="0.85"}
+                    onMouseLeave={e=>e.currentTarget.style.opacity="1"}>
+                    ▶ Play
+                  </button>
+                </div>
+                {musicErr && (
+                  <p className="text-red-400 text-[10px] mt-1.5">Couldn't find a YouTube video — check the URL</p>
+                )}
+              </div>
+
+              {/* Player area */}
+              {musicVideoId ? (
+                <div className="px-3 pb-3">
+                  <div className="rounded-xl overflow-hidden" style={{ aspectRatio:"16/9" }}>
+                    <iframe
+                      key={musicVideoId}
+                      src={`https://www.youtube.com/embed/${musicVideoId}?autoplay=1&rel=0&modestbranding=1`}
+                      width="100%" height="100%"
+                      style={{ display:"block", border:"none" }}
+                      allow="autoplay; encrypted-media"
+                      allowFullScreen
+                      title="Background music"
+                    />
+                  </div>
+                  <button
+                    onClick={() => { setMusicVideoId(null); setMusicInput(""); }}
+                    className="mt-2 w-full py-1.5 rounded-xl text-[10px] font-medium text-white/40 hover:text-rose-300 transition-all"
+                    style={{ background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.07)" }}>
+                    ⏹ Stop music
+                  </button>
+                </div>
+              ) : (
+                <div className="mx-3 mb-3 flex flex-col items-center justify-center gap-2 rounded-xl py-6"
+                  style={{ background:"rgba(255,255,255,0.03)", border:"1px dashed rgba(255,255,255,0.08)" }}>
+                  <svg width={28} height={28} viewBox="0 0 24 24" fill="none" stroke="rgba(240,133,74,0.3)" strokeWidth={1.5} strokeLinecap="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+                  <p className="text-white/20 text-[10px] text-center leading-relaxed">
+                    Paste any YouTube link<br/>and press Play
+                  </p>
+                </div>
+              )}
             </div>
           )}
         </div>
