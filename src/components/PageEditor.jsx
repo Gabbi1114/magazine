@@ -3142,21 +3142,6 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose }) =
   const [mobileTab,       setMobileTab]       = useState("layers");
   const [mobileExpanded,  setMobileExpanded]  = useState(false);
   const [graphicsOpen,    setGraphicsOpen]    = useState(false);
-  // ── Background music ──────────────────────────────────────────────────────
-  const [musicOpen,       setMusicOpen]       = useState(false);
-  const [musicInput,      setMusicInput]      = useState("");
-  const [musicVideoId,    setMusicVideoId]    = useState(null);
-  const [musicErr,        setMusicErr]        = useState(false);
-
-  const extractYtId = (url) => {
-    const m = url.match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-    return m?.[1] ?? null;
-  };
-  const loadTrack = () => {
-    const id = extractYtId(musicInput.trim());
-    if (id) { setMusicVideoId(id); setMusicErr(false); }
-    else setMusicErr(true);
-  };
   const [cropTarget,       setCropTarget]      = useState(null);
   const [shapeCropTarget,  setShapeCropTarget] = useState(null);
   const [groupChildEdit,   setGroupChildEdit]  = useState(null);
@@ -4320,32 +4305,6 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose }) =
             </svg>
           </button>
 
-          {/* Music divider */}
-          <div className="w-8 h-px my-1" style={{ background:"linear-gradient(90deg, transparent, rgba(232,96,42,0.4), transparent)" }} />
-
-          {/* Background music toggle */}
-          <div className="relative">
-            <button
-              title="Background Music"
-              onClick={() => setMusicOpen(v => !v)}
-              className="w-10 h-10 flex items-center justify-center rounded-xl transition-all"
-              style={musicOpen
-                ? { background:"linear-gradient(135deg, #E8602A, #C4507A)", color:"#fff", boxShadow:"0 4px 16px rgba(232,96,42,0.5)" }
-                : { color:"rgba(240,133,74,0.6)" }}
-              onMouseEnter={e=>{ if(!musicOpen){ e.currentTarget.style.background="rgba(232,96,42,0.18)"; e.currentTarget.style.color="#F0854A"; }}}
-              onMouseLeave={e=>{ if(!musicOpen){ e.currentTarget.style.background="transparent"; e.currentTarget.style.color="rgba(240,133,74,0.6)"; }}}>
-              {/* Music note icon */}
-              <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                <path d="M9 18V5l12-2v13"/>
-                <circle cx="6" cy="18" r="3"/>
-                <circle cx="18" cy="16" r="3"/>
-              </svg>
-            </button>
-            {/* Green pulse dot when music is playing */}
-            {musicVideoId && (
-              <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            )}
-          </div>
         </div>
 
         {/* Desktop graphics panel (slides in from left) */}
@@ -4398,83 +4357,6 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose }) =
             </div>
           )}
 
-          {/* ── Floating music player ── */}
-          {musicOpen && (
-            <div className="absolute left-3 bottom-4 z-40 w-72 rounded-2xl overflow-hidden shadow-2xl"
-              style={{ background:"linear-gradient(180deg,#2e1220 0%,#1e0c18 100%)", border:"1px solid rgba(232,96,42,0.35)" }}>
-              {/* Header */}
-              <div className="flex items-center justify-between px-3 py-2.5"
-                style={{ borderBottom:"1px solid rgba(232,96,42,0.15)" }}>
-                <div className="flex items-center gap-2">
-                  <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#F0854A" strokeWidth={2} strokeLinecap="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
-                  <span className="text-xs font-bold bg-clip-text text-transparent"
-                    style={{ backgroundImage:"linear-gradient(90deg,#F0854A,#C4507A)" }}>Background Music</span>
-                  {musicVideoId && <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />}
-                </div>
-                <button onClick={() => setMusicOpen(false)}
-                  className="p-1 rounded-lg transition-all text-white/30 hover:text-white/70"
-                  onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,0.08)"}
-                  onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                  <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M18 6L6 18M6 6l12 12"/></svg>
-                </button>
-              </div>
-
-              {/* URL input */}
-              <div className="px-3 pt-3 pb-2">
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={musicInput}
-                    onChange={e => { setMusicInput(e.target.value); setMusicErr(false); }}
-                    onKeyDown={e => e.key === "Enter" && loadTrack()}
-                    placeholder="Paste YouTube URL…"
-                    className={`flex-1 bg-white/5 rounded-xl px-3 py-2 text-white text-xs placeholder-white/25 focus:outline-none border transition-all ${musicErr ? "border-red-500/60" : "border-white/10 focus:border-orange-400/50"}`}
-                  />
-                  <button onClick={loadTrack}
-                    className="px-3 py-2 rounded-xl text-white text-xs font-bold transition-all flex-none"
-                    style={{ background:"linear-gradient(135deg,#E8602A,#C4507A)" }}
-                    onMouseEnter={e=>e.currentTarget.style.opacity="0.85"}
-                    onMouseLeave={e=>e.currentTarget.style.opacity="1"}>
-                    ▶ Play
-                  </button>
-                </div>
-                {musicErr && (
-                  <p className="text-red-400 text-[10px] mt-1.5">Couldn't find a YouTube video — check the URL</p>
-                )}
-              </div>
-
-              {/* Player area */}
-              {musicVideoId ? (
-                <div className="px-3 pb-3">
-                  <div className="rounded-xl overflow-hidden" style={{ aspectRatio:"16/9" }}>
-                    <iframe
-                      key={musicVideoId}
-                      src={`https://www.youtube.com/embed/${musicVideoId}?autoplay=1&rel=0&modestbranding=1`}
-                      width="100%" height="100%"
-                      style={{ display:"block", border:"none" }}
-                      allow="autoplay; encrypted-media"
-                      allowFullScreen
-                      title="Background music"
-                    />
-                  </div>
-                  <button
-                    onClick={() => { setMusicVideoId(null); setMusicInput(""); }}
-                    className="mt-2 w-full py-1.5 rounded-xl text-[10px] font-medium text-white/40 hover:text-rose-300 transition-all"
-                    style={{ background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.07)" }}>
-                    ⏹ Stop music
-                  </button>
-                </div>
-              ) : (
-                <div className="mx-3 mb-3 flex flex-col items-center justify-center gap-2 rounded-xl py-6"
-                  style={{ background:"rgba(255,255,255,0.03)", border:"1px dashed rgba(255,255,255,0.08)" }}>
-                  <svg width={28} height={28} viewBox="0 0 24 24" fill="none" stroke="rgba(240,133,74,0.3)" strokeWidth={1.5} strokeLinecap="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
-                  <p className="text-white/20 text-[10px] text-center leading-relaxed">
-                    Paste any YouTube link<br/>and press Play
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
         </div>
 
         {/* Desktop right panel */}
