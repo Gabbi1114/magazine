@@ -2831,10 +2831,10 @@ const GraphicsPanel = ({ onAdd, onSetBackground, onLoadTemplate }) => {
     <div className="flex flex-col h-full">
 
       {/* Mode tabs */}
-      <div className="flex-none flex gap-1 p-2 border-b border-white/8">
+      <div className="flex-none flex gap-1 p-2 border-b border-purple-500/15">
         {PANEL_MODES.map((m) => (
           <button key={m.id} onClick={() => switchMode(m)}
-            className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-[11px] font-medium transition-all border ${modeId === m.id ? m.accent.tab : "bg-white/5 border-white/10 text-white/40 hover:bg-white/10"}`}>
+            className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-xl text-[11px] font-bold transition-all border ${modeId === m.id ? m.accent.tab : "bg-white/[0.04] border-white/8 text-white/35 hover:bg-white/[0.08] hover:text-white/60"}`}>
             {m.icon}
             <span className="hidden sm:inline">{t(m.id)}</span>
           </button>
@@ -2844,20 +2844,23 @@ const GraphicsPanel = ({ onAdd, onSetBackground, onLoadTemplate }) => {
       {/* ── Stickers: built-in elements ── */}
       {mode.stickers ? (
         <div className="flex-1 overflow-y-auto min-h-0 px-3 py-3">
-          <p className="text-[10px] text-white/25 uppercase tracking-widest mb-2">
+          <p className="text-[10px] uppercase tracking-widest mb-2 font-bold bg-gradient-to-r from-orange-400 to-pink-400 bg-clip-text text-transparent">
             {SCRAPBOOK_STICKERS.length} {t("scrapbookElements")}
           </p>
           <div className="grid grid-cols-3 gap-2 pb-2">
             {SCRAPBOOK_STICKERS.map((s) => (
               <button key={s.id} onClick={() => onLoadTemplate(s, "sticker")}
-                className="group flex flex-col items-center rounded-xl bg-white/5 border border-white/8 hover:border-orange-400/60 hover:bg-white/10 transition-all overflow-hidden"
+                className="group flex flex-col items-center rounded-xl border transition-all overflow-hidden"
+                style={{ background: `${s.color}18`, borderColor: `${s.color}35` }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = `${s.color}90`; e.currentTarget.style.background = `${s.color}30`; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = `${s.color}35`; e.currentTarget.style.background = `${s.color}18`; }}
               >
                 {/* Live canvas preview — shows the exact sticker that will be inserted */}
                 <div className="w-full aspect-square overflow-hidden flex items-center justify-center"
-                  style={{ background: "repeating-conic-gradient(#232232 0% 25%,#1a1928 0% 50%) 0 0 / 10px 10px" }}>
+                  style={{ background: "repeating-conic-gradient(#1e1535 0% 25%, #180f2c 0% 50%) 0 0 / 10px 10px" }}>
                   <StickerPreview sticker={s} />
                 </div>
-                <span className="w-full text-[9px] text-white/50 group-hover:text-white/80 text-center leading-tight transition-colors py-1.5 px-1 truncate">
+                <span className="w-full text-[9px] text-white/60 group-hover:text-white text-center leading-tight transition-colors py-1.5 px-1 truncate font-medium">
                   {s.name}
                 </span>
               </button>
@@ -3877,10 +3880,10 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose }) =
 
   // ── Tool config ──
   const tools = [
-    { id: "select", icon: "M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z",          label: t("toolSelect") },
-    { id: "text",   icon: "M4 7V4h16v3M9 20h6M12 4v16",                         label: t("text"),    fn: addText },
-    { id: "shape",  icon: "M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z", label: t("shapes") },
-    { id: "draw",   icon: "M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z", label: t("draw") },
+    { id: "select", icon: "M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z",          label: t("toolSelect"), activeClass: "bg-sky-500 shadow-sky-900/50" },
+    { id: "text",   icon: "M4 7V4h16v3M9 20h6M12 4v16",                         label: t("text"),    fn: addText, activeClass: "bg-pink-500 shadow-pink-900/50" },
+    { id: "shape",  icon: "M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z", label: t("shapes"), activeClass: "bg-amber-500 shadow-amber-900/50" },
+    { id: "draw",   icon: "M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z", label: t("draw"), activeClass: "bg-emerald-500 shadow-emerald-900/50" },
   ];
 
   // ── Draw panel ──
@@ -3933,7 +3936,7 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose }) =
     <div className="flex flex-col gap-4 p-4 pb-6">
       {/* Brush type grid */}
       <div>
-        <p className="text-[10px] text-white/35 uppercase tracking-widest font-semibold mb-2">{t("brushType")}</p>
+        <p className="text-[10px] uppercase tracking-widest font-bold mb-2 bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">{t("brushType")}</p>
         <div className="grid grid-cols-4 gap-1.5">
           {BRUSH_TYPES.map(({ id, label, icon, desc }) => (
             <button
@@ -3942,9 +3945,10 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose }) =
               title={desc}
               className={`flex flex-col items-center gap-1.5 py-2.5 rounded-xl border text-[10px] font-medium transition-all
                 ${drawBrushType === id
-                  ? "bg-indigo-600/30 border-indigo-400/60 text-white"
-                  : "bg-white/[0.04] border-white/[0.07] text-white/45 hover:bg-white/[0.09] hover:text-white/80"}`}>
-              <span className={drawBrushType === id ? "text-indigo-300" : "text-white/40"}>{icon}</span>
+                  ? "border-emerald-400/60 text-white"
+                  : "bg-white/[0.04] border-white/[0.07] text-white/45 hover:bg-white/[0.09] hover:text-white/80"}`}
+              style={drawBrushType === id ? { background: "linear-gradient(135deg, rgba(16,185,129,0.25), rgba(20,184,166,0.15))" } : {}}>
+              <span className={drawBrushType === id ? "text-emerald-300" : "text-white/40"}>{icon}</span>
               {label}
             </button>
           ))}
@@ -4114,24 +4118,25 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose }) =
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-[#0e0d1a] text-white" style={{ userSelect: "none" }}>
+    <div className="fixed inset-0 z-50 flex flex-col bg-[#140d28] text-white" style={{ userSelect: "none" }}>
 
       {/* ── Header ── */}
-      <div className="flex-none h-12 md:h-14 flex items-center gap-1.5 md:gap-3 px-2 md:px-4 border-b border-white/10 bg-[#12111f]">
+      <div className="flex-none h-12 md:h-14 flex items-center gap-1.5 md:gap-3 px-2 md:px-4 border-b border-pink-500/20"
+        style={{ background: "linear-gradient(135deg, #211545 0%, #1a1040 50%, #1e1245 100%)" }}>
         <button onClick={onClose}
-          className="p-2 rounded-lg hover:bg-white/10 text-white/50 hover:text-white transition-all">
+          className="p-2 rounded-lg hover:bg-purple-500/20 text-white/50 hover:text-purple-300 transition-all">
           <Ic d="M19 12H5M12 19l-7-7 7-7" />
         </button>
-        <span className="hidden md:block text-sm font-semibold text-white/70">{t("pageEditor")}</span>
-        <span className="block md:hidden text-xs font-semibold text-white/60">{t("editorMobile")}</span>
+        <span className="hidden md:block text-sm font-bold bg-gradient-to-r from-pink-400 to-violet-400 bg-clip-text text-transparent">{t("pageEditor")}</span>
+        <span className="block md:hidden text-xs font-bold bg-gradient-to-r from-pink-400 to-violet-400 bg-clip-text text-transparent">{t("editorMobile")}</span>
 
         <div className="flex gap-0.5 ml-1">
           <button title={t("undoTitle")} disabled={!canUndo} onClick={undo}
-            className="p-2 rounded-lg hover:bg-white/10 text-white/40 hover:text-white disabled:opacity-25 disabled:cursor-not-allowed transition-all">
+            className="p-2 rounded-lg hover:bg-indigo-500/20 text-white/40 hover:text-indigo-300 disabled:opacity-25 disabled:cursor-not-allowed transition-all">
             <Ic d="M3 7v6h6M3.51 15a9 9 0 1 0 .49-4.7" />
           </button>
           <button title={t("redoTitle")} disabled={!canRedo} onClick={redo}
-            className="p-2 rounded-lg hover:bg-white/10 text-white/40 hover:text-white disabled:opacity-25 disabled:cursor-not-allowed transition-all">
+            className="p-2 rounded-lg hover:bg-indigo-500/20 text-white/40 hover:text-indigo-300 disabled:opacity-25 disabled:cursor-not-allowed transition-all">
             <Ic d="M21 7v6h-6M20.49 15a9 9 0 1 1-.49-4.7" />
           </button>
         </div>
@@ -4141,7 +4146,7 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose }) =
         {/* Group / Ungroup — shown when selection type matches */}
         {activeObj?.type === "activeSelection" && (
           <button onClick={groupSelected} title={t("groupSelectedTitle")}
-            className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-600/15 hover:bg-amber-600/30 text-amber-400/80 hover:text-amber-300 text-sm transition-all border border-amber-500/20 hover:border-amber-400/40">
+            className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/35 text-amber-300 hover:text-amber-200 text-sm transition-all border border-amber-400/30 hover:border-amber-400/60">
             <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
               <rect x="2" y="2" width="8" height="8" rx="1"/><rect x="14" y="2" width="8" height="8" rx="1"/>
               <rect x="2" y="14" width="8" height="8" rx="1"/><rect x="14" y="14" width="8" height="8" rx="1"/>
@@ -4152,7 +4157,7 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose }) =
         )}
         {activeObj?.type === "group" && (
           <button onClick={ungroupSelected} title={t("ungroupSelectedTitle")}
-            className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-600/15 hover:bg-amber-600/30 text-amber-400/80 hover:text-amber-300 text-sm transition-all border border-amber-500/20 hover:border-amber-400/40">
+            className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/35 text-amber-300 hover:text-amber-200 text-sm transition-all border border-amber-400/30 hover:border-amber-400/60">
             <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
               <rect x="2" y="2" width="8" height="8" rx="1"/><rect x="14" y="2" width="8" height="8" rx="1"/>
               <rect x="2" y="14" width="8" height="8" rx="1"/><rect x="14" y="14" width="8" height="8" rx="1"/>
@@ -4162,34 +4167,37 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose }) =
         )}
 
         <button onClick={duplicateSelected} title={t("duplicate")}
-          className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/8 hover:bg-white/15 text-white/60 hover:text-white text-sm transition-all border border-white/10">
+          className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-500/15 hover:bg-sky-500/30 text-sky-400/80 hover:text-sky-300 text-sm transition-all border border-sky-500/20 hover:border-sky-400/50">
           <Ic d="M8 8H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-2M16 2h-4a2 2 0 00-2 2v10a2 2 0 002 2h4" />
         </button>
         <button onClick={deleteSelected} title={t("delete")}
-          className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/8 hover:bg-red-500/25 text-white/60 hover:text-red-300 text-sm transition-all border border-white/10 hover:border-red-500/30">
+          className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/30 text-rose-400/80 hover:text-rose-300 text-sm transition-all border border-rose-500/20 hover:border-rose-400/50">
           <Ic d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
         </button>
 
         <button onClick={duplicateSelected} title={t("duplicate")}
-          className="md:hidden p-2 rounded-lg hover:bg-white/10 text-white/40 hover:text-white transition-all">
+          className="md:hidden p-2 rounded-lg hover:bg-sky-500/20 text-sky-400/60 hover:text-sky-300 transition-all">
           <Ic d="M8 8H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-2M16 2h-4a2 2 0 00-2 2v10a2 2 0 002 2h4" />
         </button>
         <button onClick={deleteSelected} title={t("delete")}
-          className="md:hidden p-2 rounded-lg hover:bg-red-500/20 text-white/40 hover:text-red-300 transition-all">
+          className="md:hidden p-2 rounded-lg hover:bg-rose-500/20 text-rose-400/60 hover:text-rose-300 transition-all">
           <Ic d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
         </button>
 
         {/* Language toggle */}
         <button
           onClick={() => setLang(l => l === "en" ? "mn" : "en")}
-          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white/8 hover:bg-white/15 border border-white/10 text-white/55 hover:text-white text-xs font-semibold transition-all"
+          className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-violet-500/15 hover:bg-violet-500/30 border border-violet-500/25 hover:border-violet-400/50 text-violet-300/80 hover:text-violet-200 text-xs font-semibold transition-all"
           title={lang === "en" ? "Монгол хэл рүү шилжих" : "Switch to English"}>
           <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/></svg>
           {t("langBtn")}
         </button>
 
         <button onClick={handleSave}
-          className="flex items-center gap-1.5 px-3 md:px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-all shadow-lg shadow-indigo-900/40 text-xs md:text-sm">
+          className="flex items-center gap-1.5 px-3 md:px-4 py-2 rounded-xl text-white font-bold transition-all text-xs md:text-sm shadow-lg shadow-pink-900/40"
+          style={{ background: "linear-gradient(135deg, #ec4899 0%, #f97316 100%)" }}
+          onMouseEnter={e => e.currentTarget.style.background = "linear-gradient(135deg, #f472b6 0%, #fb923c 100%)"}
+          onMouseLeave={e => e.currentTarget.style.background = "linear-gradient(135deg, #ec4899 0%, #f97316 100%)"}>
           <Ic d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2zM17 21v-8H7v8M7 3v5h8" />
           <span className="md:hidden">{t("apply")}</span>
           <span className="hidden md:inline">{t("saveApply")}</span>
@@ -4200,18 +4208,19 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose }) =
       <div className="flex-1 flex flex-row overflow-hidden min-h-0">
 
         {/* Desktop left toolbar */}
-        <div className="hidden md:flex w-14 flex-none flex-col items-center gap-1 py-3 border-r border-white/10 bg-[#12111f] overflow-y-auto">
-          {tools.map(({ id, icon, label, fn }) => (
+        <div className="hidden md:flex w-14 flex-none flex-col items-center gap-1 py-3 border-r border-purple-500/15 overflow-y-auto"
+          style={{ background: "linear-gradient(180deg, #1e1240 0%, #18102e 100%)" }}>
+          {tools.map(({ id, icon, label, fn, activeClass }) => (
             <button key={id} title={label}
-              className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all ${activeTool === id ? "bg-indigo-600 text-white shadow-lg shadow-indigo-900/40" : "text-white/40 hover:bg-white/10 hover:text-white"}`}
+              className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all shadow-lg ${activeTool === id ? `${activeClass} text-white` : "text-white/40 hover:bg-white/10 hover:text-white"}`}
               onClick={() => { setActiveTool(id); fn?.(); }}>
               <Ic d={icon} />
             </button>
           ))}
-          <div className="w-8 h-px bg-white/10 my-1" />
+          <div className="w-8 h-px my-1" style={{ background: "linear-gradient(90deg, transparent, rgba(180,100,255,0.4), transparent)" }} />
           {/* Upload image */}
           <label title={t("uploadImage")}
-            className="w-10 h-10 flex items-center justify-center rounded-xl text-white/40 hover:bg-white/10 hover:text-white transition-all cursor-pointer">
+            className="w-10 h-10 flex items-center justify-center rounded-xl text-purple-400/60 hover:bg-purple-500/20 hover:text-purple-300 transition-all cursor-pointer">
             <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) addImage(f); e.target.value = ""; }} />
             <Ic d="M21 19V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2zM8.5 13.5l2.5 3 3.5-4.5 4.5 6H5l3.5-4.5z" />
           </label>
@@ -4219,8 +4228,8 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose }) =
           <button
             title={t("searchGraphicsPixabay")}
             onClick={() => setGraphicsOpen(v => !v)}
-            className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all ${graphicsOpen ? "bg-violet-600 text-white" : "text-white/40 hover:bg-white/10 hover:text-white"}`}>
-            {/* sparkle / search icon */}
+            className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all ${graphicsOpen ? "text-white shadow-lg shadow-pink-900/50" : "text-pink-400/60 hover:text-pink-300 hover:bg-pink-500/15"}`}
+            style={graphicsOpen ? { background: "linear-gradient(135deg, #a855f7, #ec4899)" } : {}}>
             <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/>
             </svg>
@@ -4229,13 +4238,14 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose }) =
 
         {/* Desktop graphics panel (slides in from left) */}
         {graphicsOpen && (
-          <div className="hidden md:flex w-72 flex-none flex-col border-r border-white/10 bg-[#0f0e1c] overflow-hidden">
-            <div className="flex items-center justify-between px-3 py-2.5 border-b border-white/8 flex-none">
+          <div className="hidden md:flex w-72 flex-none flex-col border-r border-purple-500/15 overflow-hidden"
+            style={{ background: "linear-gradient(180deg, #1a0e34 0%, #160c2a 100%)" }}>
+            <div className="flex items-center justify-between px-3 py-2.5 border-b border-pink-500/15 flex-none">
               <div className="flex items-center gap-2">
-                <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" className="text-violet-400"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg>
-                <span className="text-xs font-semibold text-white/60 uppercase tracking-widest">{t("graphics")}</span>
+                <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" className="text-pink-400"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg>
+                <span className="text-xs font-bold bg-gradient-to-r from-pink-400 to-violet-400 bg-clip-text text-transparent uppercase tracking-widest">{t("graphics")}</span>
               </div>
-              <button onClick={() => setGraphicsOpen(false)} className="p-1 rounded hover:bg-white/10 text-white/30 hover:text-white transition-all">
+              <button onClick={() => setGraphicsOpen(false)} className="p-1 rounded-lg hover:bg-rose-500/20 text-white/30 hover:text-rose-300 transition-all">
                 <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M18 6L6 18M6 6l12 12"/></svg>
               </button>
             </div>
@@ -4247,7 +4257,8 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose }) =
 
         {/* Canvas area */}
         <div ref={containerRef}
-          className="flex-1 relative flex items-center justify-center bg-[#0a0918] overflow-hidden">
+          className="flex-1 relative flex items-center justify-center overflow-hidden"
+          style={{ background: "radial-gradient(ellipse at center, #0f0a20 0%, #08051a 100%)" }}>
           <div
             className="rounded-lg overflow-hidden shadow-2xl shadow-black/60 ring-1 ring-white/10"
             onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; }}
@@ -4271,10 +4282,11 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose }) =
         </div>
 
         {/* Desktop right panel */}
-        <div className="hidden md:flex w-64 flex-none flex-col border-l border-white/10 bg-[#12111f] overflow-hidden">
-          <div className="flex flex-col border-b border-white/10 overflow-hidden" style={{ maxHeight: "45%" }}>
-            <div className="flex items-center justify-between px-4 py-3 border-b border-white/8 flex-none">
-              <span className="text-xs font-semibold text-white/50 uppercase tracking-widest">{t("layers")}</span>
+        <div className="hidden md:flex w-64 flex-none flex-col border-l border-purple-500/15 overflow-hidden"
+          style={{ background: "linear-gradient(180deg, #1c1138 0%, #160e2c 100%)" }}>
+          <div className="flex flex-col border-b border-purple-500/15 overflow-hidden" style={{ maxHeight: "45%" }}>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-purple-500/10 flex-none">
+              <span className="text-xs font-bold bg-gradient-to-r from-violet-400 to-pink-400 bg-clip-text text-transparent uppercase tracking-widest">{t("layers")}</span>
               <div className="flex items-center gap-1.5">
                 {activeObj?.type === "activeSelection" && (
                   <button onClick={groupSelected} title={t("group")}
@@ -4296,8 +4308,11 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose }) =
             <div className="overflow-y-auto flex-1">{layersList}</div>
           </div>
           <div className="flex flex-col flex-1 overflow-hidden">
-            <div className="px-4 py-3 border-b border-white/8 flex-none">
-              <span className="text-xs font-semibold text-white/50 uppercase tracking-widest">
+            <div className="px-4 py-3 border-b border-purple-500/10 flex-none">
+              <span className={`text-xs font-bold uppercase tracking-widest bg-clip-text text-transparent ${
+                activeTool === "shape" ? "bg-gradient-to-r from-amber-400 to-orange-400"
+                : activeTool === "draw" ? "bg-gradient-to-r from-emerald-400 to-teal-400"
+                : "bg-gradient-to-r from-sky-400 to-indigo-400"}`}>
                 {activeTool === "shape" ? t("shapes") : activeTool === "draw" ? t("draw") : t("properties")}
               </span>
             </div>
@@ -4328,19 +4343,20 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose }) =
 
       {/* ── Mobile bottom panel ── */}
       <div
-        className="md:hidden flex-none flex flex-col bg-[#12111f] border-t border-white/10"
+        className="md:hidden flex-none flex flex-col border-t border-pink-500/20"
         style={{
+          background: "linear-gradient(180deg, #1c1138 0%, #160e2c 100%)",
           height: mobileExpanded ? "82vh" : "clamp(200px, 44vh, 310px)",
           transition: "height 0.28s cubic-bezier(0.4,0,0.2,1)",
         }}>
 
         {/* Tool strip — hidden when panel is expanded (saves space) */}
         {!mobileExpanded && (
-          <div className="flex-none flex items-center gap-2 px-3 py-2 border-b border-white/8 overflow-x-auto"
+          <div className="flex-none flex items-center gap-2 px-3 py-2 border-b border-purple-500/15 overflow-x-auto"
             style={{ scrollbarWidth: "none" }}>
-            {tools.map(({ id, icon, label, fn }) => (
+            {tools.map(({ id, icon, label, fn, activeClass }) => (
               <button key={id} title={label}
-                className={`flex-none w-10 h-10 flex items-center justify-center rounded-xl transition-all ${activeTool === id ? "bg-indigo-600 text-white" : "bg-white/5 text-white/50 hover:bg-white/10"}`}
+                className={`flex-none w-10 h-10 flex items-center justify-center rounded-xl transition-all ${activeTool === id ? `${activeClass} text-white shadow-lg` : "bg-white/5 text-white/50 hover:bg-white/10"}`}
                 onClick={() => {
                   setActiveTool(id);
                   fn?.();
@@ -4350,7 +4366,7 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose }) =
               </button>
             ))}
             {/* Upload image */}
-            <label className="flex-none w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 text-white/50 hover:bg-white/10 transition-all cursor-pointer">
+            <label className="flex-none w-10 h-10 flex items-center justify-center rounded-xl bg-purple-500/10 text-purple-400/70 hover:bg-purple-500/20 hover:text-purple-300 transition-all cursor-pointer">
               <input type="file" accept="image/*" className="hidden"
                 onChange={(e) => { const f = e.target.files?.[0]; if (f) addImage(f); e.target.value = ""; }} />
               <Ic d="M21 19V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2zM8.5 13.5l2.5 3 3.5-4.5 4.5 6H5l3.5-4.5z" />
@@ -4395,26 +4411,22 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose }) =
         )}
 
         {/* Tab bar — always visible; X button replaces tool strip row when expanded */}
-        <div className="flex-none flex items-center border-b border-white/8">
+        <div className="flex-none flex items-center border-b border-purple-500/15">
           {/* Tabs */}
           <div className="flex flex-1">
             {[
-              { id: "layers",     label: `${t("layers")} (${layers.length})` },
-              { id: "properties", label: t("properties") },
-              { id: "graphics",   label: `✦ ${t("graphics")}` },
-            ].map(({ id, label }) => (
+              { id: "layers",     label: `${t("layers")} (${layers.length})`,  activeColor: "border-violet-400 text-violet-300" },
+              { id: "properties", label: t("properties"),                        activeColor: "border-sky-400 text-sky-300" },
+              { id: "graphics",   label: `✦ ${t("graphics")}`,                  activeColor: "border-pink-400 text-pink-300" },
+            ].map(({ id, label, activeColor }) => (
               <button key={id}
                 onClick={() => {
                   setMobileTab(id);
                   // Collapse when moving away from graphics
                   if (id !== "graphics") setMobileExpanded(false);
                 }}
-                className={`flex-1 py-2.5 text-xs font-medium transition-all border-b-2 ${
-                  mobileTab === id
-                    ? id === "graphics"
-                      ? "border-violet-400 text-violet-300"
-                      : "border-indigo-400 text-white"
-                    : "border-transparent text-white/35 hover:text-white/60"}`}>
+                className={`flex-1 py-2.5 text-xs font-bold transition-all border-b-2 ${
+                  mobileTab === id ? activeColor : "border-transparent text-white/35 hover:text-white/60"}`}>
                 {label}
               </button>
             ))}
