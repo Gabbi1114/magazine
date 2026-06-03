@@ -73,9 +73,7 @@ const PageSlider = ({ page, maxPage, setPage, getLabel }) => {
   // Clamp label so it never overflows the track edges
   const labelClampedPct = Math.max(5, Math.min(95, thumbPct));
 
-  // Dots: show every page if ≤ 20 total, else every other, else none for huge sets
   const total = maxPage + 1;
-  const dotStep = total <= 20 ? 1 : total <= 40 ? 2 : 4;
 
   return (
     <div className="flex items-center gap-3 w-full px-5 md:px-8">
@@ -120,26 +118,6 @@ const PageSlider = ({ page, maxPage, setPage, getLabel }) => {
               background: "linear-gradient(90deg,rgba(232,96,42,0.85),rgba(196,80,122,0.85))",
             }} />
 
-          {/* Page dots */}
-          {Array.from({ length: total }, (_, i) => {
-            if (i % dotStep !== 0) return null;
-            const isActive = i === liveIdx;
-            return (
-              <div key={i}
-                className="absolute top-1/2 rounded-full transition-all duration-150"
-                style={{
-                  left: `${(i / maxPage) * 100}%`,
-                  transform: "translate(-50%,-50%)",
-                  width:  isActive ? 10 : 4,
-                  height: isActive ? 10 : 4,
-                  background: i <= liveIdx ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.28)",
-                  zIndex: 1,
-                }}
-                onMouseDown={e  => { e.stopPropagation(); setPageRef.current(i); }}
-                onTouchStart={e => { e.stopPropagation(); setPageRef.current(i); }}
-              />
-            );
-          })}
 
           {/* Draggable thumb */}
           <div
