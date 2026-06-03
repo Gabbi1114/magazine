@@ -10,6 +10,10 @@ const extractYtId = (url) => {
 };
 
 // ── Floating Background Music Player ─────────────────────────────────────────
+// KEY DESIGN: the panel is NEVER unmounted — it slides off-screen with CSS
+// transform when closed.  CSS transforms don't affect iframe rendering, so
+// the YouTube player keeps playing audio in the background even when the
+// panel is not visible.
 const MusicPlayer = () => {
   const [open,    setOpen]    = useState(false);
   const [input,   setInput]   = useState("");
@@ -18,21 +22,36 @@ const MusicPlayer = () => {
 
   const load = () => {
     const id = extractYtId(input.trim());
-    if (id) { setVideoId(id); setErr(false); setOpen(true); }
+    if (id) { setVideoId(id); setErr(false); }
     else setErr(true);
   };
+  const stop = () => { setVideoId(null); setInput(""); };
 
   return (
-    <div className="pointer-events-auto fixed bottom-28 left-5 z-30 flex flex-col items-start gap-0">
-
-      {/* Expanded panel — slides up from the button */}
-      {open && (
-        <div className="mb-3 w-80 rounded-2xl overflow-hidden shadow-2xl"
+    <>
+      {/*
+        Panel — ALWAYS in the DOM, never conditionally rendered.
+        When closed it's translated fully off-screen to the left.
+        translateX does NOT affect iframe execution → music keeps playing.
+      */}
+      <div
+        style={{
+          position: "fixed",
+          bottom: 168,          // sits above the toggle button (112 button-bottom + 48 height + 8 gap)
+          left: 20,
+          width: 320,
+          zIndex: 30,
+          transform: open ? "translateX(0)" : "translateX(calc(-100% - 40px))",
+          transition: "transform 0.32s cubic-bezier(0.4,0,0.2,1)",
+          pointerEvents: open ? "auto" : "none",
+        }}
+      >
+        <div className="rounded-2xl overflow-hidden shadow-2xl"
           style={{
-            background: "linear-gradient(180deg, rgba(40,16,32,0.97) 0%, rgba(24,8,20,0.97) 100%)",
+            background: "linear-gradient(180deg,rgba(40,16,32,0.97) 0%,rgba(24,8,20,0.97) 100%)",
             backdropFilter: "blur(20px)",
             border: "1px solid rgba(232,96,42,0.4)",
-            boxShadow: "0 20px 60px rgba(0,0,0,0.7), 0 0 40px rgba(232,96,42,0.12)",
+            boxShadow: "0 20px 60px rgba(0,0,0,0.7),0 0 40px rgba(232,96,42,0.12)",
           }}>
 
           {/* Header */}
@@ -63,90 +82,95 @@ const MusicPlayer = () => {
             </button>
           </div>
 
-          {/* URL input */}
-          <div className="px-4 pt-3 pb-2">
-            <div className="flex gap-2">
-              <input
-                type="text" value={input}
-                onChange={e => { setInput(e.target.value); setErr(false); }}
-                onKeyDown={e => e.key === "Enter" && load()}
-                placeholder="Paste YouTube URL…"
-                className="flex-1 bg-white/5 rounded-xl px-3 py-2 text-white text-xs placeholder-white/25 focus:outline-none transition-all"
-                style={{ border: err ? "1px solid rgba(239,68,68,0.6)" : "1px solid rgba(255,255,255,0.10)" }}
-              />
-              <button onClick={load}
-                className="px-3 py-2 rounded-xl text-white text-xs font-bold transition-all flex-none"
-                style={{ background:"linear-gradient(135deg,#E8602A,#C4507A)" }}
-                onMouseEnter={e=>e.currentTarget.style.opacity="0.82"}
-                onMouseLeave={e=>e.currentTarget.style.opacity="1"}>
-                ▶ Play
-              </button>
-            </div>
-            {err && <p className="text-red-400 text-[10px] mt-1.5">Not a valid YouTube URL — try again</p>}
+          {/* URL input + Save button */}
+          <div className="px-4 pt-3 pb-3">
+            <p className="text-[10px] text-white/35 mb-2 leading-relaxed">
+              Paste a YouTube link — music plays in the background even when this panel is closed.
+            </p>
+            <input
+              type="text" value={input}
+              onChange={e => { setInput(e.target.value); setErr(false); }}
+              onKeyDown={e => e.key === "Enter" && load()}
+              placeholder="youtube.com/watch?v=…  or  youtu.be/…"
+              className="w-full bg-white/5 rounded-xl px-3 py-2.5 text-white text-xs placeholder-white/20 focus:outline-none transition-all mb-2"
+              style={{ border: err ? "1px solid rgba(239,68,68,0.6)" : "1px solid rgba(255,255,255,0.10)" }}
+            />
+            {err && <p className="text-red-400 text-[10px] mb-2">Couldn't find a YouTube video — check the URL</p>}
+
+            {/* The "Save" / Play-in-Background button */}
+            <button onClick={load}
+              className="w-full py-2.5 rounded-xl text-white text-sm font-bold transition-all"
+              style={{ background:"linear-gradient(135deg,#E8602A,#C4507A)" }}
+              onMouseEnter={e=>e.currentTarget.style.opacity="0.85"}
+              onMouseLeave={e=>e.currentTarget.style.opacity="1"}>
+              🎵 Save &amp; Play in Background
+            </button>
           </div>
 
-          {/* Player */}
-          {videoId ? (
-            <div className="px-4 pb-4">
-              <div className="rounded-xl overflow-hidden" style={{ aspectRatio:"16/9" }}>
-                <iframe
-                  key={videoId}
-                  src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`}
-                  width="100%" height="100%"
-                  style={{ display:"block", border:"none" }}
-                  allow="autoplay; encrypted-media"
-                  allowFullScreen
-                  title="Background music"
-                />
+          {/* YouTube player — stays in DOM (panel is never unmounted) */}
+          <div className="px-4 pb-4">
+            {videoId ? (
+              <>
+                <div className="rounded-xl overflow-hidden" style={{ aspectRatio:"16/9" }}>
+                  <iframe
+                    key={videoId}
+                    src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`}
+                    width="100%" height="100%"
+                    style={{ display:"block", border:"none" }}
+                    allow="autoplay; encrypted-media"
+                    allowFullScreen
+                    title="Background music"
+                  />
+                </div>
+                <p className="text-[9px] text-white/25 text-center mt-1.5 mb-1">
+                  Close this panel — music keeps playing 🎵
+                </p>
+                <button onClick={stop}
+                  className="w-full py-1.5 rounded-xl text-[10px] font-medium text-white/35 hover:text-rose-300 transition-all"
+                  style={{ background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.07)" }}>
+                  ⏹ Stop music
+                </button>
+              </>
+            ) : (
+              <div className="flex flex-col items-center justify-center gap-2 rounded-xl py-5"
+                style={{ background:"rgba(255,255,255,0.03)", border:"1px dashed rgba(255,255,255,0.08)" }}>
+                <svg width={26} height={26} viewBox="0 0 24 24" fill="none" stroke="rgba(240,133,74,0.22)" strokeWidth={1.5} strokeLinecap="round">
+                  <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
+                </svg>
+                <p className="text-white/18 text-[10px] text-center leading-relaxed">
+                  No track loaded yet
+                </p>
               </div>
-              <button
-                onClick={() => { setVideoId(null); setInput(""); }}
-                className="mt-2 w-full py-1.5 rounded-xl text-[10px] font-medium text-white/35 hover:text-rose-300 transition-all"
-                style={{ background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.07)" }}>
-                ⏹ Stop music
-              </button>
-            </div>
-          ) : (
-            <div className="mx-4 mb-4 flex flex-col items-center justify-center gap-2 rounded-xl py-5"
-              style={{ background:"rgba(255,255,255,0.03)", border:"1px dashed rgba(255,255,255,0.08)" }}>
-              <svg width={28} height={28} viewBox="0 0 24 24" fill="none" stroke="rgba(240,133,74,0.25)" strokeWidth={1.5} strokeLinecap="round">
-                <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
-              </svg>
-              <p className="text-white/20 text-[10px] text-center leading-relaxed">
-                Paste any YouTube link above<br/>and press ▶ Play
-              </p>
-            </div>
-          )}
+            )}
+          </div>
         </div>
-      )}
+      </div>
 
-      {/* Floating toggle button */}
-      <button
-        onClick={() => setOpen(v => !v)}
-        title="Background Music"
-        className="relative w-12 h-12 rounded-full flex items-center justify-center shadow-xl transition-all duration-300"
-        style={{
-          background: videoId
-            ? "linear-gradient(135deg,#E8602A,#C4507A)"
-            : open
-            ? "rgba(40,16,32,0.95)"
-            : "rgba(20,8,16,0.75)",
-          backdropFilter: "blur(16px)",
-          border: videoId
-            ? "1px solid rgba(240,133,74,0.5)"
-            : "1px solid rgba(255,255,255,0.15)",
-          boxShadow: videoId ? "0 0 24px rgba(232,96,42,0.5)" : "none",
-        }}>
-        <svg width={20} height={20} viewBox="0 0 24 24" fill="none"
-          stroke={videoId ? "#fff" : "rgba(255,255,255,0.65)"} strokeWidth={2} strokeLinecap="round">
-          <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
-        </svg>
-        {/* Live pulse ring when playing */}
-        {videoId && (
-          <span className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-400 border-2 border-black animate-pulse" />
-        )}
-      </button>
-    </div>
+      {/* Floating toggle button — always visible */}
+      <div style={{ position:"fixed", bottom:112, left:20, zIndex:31 }}
+        className="pointer-events-auto">
+        <button
+          onClick={() => setOpen(v => !v)}
+          title="Background Music"
+          className="relative w-12 h-12 rounded-full flex items-center justify-center shadow-xl transition-all duration-300"
+          style={{
+            background: videoId
+              ? "linear-gradient(135deg,#E8602A,#C4507A)"
+              : open ? "rgba(40,16,32,0.95)" : "rgba(20,8,16,0.75)",
+            backdropFilter: "blur(16px)",
+            border: videoId ? "1px solid rgba(240,133,74,0.5)" : "1px solid rgba(255,255,255,0.15)",
+            boxShadow: videoId ? "0 0 24px rgba(232,96,42,0.5)" : "none",
+          }}>
+          <svg width={20} height={20} viewBox="0 0 24 24" fill="none"
+            stroke={videoId ? "#fff" : "rgba(255,255,255,0.65)"} strokeWidth={2} strokeLinecap="round">
+            <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
+          </svg>
+          {videoId && (
+            <span className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-400 border-2 border-black animate-pulse" />
+          )}
+        </button>
+      </div>
+    </>
   );
 };
 import { PageEditor } from "./PageEditor";
