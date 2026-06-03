@@ -1,6 +1,180 @@
 import { atom, useAtom } from "jotai";
 import { useEffect, useRef, useState } from "react";
 
+// ── Page Slider ───────────────────────────────────────────────────────────────
+// Draggable horizontal scrubber that replaces the old page-button nav.
+// Works with mouse AND touch.  All mutable state accessed via refs inside the
+// global event listeners so there are zero stale-closure issues.
+const PageSlider = ({ page, maxPage, setPage, getLabel }) => {
+  const trackRef    = useRef(null);
+  const isDragging  = useRef(false);
+  const maxPageRef  = useRef(maxPage);
+  const setPageRef  = useRef(setPage);
+  const getLabelRef = useRef(getLabel);
+  useEffect(() => { maxPageRef.current = maxPage; },  [maxPage]);
+  useEffect(() => { setPageRef.current = setPage; },  [setPage]);
+  useEffect(() => { getLabelRef.current = getLabel; }, [getLabel]);
+
+  const [liveIdx,   setLiveIdx]   = useState(page);
+  const liveIdxRef  = useRef(page);
+
+  // Sync slider when page changes from outside (e.g. keyboard, other controls)
+  useEffect(() => {
+    if (!isDragging.current) {
+      setLiveIdx(page);
+      liveIdxRef.current = page;
+    }
+  }, [page]);
+
+  const calcIdx = (clientX) => {
+    const rect = trackRef.current?.getBoundingClientRect();
+    if (!rect) return liveIdxRef.current;
+    const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    return Math.round(pct * maxPageRef.current);
+  };
+
+  const applyX = (clientX) => {
+    const idx = calcIdx(clientX);
+    liveIdxRef.current = idx;
+    setLiveIdx(idx);
+  };
+
+  const startDrag = (clientX) => {
+    isDragging.current = true;
+    applyX(clientX);
+  };
+
+  // Global move/up listeners — safe because everything is via refs
+  useEffect(() => {
+    const onMove = (e) => {
+      if (!isDragging.current) return;
+      applyX(e.touches ? e.touches[0].clientX : e.clientX);
+    };
+    const onEnd = () => {
+      if (!isDragging.current) return;
+      isDragging.current = false;
+      setPageRef.current(liveIdxRef.current);
+    };
+    window.addEventListener("mousemove",  onMove);
+    window.addEventListener("mouseup",    onEnd);
+    window.addEventListener("touchmove",  onMove, { passive: true });
+    window.addEventListener("touchend",   onEnd);
+    return () => {
+      window.removeEventListener("mousemove",  onMove);
+      window.removeEventListener("mouseup",    onEnd);
+      window.removeEventListener("touchmove",  onMove);
+      window.removeEventListener("touchend",   onEnd);
+    };
+  }, []); // empty deps — all state via refs
+
+  const thumbPct = (liveIdx / maxPage) * 100;
+  const currentLabel = getLabelRef.current(liveIdx);
+
+  // Clamp label so it never overflows the track edges
+  const labelClampedPct = Math.max(5, Math.min(95, thumbPct));
+
+  // Dots: show every page if ≤ 20 total, else every other, else none for huge sets
+  const total = maxPage + 1;
+  const dotStep = total <= 20 ? 1 : total <= 40 ? 2 : 4;
+
+  return (
+    <div className="flex items-center gap-3 w-full px-5 md:px-8">
+
+      {/* ← Prev */}
+      <button
+        onClick={() => setPageRef.current(Math.max(0, page - 1))}
+        disabled={page === 0}
+        className="flex-none w-9 h-9 rounded-full flex items-center justify-center transition-all disabled:opacity-30 select-none"
+        style={{ background:"rgba(0,0,0,0.45)", backdropFilter:"blur(12px)", border:"1px solid rgba(255,255,255,0.14)" }}>
+        <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.5} strokeLinecap="round">
+          <path d="M15 18l-6-6 6-6"/>
+        </svg>
+      </button>
+
+      {/* Track area */}
+      <div className="relative flex-1 select-none" style={{ height: 52 }}>
+
+        {/* Floating page label above the thumb */}
+        <div
+          className="absolute top-0 text-[11px] font-bold text-white/90 whitespace-nowrap pointer-events-none"
+          style={{
+            left: `${labelClampedPct}%`,
+            transform: "translateX(-50%)",
+            textShadow: "0 1px 6px rgba(0,0,0,0.9)",
+          }}>
+          {currentLabel}
+        </div>
+
+        {/* The actual draggable track */}
+        <div
+          ref={trackRef}
+          className="absolute left-0 right-0 rounded-full cursor-pointer"
+          style={{ top: 28, height: 4, background:"rgba(255,255,255,0.15)" }}
+          onMouseDown={e  => startDrag(e.clientX)}
+          onTouchStart={e => startDrag(e.touches[0].clientX)}>
+
+          {/* Filled / progress portion */}
+          <div className="absolute left-0 top-0 h-full rounded-full pointer-events-none"
+            style={{
+              width: `${thumbPct}%`,
+              background: "linear-gradient(90deg,rgba(232,96,42,0.85),rgba(196,80,122,0.85))",
+            }} />
+
+          {/* Page dots */}
+          {Array.from({ length: total }, (_, i) => {
+            if (i % dotStep !== 0) return null;
+            const isActive = i === liveIdx;
+            return (
+              <div key={i}
+                className="absolute top-1/2 rounded-full transition-all duration-150"
+                style={{
+                  left: `${(i / maxPage) * 100}%`,
+                  transform: "translate(-50%,-50%)",
+                  width:  isActive ? 10 : 4,
+                  height: isActive ? 10 : 4,
+                  background: i <= liveIdx ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.28)",
+                  zIndex: 1,
+                }}
+                onMouseDown={e  => { e.stopPropagation(); setPageRef.current(i); }}
+                onTouchStart={e => { e.stopPropagation(); setPageRef.current(i); }}
+              />
+            );
+          })}
+
+          {/* Draggable thumb */}
+          <div
+            className="absolute top-1/2 rounded-full pointer-events-none"
+            style={{
+              left: `${thumbPct}%`,
+              transform: "translate(-50%,-50%)",
+              width: 22, height: 22,
+              background: "linear-gradient(135deg,#F0854A,#C4507A)",
+              border: "2.5px solid rgba(255,255,255,0.9)",
+              boxShadow: "0 2px 14px rgba(232,96,42,0.65)",
+              zIndex: 2,
+            }} />
+        </div>
+
+        {/* Page counter bottom-right */}
+        <div className="absolute right-0 bottom-0 text-[9px] text-white/30 select-none pointer-events-none">
+          {liveIdx + 1}&nbsp;/&nbsp;{total}
+        </div>
+      </div>
+
+      {/* Next → */}
+      <button
+        onClick={() => setPageRef.current(Math.min(maxPage, page + 1))}
+        disabled={page === maxPage}
+        className="flex-none w-9 h-9 rounded-full flex items-center justify-center transition-all disabled:opacity-30 select-none"
+        style={{ background:"rgba(0,0,0,0.45)", backdropFilter:"blur(12px)", border:"1px solid rgba(255,255,255,0.14)" }}>
+        <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.5} strokeLinecap="round">
+          <path d="M9 18l6-6-6-6"/>
+        </svg>
+      </button>
+    </div>
+  );
+};
+
 // ── YouTube video ID extractor ────────────────────────────────────────────────
 const extractYtId = (url) => {
   const m = url.match(
@@ -37,7 +211,7 @@ const MusicPlayer = () => {
       <div
         style={{
           position: "fixed",
-          bottom: 168,          // sits above the toggle button (112 button-bottom + 48 height + 8 gap)
+          bottom: 132,          // sits above the toggle button (72 button-bottom + 48 height + 12 gap)
           left: 20,
           width: 320,
           zIndex: 30,
@@ -147,7 +321,7 @@ const MusicPlayer = () => {
       </div>
 
       {/* Floating toggle button — always visible */}
-      <div style={{ position:"fixed", bottom:112, left:20, zIndex:31 }}
+      <div style={{ position:"fixed", bottom:72, left:20, zIndex:31 }}
         className="pointer-events-auto">
         <button
           onClick={() => setOpen(v => !v)}
@@ -656,29 +830,19 @@ export const UI = () => {
         {/* Background music — persistent, survives editor open/close */}
         <MusicPlayer />
 
-        {/* Bottom nav */}
-        <div className="fixed bottom-0 left-0 right-0 w-full overflow-auto pointer-events-auto flex justify-center">
-          <div className="overflow-auto flex items-center gap-4 max-w-full p-6">
-            {pages.map((_, index) => (
-              <button
-                key={index}
-                className={`border-transparent hover:border-white transition-all duration-300 px-4 py-3 rounded-full text-lg uppercase shrink-0 border ${
-                  index === page ? "bg-white/90 text-black" : "bg-black/30 text-white"
-                }`}
-                onClick={() => setPage(index)}
-              >
-                {index === 0 ? "Cover" : `Page ${index}`}
-              </button>
-            ))}
-            <button
-              className={`border-transparent hover:border-white transition-all duration-300 px-4 py-3 rounded-full text-lg uppercase shrink-0 border ${
-                page === pages.length ? "bg-white/90 text-black" : "bg-black/30 text-white"
-              }`}
-              onClick={() => setPage(pages.length)}
-            >
-              Back Cover
-            </button>
-          </div>
+        {/* Bottom page slider — replaces old button nav */}
+        <div className="fixed bottom-0 left-0 right-0 pointer-events-auto"
+          style={{ background:"linear-gradient(to top,rgba(0,0,0,0.72) 0%,transparent 100%)", paddingTop:16, paddingBottom:20 }}>
+          <PageSlider
+            page={page}
+            maxPage={pages.length}
+            setPage={setPage}
+            getLabel={(i) => {
+              if (i === 0)            return "Cover";
+              if (i === pages.length) return "Back Cover";
+              return `Page ${i}`;
+            }}
+          />
         </div>
 
       </main>
