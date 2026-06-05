@@ -63,26 +63,79 @@ function createCoverTexture() {
   canvas.height = 682;
   const ctx = canvas.getContext("2d");
 
-  const gradient = ctx.createLinearGradient(0, 0, 512, 682);
-  gradient.addColorStop(0, "#0f0c29");
-  gradient.addColorStop(0.5, "#302b63");
-  gradient.addColorStop(1, "#24243e");
-  ctx.fillStyle = gradient;
+  // ── Light blue background gradient ──────────────────────────────────────────
+  const bg = ctx.createLinearGradient(0, 0, 512, 682);
+  bg.addColorStop(0,   "#c9e8f7");
+  bg.addColorStop(0.5, "#a8d8f0");
+  bg.addColorStop(1,   "#84c4e8");
+  ctx.fillStyle = bg;
   ctx.fillRect(0, 0, 512, 682);
 
-  const radial = ctx.createRadialGradient(256, 300, 40, 256, 300, 280);
-  radial.addColorStop(0, "rgba(120, 90, 220, 0.35)");
-  radial.addColorStop(1, "rgba(0, 0, 0, 0)");
-  ctx.fillStyle = radial;
+  // Soft centre glow
+  const glow = ctx.createRadialGradient(256, 320, 30, 256, 320, 260);
+  glow.addColorStop(0, "rgba(255,255,255,0.45)");
+  glow.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = glow;
   ctx.fillRect(0, 0, 512, 682);
 
-  ctx.strokeStyle = "rgba(255,255,255,0.18)";
+  // Subtle top-left light
+  const light = ctx.createRadialGradient(60, 60, 0, 60, 60, 200);
+  light.addColorStop(0, "rgba(255,255,255,0.28)");
+  light.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = light;
+  ctx.fillRect(0, 0, 512, 682);
+
+  // ── Decorative border frames ─────────────────────────────────────────────────
+  ctx.strokeStyle = "rgba(255,255,255,0.55)";
   ctx.lineWidth = 1.5;
-  ctx.strokeRect(18, 18, 476, 646);
+  ctx.strokeRect(20, 20, 472, 642);
 
-  ctx.strokeStyle = "rgba(255,255,255,0.07)";
+  ctx.strokeStyle = "rgba(255,255,255,0.25)";
   ctx.lineWidth = 1;
-  ctx.strokeRect(28, 28, 456, 626);
+  ctx.strokeRect(30, 30, 452, 622);
+
+  // ── Small corner ornaments ───────────────────────────────────────────────────
+  const corners = [[20,20],[492,20],[20,662],[492,662]];
+  corners.forEach(([cx, cy]) => {
+    ctx.beginPath();
+    ctx.arc(cx, cy, 5, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(255,255,255,0.7)";
+    ctx.fill();
+  });
+
+  // ── "Memory" title ───────────────────────────────────────────────────────────
+  ctx.textAlign    = "center";
+  ctx.textBaseline = "middle";
+
+  // Soft shadow
+  ctx.shadowColor   = "rgba(80,140,190,0.5)";
+  ctx.shadowBlur    = 18;
+  ctx.shadowOffsetY = 4;
+
+  // Main title — elegant serif-style via canvas
+  ctx.font      = "italic bold 78px Georgia, serif";
+  ctx.fillStyle = "rgba(20,70,110,0.90)";
+  ctx.fillText("Memory", 256, 310);
+
+  // Lighter echo for depth
+  ctx.shadowBlur = 0;
+  ctx.font      = "italic bold 78px Georgia, serif";
+  ctx.fillStyle = "rgba(255,255,255,0.35)";
+  ctx.fillText("Memory", 254, 308);
+
+  // ── Thin divider line under title ───────────────────────────────────────────
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = "rgba(30,90,140,0.35)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(156, 358); ctx.lineTo(356, 358);
+  ctx.stroke();
+
+  // ── Subtitle / tagline ───────────────────────────────────────────────────────
+  ctx.font      = "13px Georgia, serif";
+  ctx.fillStyle = "rgba(20,70,110,0.60)";
+  ctx.letterSpacing = "4px";
+  ctx.fillText("a scrapbook", 256, 378);
 
   const texture = new CanvasTexture(canvas);
   texture.colorSpace = SRGBColorSpace;
