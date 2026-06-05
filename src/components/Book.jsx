@@ -142,8 +142,39 @@ function createCoverTexture() {
   return texture;
 }
 
+function createBackCoverTexture() {
+  const canvas = document.createElement("canvas");
+  canvas.width = 512;
+  canvas.height = 682;
+  const ctx = canvas.getContext("2d");
+
+  // Same light-blue gradient as the front — no text, just clean colour
+  const bg = ctx.createLinearGradient(0, 0, 512, 682);
+  bg.addColorStop(0,   "#c9e8f7");
+  bg.addColorStop(0.5, "#a8d8f0");
+  bg.addColorStop(1,   "#84c4e8");
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, 512, 682);
+
+  // Soft centre glow
+  const glow = ctx.createRadialGradient(256, 341, 30, 256, 341, 280);
+  glow.addColorStop(0, "rgba(255,255,255,0.4)");
+  glow.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, 512, 682);
+
+  // Border
+  ctx.strokeStyle = "rgba(255,255,255,0.55)";
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(20, 20, 472, 642);
+
+  const texture = new CanvasTexture(canvas);
+  texture.colorSpace = SRGBColorSpace;
+  return texture;
+}
+
 const frontCoverTexture = createCoverTexture();
-const backCoverTexture = createCoverTexture();
+const backCoverTexture  = createBackCoverTexture();
 
 const whiteColor = new Color("white");
 const pageColor = new Color("#f5f0e8");

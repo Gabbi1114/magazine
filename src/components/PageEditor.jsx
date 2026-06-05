@@ -2853,14 +2853,14 @@ const GraphicsPanel = ({ onAdd, onSetBackground, onLoadTemplate }) => {
   return (
     <div className="flex flex-col h-full">
 
-      {/* Mode tabs — single row, 4 tabs */}
-      <div className="flex-none flex gap-1 p-2" style={{ borderBottom:"1px solid rgba(232,96,42,0.15)" }}>
+      {/* Mode tabs — 2×2 grid so every label always fits */}
+      <div className="flex-none grid grid-cols-2 gap-1 p-2" style={{ borderBottom:"1px solid rgba(232,96,42,0.15)" }}>
         {PANEL_MODES.map((m) => (
           <button key={m.id} onClick={() => switchMode(m)}
-            className={`flex-1 flex items-center justify-center gap-1 py-1.5 rounded-xl text-[10px] font-bold transition-all border ${modeId === m.id ? m.accent.tab : "border-white/8 text-white/35 hover:text-white/60"}`}
+            className={`flex items-center justify-center gap-1 py-1.5 rounded-xl text-[10px] font-bold transition-all border ${modeId === m.id ? m.accent.tab : "border-white/8 text-white/35 hover:text-white/60"}`}
             style={modeId !== m.id ? { background:"rgba(255,255,255,0.03)" } : {}}>
             {m.icon}
-            <span className="truncate">{t(m.id)}</span>
+            <span>{t(m.id)}</span>
           </button>
         ))}
       </div>
