@@ -2,9 +2,7 @@ import { atom, useAtom } from "jotai";
 import { useEffect, useRef, useState } from "react";
 
 // ── Page Slider ───────────────────────────────────────────────────────────────
-// Draggable horizontal scrubber that replaces the old page-button nav.
-// Works with mouse AND touch.  All mutable state accessed via refs inside the
-// global event listeners so there are zero stale-closure issues.
+// Compact centered slider. Book responds live while dragging.
 const PageSlider = ({ page, maxPage, setPage, getLabel }) => {
   const trackRef    = useRef(null);
   const isDragging  = useRef(false);
@@ -15,15 +13,11 @@ const PageSlider = ({ page, maxPage, setPage, getLabel }) => {
   useEffect(() => { setPageRef.current = setPage; },  [setPage]);
   useEffect(() => { getLabelRef.current = getLabel; }, [getLabel]);
 
-  const [liveIdx,   setLiveIdx]   = useState(page);
-  const liveIdxRef  = useRef(page);
+  const [liveIdx,  setLiveIdx]  = useState(page);
+  const liveIdxRef = useRef(page);
 
-  // Sync slider when page changes from outside (e.g. keyboard, other controls)
   useEffect(() => {
-    if (!isDragging.current) {
-      setLiveIdx(page);
-      liveIdxRef.current = page;
-    }
+    if (!isDragging.current) { setLiveIdx(page); liveIdxRef.current = page; }
   }, [page]);
 
   const calcIdx = (clientX) => {
@@ -33,28 +27,20 @@ const PageSlider = ({ page, maxPage, setPage, getLabel }) => {
     return Math.round(pct * maxPageRef.current);
   };
 
+  // Book moves live as you drag — setPage called on every pixel
   const applyX = (clientX) => {
     const idx = calcIdx(clientX);
+    if (idx === liveIdxRef.current) return;
     liveIdxRef.current = idx;
     setLiveIdx(idx);
+    setPageRef.current(idx);
   };
 
-  const startDrag = (clientX) => {
-    isDragging.current = true;
-    applyX(clientX);
-  };
+  const startDrag = (clientX) => { isDragging.current = true; applyX(clientX); };
 
-  // Global move/up listeners — safe because everything is via refs
   useEffect(() => {
-    const onMove = (e) => {
-      if (!isDragging.current) return;
-      applyX(e.touches ? e.touches[0].clientX : e.clientX);
-    };
-    const onEnd = () => {
-      if (!isDragging.current) return;
-      isDragging.current = false;
-      setPageRef.current(liveIdxRef.current);
-    };
+    const onMove = (e) => { if (isDragging.current) applyX(e.touches ? e.touches[0].clientX : e.clientX); };
+    const onEnd  = () => { isDragging.current = false; };
     window.addEventListener("mousemove",  onMove);
     window.addEventListener("mouseup",    onEnd);
     window.addEventListener("touchmove",  onMove, { passive: true });
@@ -65,90 +51,82 @@ const PageSlider = ({ page, maxPage, setPage, getLabel }) => {
       window.removeEventListener("touchmove",  onMove);
       window.removeEventListener("touchend",   onEnd);
     };
-  }, []); // empty deps — all state via refs
+  }, []);
 
-  const thumbPct = (liveIdx / maxPage) * 100;
+  const thumbPct     = maxPage > 0 ? (liveIdx / maxPage) * 100 : 0;
   const currentLabel = getLabelRef.current(liveIdx);
-
-  // Clamp label so it never overflows the track edges
-  const labelClampedPct = Math.max(5, Math.min(95, thumbPct));
-
-  const total = maxPage + 1;
+  const total        = maxPage + 1;
+  const labelPct     = Math.max(8, Math.min(92, thumbPct));
 
   return (
-    <div className="flex items-center gap-3 w-full px-5 md:px-8">
+    <div className="flex flex-col items-center gap-1 select-none">
 
-      {/* ← Prev */}
-      <button
-        onClick={() => setPageRef.current(Math.max(0, page - 1))}
-        disabled={page === 0}
-        className="flex-none w-9 h-9 rounded-full flex items-center justify-center transition-all disabled:opacity-30 select-none"
-        style={{ background:"rgba(0,0,0,0.45)", backdropFilter:"blur(12px)", border:"1px solid rgba(255,255,255,0.14)" }}>
-        <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.5} strokeLinecap="round">
-          <path d="M15 18l-6-6 6-6"/>
-        </svg>
-      </button>
-
-      {/* Track area */}
-      <div className="relative flex-1 select-none" style={{ height: 52 }}>
-
-        {/* Floating page label above the thumb */}
+      {/* Pill label floating above thumb */}
+      <div className="relative" style={{ width: "min(280px, 64vw)", height: 28 }}>
         <div
-          className="absolute top-0 text-[11px] font-bold text-white/90 whitespace-nowrap pointer-events-none"
+          className="absolute px-3 py-0.5 rounded-full text-[11px] font-bold text-white whitespace-nowrap pointer-events-none"
           style={{
-            left: `${labelClampedPct}%`,
+            left: `${labelPct}%`,
             transform: "translateX(-50%)",
-            textShadow: "0 1px 6px rgba(0,0,0,0.9)",
+            background: "rgba(12,5,10,0.85)",
+            backdropFilter: "blur(10px)",
+            border: "1px solid rgba(255,255,255,0.13)",
+            boxShadow: "0 2px 10px rgba(0,0,0,0.5)",
           }}>
           {currentLabel}
         </div>
+      </div>
 
-        {/* The actual draggable track */}
+      {/* Slider pill */}
+      <div className="flex items-center gap-3 px-4 py-3 rounded-full"
+        style={{
+          background: "rgba(8,4,12,0.72)",
+          backdropFilter: "blur(20px)",
+          border: "1px solid rgba(255,255,255,0.11)",
+          boxShadow: "0 8px 32px rgba(0,0,0,0.55)",
+        }}>
+
+        {/* Left lines — narrow end toward thumb */}
+        <div className="flex flex-col items-end gap-[3px] flex-none opacity-35">
+          <div className="h-[2px] rounded-full bg-white" style={{ width: 14 }} />
+          <div className="h-[2px] rounded-full bg-white" style={{ width: 9  }} />
+          <div className="h-[2px] rounded-full bg-white" style={{ width: 5  }} />
+        </div>
+
+        {/* Track */}
         <div
           ref={trackRef}
-          className="absolute left-0 right-0 rounded-full cursor-pointer"
-          style={{ top: 28, height: 4, background:"rgba(255,255,255,0.15)" }}
+          className="relative rounded-full cursor-grab active:cursor-grabbing"
+          style={{ width: "min(200px, 50vw)", height: 4, background: "rgba(255,255,255,0.18)" }}
           onMouseDown={e  => startDrag(e.clientX)}
           onTouchStart={e => startDrag(e.touches[0].clientX)}>
 
-          {/* Filled / progress portion */}
+          {/* Filled part */}
           <div className="absolute left-0 top-0 h-full rounded-full pointer-events-none"
-            style={{
-              width: `${thumbPct}%`,
-              background: "linear-gradient(90deg,rgba(232,96,42,0.85),rgba(196,80,122,0.85))",
-            }} />
+            style={{ width: `${thumbPct}%`, background: "linear-gradient(90deg,#E8602A,#C4507A)" }} />
 
-
-          {/* Draggable thumb */}
-          <div
-            className="absolute top-1/2 rounded-full pointer-events-none"
+          {/* Round white thumb */}
+          <div className="absolute top-1/2 rounded-full pointer-events-none"
             style={{
               left: `${thumbPct}%`,
               transform: "translate(-50%,-50%)",
-              width: 22, height: 22,
-              background: "linear-gradient(135deg,#F0854A,#C4507A)",
-              border: "2.5px solid rgba(255,255,255,0.9)",
-              boxShadow: "0 2px 14px rgba(232,96,42,0.65)",
+              width: 28, height: 28,
+              background: "#ffffff",
+              boxShadow: "0 2px 16px rgba(0,0,0,0.55), 0 0 0 3px rgba(255,255,255,0.2)",
               zIndex: 2,
             }} />
         </div>
 
-        {/* Page counter bottom-right */}
-        <div className="absolute right-0 bottom-0 text-[9px] text-white/30 select-none pointer-events-none">
-          {liveIdx + 1}&nbsp;/&nbsp;{total}
+        {/* Right lines — narrow end toward thumb */}
+        <div className="flex flex-col items-start gap-[3px] flex-none opacity-35">
+          <div className="h-[2px] rounded-full bg-white" style={{ width: 5  }} />
+          <div className="h-[2px] rounded-full bg-white" style={{ width: 9  }} />
+          <div className="h-[2px] rounded-full bg-white" style={{ width: 14 }} />
         </div>
       </div>
 
-      {/* Next → */}
-      <button
-        onClick={() => setPageRef.current(Math.min(maxPage, page + 1))}
-        disabled={page === maxPage}
-        className="flex-none w-9 h-9 rounded-full flex items-center justify-center transition-all disabled:opacity-30 select-none"
-        style={{ background:"rgba(0,0,0,0.45)", backdropFilter:"blur(12px)", border:"1px solid rgba(255,255,255,0.14)" }}>
-        <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.5} strokeLinecap="round">
-          <path d="M9 18l6-6-6-6"/>
-        </svg>
-      </button>
+      {/* Counter */}
+      <div className="text-[9px] text-white/28 tracking-wide">{liveIdx + 1} / {total}</div>
     </div>
   );
 };
@@ -808,9 +786,8 @@ export const UI = () => {
         {/* Background music — persistent, survives editor open/close */}
         <MusicPlayer />
 
-        {/* Bottom page slider — replaces old button nav */}
-        <div className="fixed bottom-0 left-0 right-0 pointer-events-auto"
-          style={{ background:"linear-gradient(to top,rgba(0,0,0,0.72) 0%,transparent 100%)", paddingTop:16, paddingBottom:20 }}>
+        {/* Bottom page slider — compact, centered */}
+        <div className="fixed bottom-5 left-0 right-0 flex justify-center pointer-events-auto" style={{ zIndex: 20 }}>
           <PageSlider
             page={page}
             maxPage={pages.length}
