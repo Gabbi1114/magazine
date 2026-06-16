@@ -342,16 +342,6 @@ export const pageEditorStatesAtom = atom({});
 export const musicUrlAtom = atom("");
 export const paperColorAtom = atom("#f5f0e8");
 
-const PAPER_COLORS = [
-  { hex: "#f5f0e8", label: "Cream" },
-  { hex: "#fdfcf8", label: "White" },
-  { hex: "#fef9e7", label: "Ivory" },
-  { hex: "#fef3c7", label: "Sunlight" },
-  { hex: "#fce7f3", label: "Blush" },
-  { hex: "#dbeafe", label: "Sky" },
-  { hex: "#dcfce7", label: "Mint" },
-  { hex: "#e8ddd0", label: "Kraft" },
-];
 
 // Page aspect ratio: width / height
 const PAGE_RATIO = 1.28 / 1.71;
@@ -889,47 +879,20 @@ export const UI = () => {
             {/* Paper Color */}
             <section className="flex flex-col gap-3">
               <p className="text-white/40 text-xs font-semibold uppercase tracking-widest">{tr("paperColorLabel")}</p>
-              <div className="grid grid-cols-4 gap-2">
-                {PAPER_COLORS.map(({ hex, label }) => (
-                  <button
-                    key={hex}
-                    title={label}
-                    onClick={() => setPaperColor(hex)}
-                    className="flex flex-col items-center gap-1 group"
-                  >
-                    <div
-                      className="w-full aspect-square rounded-xl transition-all duration-200"
-                      style={{
-                        background: hex,
-                        outline: paperColor === hex ? "2px solid rgba(255,255,255,0.8)" : "2px solid transparent",
-                        outlineOffset: "2px",
-                        boxShadow: paperColor === hex ? "0 0 0 1px rgba(255,255,255,0.2)" : "none",
-                      }}
-                    />
-                    <span className="text-[9px] text-white/30 group-hover:text-white/60 transition-colors">{label}</span>
-                  </button>
-                ))}
-
-                {/* Custom color picker */}
-                <label className="flex flex-col items-center gap-1 group cursor-pointer" title="Custom color">
-                  <div
-                    className="w-full aspect-square rounded-xl transition-all duration-200 relative overflow-hidden"
-                    style={{
-                      background: "conic-gradient(red, yellow, lime, cyan, blue, magenta, red)",
-                      outline: !PAPER_COLORS.some(c => c.hex === paperColor) ? "2px solid rgba(255,255,255,0.8)" : "2px solid transparent",
-                      outlineOffset: "2px",
-                    }}
-                  >
-                    <input
-                      type="color"
-                      value={paperColor}
-                      onChange={e => setPaperColor(e.target.value)}
-                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                    />
-                  </div>
-                  <span className="text-[9px] text-white/30 group-hover:text-white/60 transition-colors">Custom</span>
-                </label>
-              </div>
+              <label className="flex items-center gap-3 cursor-pointer group">
+                <div
+                  className="w-10 h-10 rounded-xl flex-shrink-0 relative overflow-hidden border border-white/20"
+                  style={{ background: paperColor }}
+                >
+                  <input
+                    type="color"
+                    value={paperColor}
+                    onChange={e => setPaperColor(e.target.value)}
+                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                  />
+                </div>
+                <span className="text-xs text-white/50 group-hover:text-white/80 transition-colors uppercase font-mono">{paperColor}</span>
+              </label>
             </section>
 
             <div className="h-px bg-white/10" />
