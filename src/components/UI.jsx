@@ -909,6 +909,26 @@ export const UI = () => {
                     <span className="text-[9px] text-white/30 group-hover:text-white/60 transition-colors">{label}</span>
                   </button>
                 ))}
+
+                {/* Custom color picker */}
+                <label className="flex flex-col items-center gap-1 group cursor-pointer" title="Custom color">
+                  <div
+                    className="w-full aspect-square rounded-xl transition-all duration-200 relative overflow-hidden"
+                    style={{
+                      background: "conic-gradient(red, yellow, lime, cyan, blue, magenta, red)",
+                      outline: !PAPER_COLORS.some(c => c.hex === paperColor) ? "2px solid rgba(255,255,255,0.8)" : "2px solid transparent",
+                      outlineOffset: "2px",
+                    }}
+                  >
+                    <input
+                      type="color"
+                      value={paperColor}
+                      onChange={e => setPaperColor(e.target.value)}
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                    />
+                  </div>
+                  <span className="text-[9px] text-white/30 group-hover:text-white/60 transition-colors">Custom</span>
+                </label>
               </div>
             </section>
 
