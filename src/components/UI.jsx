@@ -146,18 +146,20 @@ const extractYtId = (url) => {
 // so the iframe stays mounted and audio keeps playing even when the panel hides.
 const MusicSection = ({ lang = "en" }) => {
   const [savedUrl, setSavedUrl] = useAtom(musicUrlAtom);
-  const [input,    setInput]    = useState(savedUrl || "");
-  const [videoId,  setVideoId]  = useState(() => extractYtId(savedUrl || ""));
+  const [input,    setInput]    = useState("");
   const [err,      setErr]      = useState(false);
+
+  // Derive videoId reactively so share-loaded URLs auto-play
+  const videoId = extractYtId(savedUrl || "");
 
   const tr = (key) => TRANSLATIONS[lang]?.[key] ?? TRANSLATIONS.en[key] ?? key;
 
   const load = () => {
     const id = extractYtId(input.trim());
-    if (id) { setVideoId(id); setSavedUrl(input.trim()); setErr(false); }
+    if (id) { setSavedUrl(input.trim()); setErr(false); }
     else setErr(true);
   };
-  const stop = () => { setVideoId(null); setInput(""); setSavedUrl(""); };
+  const stop = () => { setSavedUrl(""); setInput(""); };
 
   return (
     <section className="flex flex-col gap-3">
@@ -618,15 +620,17 @@ export const UI = () => {
         {/* Top-right button row */}
         <div className="pointer-events-auto fixed top-6 right-6 flex items-center gap-2">
 
-          {/* Language toggle */}
-          <button
-            className="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 text-white border border-white/20 hover:border-white/40 backdrop-blur-md transition-all duration-300 px-3 py-2.5 rounded-full text-sm font-medium shadow-lg"
-            onClick={() => setLang(l => l === "en" ? "mn" : "en")}
-            title={lang === "en" ? "Монгол хэл рүү шилжих" : "Switch to English"}
-          >
-            <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/></svg>
-            {lang === "en" ? "MN" : "EN"}
-          </button>
+          {/* Language toggle — hidden in view-only shared mode */}
+          {(!isSharedView || canEdit) && (
+            <button
+              className="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 text-white border border-white/20 hover:border-white/40 backdrop-blur-md transition-all duration-300 px-3 py-2.5 rounded-full text-sm font-medium shadow-lg"
+              onClick={() => setLang(l => l === "en" ? "mn" : "en")}
+              title={lang === "en" ? "Монгол хэл рүү шилжих" : "Switch to English"}
+            >
+              <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/></svg>
+              {lang === "en" ? "MN" : "EN"}
+            </button>
+          )}
 
           {/* Share button — hidden in shared view */}
           {!isSharedView && (
