@@ -126,7 +126,7 @@ function App() {
     <>
       <UI />
       <BookLoader />
-      <Canvas shadows camera={{
+      <Canvas shadows dpr={[1, 2]} camera={{
           position: [-0.5, 1, window.innerWidth > 800 ? 4 : 9],
           fov: 45,
         }}>
