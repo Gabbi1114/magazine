@@ -135,28 +135,118 @@ const PageSlider = ({ page, maxPage, setPage, getLabel }) => {
 
 // ── YouTube video ID extractor ────────────────────────────────────────────────
 const extractYtId = (url) => {
-  const m = url.match(
+  const m = (url || "").match(
     /(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/
   );
   return m?.[1] ?? null;
 };
 
-// ── Background Music Section (lives inside Editor panel) ─────────────────────
-// The editor panel is always in the DOM (off-screen via transform when closed),
-// so the iframe stays mounted and audio keeps playing even when the panel hides.
+// ── Invisible background YouTube player ───────────────────────────────────────
+// Loads the YT IFrame API once, creates an off-screen 1×1 player.
+// Waits for the first user gesture (click/touch/key) before playing so browsers
+// don't block autoplay on a cold page load.
+function loadYTScript() {
+  if (document.getElementById("yt-iframe-api")) return;
+  const s = document.createElement("script");
+  s.id  = "yt-iframe-api";
+  s.src = "https://www.youtube.com/iframe_api";
+  document.head.appendChild(s);
+}
+
+const BackgroundMusicPlayer = ({ videoId }) => {
+  const wrapperRef    = useRef(null);
+  const playerRef     = useRef(null);
+  const isReadyRef    = useRef(false);
+  const hasGestureRef = useRef(false);
+  const [ytReady, setYtReady] = useState(() => !!(window.YT && window.YT.Player));
+
+  // Load YT script once and listen for API ready
+  useEffect(() => {
+    loadYTScript();
+    if (window.YT && window.YT.Player) { setYtReady(true); return; }
+    const prev = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = () => { prev?.(); setYtReady(true); };
+  }, []);
+
+  // On first user gesture → start playing if player is ready
+  useEffect(() => {
+    if (!videoId) return;
+    const handle = () => {
+      if (hasGestureRef.current) return;
+      hasGestureRef.current = true;
+      if (isReadyRef.current && playerRef.current) {
+        try { playerRef.current.playVideo(); } catch {}
+      }
+    };
+    window.addEventListener("click",      handle, { once: true, capture: true });
+    window.addEventListener("touchstart", handle, { once: true });
+    window.addEventListener("keydown",    handle, { once: true });
+    return () => {
+      window.removeEventListener("click",      handle, { capture: true });
+      window.removeEventListener("touchstart", handle);
+      window.removeEventListener("keydown",    handle);
+    };
+  }, [videoId]);
+
+  // Create / replace player when ytReady or videoId changes
+  useEffect(() => {
+    if (!ytReady || !videoId || !wrapperRef.current) return;
+    try { playerRef.current?.destroy(); } catch {}
+    playerRef.current = null;
+    isReadyRef.current = false;
+
+    // YT.Player replaces whatever element we give it — create a fresh div each time
+    const div = document.createElement("div");
+    wrapperRef.current.innerHTML = "";
+    wrapperRef.current.appendChild(div);
+
+    playerRef.current = new window.YT.Player(div, {
+      width: 1, height: 1,
+      videoId,
+      playerVars: { autoplay: 0, loop: 1, playlist: videoId, controls: 0, fs: 0, iv_load_policy: 3, rel: 0 },
+      events: {
+        onReady(e) {
+          isReadyRef.current = true;
+          e.target.setVolume(65);
+          if (hasGestureRef.current) e.target.playVideo();
+        },
+        onStateChange(e) {
+          // Loop manually in case loop param doesn't work in all regions
+          if (e.data === window.YT.PlayerState.ENDED) {
+            try { e.target.seekTo(0); e.target.playVideo(); } catch {}
+          }
+        },
+      },
+    });
+
+    return () => {
+      try { playerRef.current?.destroy(); } catch {}
+      playerRef.current = null;
+      isReadyRef.current = false;
+    };
+  }, [ytReady, videoId]);
+
+  // Invisible off-screen container — never unmounts while videoId is set
+  return (
+    <div
+      ref={wrapperRef}
+      style={{ position: "fixed", left: -9999, top: -9999, width: 1, height: 1, opacity: 0, pointerEvents: "none" }}
+    />
+  );
+};
+
+// ── Music section (editor panel only — controls for the background player) ────
 const MusicSection = ({ lang = "en" }) => {
   const [savedUrl, setSavedUrl] = useAtom(musicUrlAtom);
   const [input,    setInput]    = useState("");
   const [err,      setErr]      = useState(false);
 
-  // Derive videoId reactively so share-loaded URLs auto-play
   const videoId = extractYtId(savedUrl || "");
-
   const tr = (key) => TRANSLATIONS[lang]?.[key] ?? TRANSLATIONS.en[key] ?? key;
 
   const load = () => {
     const id = extractYtId(input.trim());
-    if (id) { setSavedUrl(input.trim()); setErr(false); }
+    if (id) { setSavedUrl(input.trim()); setInput(""); setErr(false); }
     else setErr(true);
   };
   const stop = () => { setSavedUrl(""); setInput(""); };
@@ -190,34 +280,28 @@ const MusicSection = ({ lang = "en" }) => {
 
       <button onClick={load}
         className="w-full py-2.5 rounded-xl text-white text-sm font-bold transition-all"
-        style={{ background:"linear-gradient(135deg,#E8602A,#C4507A)" }}
-        onMouseEnter={e=>e.currentTarget.style.opacity="0.85"}
-        onMouseLeave={e=>e.currentTarget.style.opacity="1"}>
+        style={{ background: "linear-gradient(135deg,#E8602A,#C4507A)" }}
+        onMouseEnter={e => e.currentTarget.style.opacity = "0.85"}
+        onMouseLeave={e => e.currentTarget.style.opacity = "1"}>
         {tr("savePlay")}
       </button>
 
       {videoId ? (
-        <>
-          <div className="rounded-xl overflow-hidden" style={{ aspectRatio:"16/9" }}>
-            <iframe
-              key={videoId}
-              src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`}
-              width="100%" height="100%"
-              style={{ display:"block", border:"none" }}
-              allow="autoplay; encrypted-media"
-              allowFullScreen
-              title="Background music"
-            />
+        <div className="flex flex-col gap-2 rounded-xl p-3"
+          style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" />
+            <span className="text-[10px] text-white/50 truncate">Playing in background</span>
           </div>
           <button onClick={stop}
-            className="w-full py-1.5 rounded-xl text-[10px] font-medium text-white/35 hover:text-rose-300 transition-all"
-            style={{ background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.07)" }}>
+            className="w-full py-1.5 rounded-lg text-[10px] font-medium text-white/35 hover:text-rose-300 transition-all"
+            style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}>
             {tr("stopMusic")}
           </button>
-        </>
+        </div>
       ) : (
         <div className="flex flex-col items-center justify-center gap-2 rounded-xl py-5"
-          style={{ background:"rgba(255,255,255,0.03)", border:"1px dashed rgba(255,255,255,0.08)" }}>
+          style={{ background: "rgba(255,255,255,0.03)", border: "1px dashed rgba(255,255,255,0.08)" }}>
           <svg width={26} height={26} viewBox="0 0 24 24" fill="none" stroke="rgba(240,133,74,0.22)" strokeWidth={1.5} strokeLinecap="round">
             <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
           </svg>
@@ -613,8 +697,12 @@ export const UI = () => {
   const leftPage = pages[page - 1];
   const rightPage = pages[page];
 
+  // Background music player — invisible, always mounted outside any panel
+  const bgVideoId = extractYtId(musicUrl || "");
+
   return (
     <>
+      {bgVideoId && <BackgroundMusicPlayer videoId={bgVideoId} />}
       <main className="pointer-events-none select-none z-10 fixed inset-0">
 
         {/* Top-right button row */}
