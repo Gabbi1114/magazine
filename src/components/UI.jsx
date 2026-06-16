@@ -631,10 +631,8 @@ export const UI = () => {
                 try {
                   const { id } = await createShare({ pages, pageImages });
                   const url = `${window.location.origin}/?share=${id}`;
-                  window.history.replaceState({}, '', `?share=${id}`);
                   await navigator.clipboard.writeText(url).catch(() => {});
-                  setShareCopied(true);
-                  setTimeout(() => setShareCopied(false), 3000);
+                  window.location.href = url;
                 } catch (e) {
                   alert('Share failed: ' + e.message);
                 } finally {

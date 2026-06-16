@@ -3305,7 +3305,7 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose, lan
         const s = Math.max(LW / img.width, LH / img.height);
         img.set({ left: LW / 2, top: LH / 2, originX: "center", originY: "center", scaleX: s, scaleY: s });
         canvas.add(img); canvas.renderAll(); afterLoad();
-      });
+      }, { crossOrigin: 'anonymous' });
     } else { afterLoad(); }
 
     canvas.on("selection:created", () => {
@@ -3653,7 +3653,7 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose, lan
       const s = Math.min((LW * 0.7) / img.width, (LH * 0.7) / img.height);
       img.set({ left: LW / 2, top: LH / 2, originX: "center", originY: "center", scaleX: s, scaleY: s });
       fabricRef.current.add(img); fabricRef.current.setActiveObject(img); fabricRef.current.renderAll();
-    });
+    }, { crossOrigin: 'anonymous' });
     setActiveTool("select");
   };
 
@@ -3665,7 +3665,7 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose, lan
       fabricRef.current?.add(img);
       fabricRef.current?.setActiveObject(img);
       fabricRef.current?.renderAll();
-    });
+    }, { crossOrigin: 'anonymous' });
   }, []);
 
   // Load a built-in template OR add a scrapbook sticker element
@@ -3757,7 +3757,7 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose, lan
       setActiveObj(img);
       updateLayers();
       saveHistory();
-    });
+    }, { crossOrigin: 'anonymous' });
     setCropTarget(null);
   }, [cropTarget, updateLayers, saveHistory]);
 
@@ -3775,7 +3775,7 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose, lan
         originX: "left",
         originY: "top",
       });
-    });
+    }, { crossOrigin: 'anonymous' });
   }, [saveHistory]);
 
   const deleteSelected = () => {
