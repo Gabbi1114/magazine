@@ -203,29 +203,38 @@ const Page = ({ number, isLastPage, page, opened, bookClosed, pageId }) => {
   const customBack = pageImages[pageId]?.back;
 
   useEffect(() => {
-    if (!customFront || !skinnedMeshRef.current) return;
-    loader.load(customFront, (tex) => {
-      tex.colorSpace = SRGBColorSpace;
-      skinnedMeshRef.current.material[4].map = tex;
-      skinnedMeshRef.current.material[4].needsUpdate = true;
-    });
-  }, [customFront]);
-
-  useEffect(() => {
-    if (!customBack || !skinnedMeshRef.current) return;
-    loader.load(customBack, (tex) => {
-      tex.colorSpace = SRGBColorSpace;
-      skinnedMeshRef.current.material[5].map = tex;
-      skinnedMeshRef.current.material[5].needsUpdate = true;
-    });
-  }, [customBack]);
+    if (!skinnedMeshRef.current) return;
+    const mat = skinnedMeshRef.current.material[4];
+    if (customFront) {
+      loader.load(customFront, (tex) => {
+        tex.colorSpace = SRGBColorSpace;
+        mat.map = tex;
+        mat.color.set(whiteColor); // texture renders as-is, no tint
+        mat.needsUpdate = true;
+      });
+    } else {
+      mat.map = null;
+      mat.color.set(number === 0 ? whiteColor : new Color(paperColor));
+      mat.needsUpdate = true;
+    }
+  }, [customFront, paperColor, number]);
 
   useEffect(() => {
     if (!skinnedMeshRef.current) return;
-    const c = new Color(paperColor);
-    if (number !== 0) { skinnedMeshRef.current.material[4].color.set(c); skinnedMeshRef.current.material[4].needsUpdate = true; }
-    if (!isLastPage) { skinnedMeshRef.current.material[5].color.set(c); skinnedMeshRef.current.material[5].needsUpdate = true; }
-  }, [paperColor, number, isLastPage]);
+    const mat = skinnedMeshRef.current.material[5];
+    if (customBack) {
+      loader.load(customBack, (tex) => {
+        tex.colorSpace = SRGBColorSpace;
+        mat.map = tex;
+        mat.color.set(whiteColor);
+        mat.needsUpdate = true;
+      });
+    } else {
+      mat.map = null;
+      mat.color.set(isLastPage ? whiteColor : new Color(paperColor));
+      mat.needsUpdate = true;
+    }
+  }, [customBack, paperColor, isLastPage]);
 
   const manualSkinnedMesh = useMemo(() => {
     const bones = [];
