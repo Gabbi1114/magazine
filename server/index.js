@@ -57,7 +57,7 @@ const dataUrlToWebp = async (dataUrl, quality = 84) => {
   return sharp(Buffer.from(base64, 'base64')).webp({ quality }).toBuffer();
 };
 
-const BYTES_LIMIT = Infinity; // no total cap; per-file limit enforced by multer
+const BYTES_LIMIT = 10 * 1024 * 1024; // 10 MB total per share
 
 // Convert pageImages: upload any data: URLs to R2, keep CDN URLs as-is
 // Returns { images, newBytes } — newBytes counts only newly converted WebP
@@ -87,7 +87,7 @@ const VALID_ID = /^[\w-]{1,32}$/;
 // ─── POST /api/upload ─────────────────────────────────────────────────────────
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 },
+  limits: {},
   fileFilter: (_req, file, cb) =>
     file.mimetype.startsWith('image/') ? cb(null, true) : cb(new Error('Only images allowed')),
 });
