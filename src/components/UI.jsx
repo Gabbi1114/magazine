@@ -1,5 +1,7 @@
 import { atom, useAtom } from "jotai";
 import { useEffect, useRef, useState } from "react";
+import { TRANSLATIONS } from "./PageEditor";
+import { createShare, loadShare, deletePhoto, extractR2Key } from "../api";
 
 // ── Page Slider ───────────────────────────────────────────────────────────────
 // Compact centered slider. Book responds live while dragging.
@@ -54,7 +56,7 @@ const PageSlider = ({ page, maxPage, setPage, getLabel }) => {
   }, []);
 
   const thumbPct     = maxPage > 0 ? (liveIdx / maxPage) * 100 : 0;
-  const currentLabel = getLabelRef.current(liveIdx);
+  const currentLabel = getLabel(liveIdx);
   const total        = maxPage + 1;
   const labelPct     = Math.max(8, Math.min(92, thumbPct));
 
@@ -139,16 +141,15 @@ const extractYtId = (url) => {
   return m?.[1] ?? null;
 };
 
-// ── Floating Background Music Player ─────────────────────────────────────────
-// KEY DESIGN: the panel is NEVER unmounted — it slides off-screen with CSS
-// transform when closed.  CSS transforms don't affect iframe rendering, so
-// the YouTube player keeps playing audio in the background even when the
-// panel is not visible.
-const MusicPlayer = () => {
-  const [open,    setOpen]    = useState(false);
+// ── Background Music Section (lives inside Editor panel) ─────────────────────
+// The editor panel is always in the DOM (off-screen via transform when closed),
+// so the iframe stays mounted and audio keeps playing even when the panel hides.
+const MusicSection = ({ lang = "en" }) => {
   const [input,   setInput]   = useState("");
   const [videoId, setVideoId] = useState(null);
   const [err,     setErr]     = useState(false);
+
+  const tr = (key) => TRANSLATIONS[lang]?.[key] ?? TRANSLATIONS.en[key] ?? key;
 
   const load = () => {
     const id = extractYtId(input.trim());
@@ -158,149 +159,69 @@ const MusicPlayer = () => {
   const stop = () => { setVideoId(null); setInput(""); };
 
   return (
-    <>
-      {/*
-        Panel — ALWAYS in the DOM, never conditionally rendered.
-        When closed it's translated fully off-screen to the left.
-        translateX does NOT affect iframe execution → music keeps playing.
-      */}
-      <div
-        style={{
-          position: "fixed",
-          bottom: 132,          // sits above the toggle button (72 button-bottom + 48 height + 12 gap)
-          left: 20,
-          width: 320,
-          zIndex: 30,
-          transform: open ? "translateX(0)" : "translateX(calc(-100% - 40px))",
-          transition: "transform 0.32s cubic-bezier(0.4,0,0.2,1)",
-          pointerEvents: open ? "auto" : "none",
-        }}
-      >
-        <div className="rounded-2xl overflow-hidden shadow-2xl"
-          style={{
-            background: "linear-gradient(180deg,rgba(40,16,32,0.97) 0%,rgba(24,8,20,0.97) 100%)",
-            backdropFilter: "blur(20px)",
-            border: "1px solid rgba(232,96,42,0.4)",
-            boxShadow: "0 20px 60px rgba(0,0,0,0.7),0 0 40px rgba(232,96,42,0.12)",
-          }}>
-
-          {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3"
-            style={{ borderBottom:"1px solid rgba(232,96,42,0.18)" }}>
-            <div className="flex items-center gap-2">
-              <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="#F0854A" strokeWidth={2} strokeLinecap="round">
-                <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
-              </svg>
-              <span className="text-sm font-bold bg-clip-text text-transparent"
-                style={{ backgroundImage:"linear-gradient(90deg,#F0854A,#C4507A)" }}>
-                Background Music
-              </span>
-              {videoId && (
-                <span className="flex items-center gap-1 text-[9px] text-emerald-400 font-medium">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  playing
-                </span>
-              )}
-            </div>
-            <button onClick={() => setOpen(false)}
-              className="w-7 h-7 flex items-center justify-center rounded-lg text-white/30 hover:text-white transition-all"
-              onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,0.08)"}
-              onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-              <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-                <path d="M18 6L6 18M6 6l12 12"/>
-              </svg>
-            </button>
-          </div>
-
-          {/* URL input + Save button */}
-          <div className="px-4 pt-3 pb-3">
-            <p className="text-[10px] text-white/35 mb-2 leading-relaxed">
-              Paste a YouTube link — music plays in the background even when this panel is closed.
-            </p>
-            <input
-              type="text" value={input}
-              onChange={e => { setInput(e.target.value); setErr(false); }}
-              onKeyDown={e => e.key === "Enter" && load()}
-              placeholder="youtube.com/watch?v=…  or  youtu.be/…"
-              className="w-full bg-white/5 rounded-xl px-3 py-2.5 text-white text-xs placeholder-white/20 focus:outline-none transition-all mb-2"
-              style={{ border: err ? "1px solid rgba(239,68,68,0.6)" : "1px solid rgba(255,255,255,0.10)" }}
-            />
-            {err && <p className="text-red-400 text-[10px] mb-2">Couldn't find a YouTube video — check the URL</p>}
-
-            {/* The "Save" / Play-in-Background button */}
-            <button onClick={load}
-              className="w-full py-2.5 rounded-xl text-white text-sm font-bold transition-all"
-              style={{ background:"linear-gradient(135deg,#E8602A,#C4507A)" }}
-              onMouseEnter={e=>e.currentTarget.style.opacity="0.85"}
-              onMouseLeave={e=>e.currentTarget.style.opacity="1"}>
-              🎵 Save &amp; Play in Background
-            </button>
-          </div>
-
-          {/* YouTube player — stays in DOM (panel is never unmounted) */}
-          <div className="px-4 pb-4">
-            {videoId ? (
-              <>
-                <div className="rounded-xl overflow-hidden" style={{ aspectRatio:"16/9" }}>
-                  <iframe
-                    key={videoId}
-                    src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`}
-                    width="100%" height="100%"
-                    style={{ display:"block", border:"none" }}
-                    allow="autoplay; encrypted-media"
-                    allowFullScreen
-                    title="Background music"
-                  />
-                </div>
-                <p className="text-[9px] text-white/25 text-center mt-1.5 mb-1">
-                  Close this panel — music keeps playing 🎵
-                </p>
-                <button onClick={stop}
-                  className="w-full py-1.5 rounded-xl text-[10px] font-medium text-white/35 hover:text-rose-300 transition-all"
-                  style={{ background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.07)" }}>
-                  ⏹ Stop music
-                </button>
-              </>
-            ) : (
-              <div className="flex flex-col items-center justify-center gap-2 rounded-xl py-5"
-                style={{ background:"rgba(255,255,255,0.03)", border:"1px dashed rgba(255,255,255,0.08)" }}>
-                <svg width={26} height={26} viewBox="0 0 24 24" fill="none" stroke="rgba(240,133,74,0.22)" strokeWidth={1.5} strokeLinecap="round">
-                  <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
-                </svg>
-                <p className="text-white/18 text-[10px] text-center leading-relaxed">
-                  No track loaded yet
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
+    <section className="flex flex-col gap-3">
+      <div className="flex items-center gap-2">
+        <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="#F0854A" strokeWidth={2} strokeLinecap="round">
+          <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
+        </svg>
+        <p className="text-white/40 text-xs font-semibold uppercase tracking-widest">{tr("bgMusicLabel")}</p>
+        {videoId && (
+          <span className="flex items-center gap-1 text-[9px] text-emerald-400 font-medium ml-auto">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            playing
+          </span>
+        )}
       </div>
 
-      {/* Floating toggle button — always visible */}
-      <div style={{ position:"fixed", bottom:72, left:20, zIndex:31 }}
-        className="pointer-events-auto">
-        <button
-          onClick={() => setOpen(v => !v)}
-          title="Background Music"
-          className="relative w-12 h-12 rounded-full flex items-center justify-center shadow-xl transition-all duration-300"
-          style={{
-            background: videoId
-              ? "linear-gradient(135deg,#E8602A,#C4507A)"
-              : open ? "rgba(40,16,32,0.95)" : "rgba(20,8,16,0.75)",
-            backdropFilter: "blur(16px)",
-            border: videoId ? "1px solid rgba(240,133,74,0.5)" : "1px solid rgba(255,255,255,0.15)",
-            boxShadow: videoId ? "0 0 24px rgba(232,96,42,0.5)" : "none",
-          }}>
-          <svg width={20} height={20} viewBox="0 0 24 24" fill="none"
-            stroke={videoId ? "#fff" : "rgba(255,255,255,0.65)"} strokeWidth={2} strokeLinecap="round">
+      <p className="text-[10px] text-white/30 leading-relaxed">{tr("ytLinkDesc")}</p>
+
+      <input
+        type="text" value={input}
+        onChange={e => { setInput(e.target.value); setErr(false); }}
+        onKeyDown={e => e.key === "Enter" && load()}
+        placeholder="youtube.com/watch?v=…  or  youtu.be/…"
+        className="w-full bg-white/5 rounded-xl px-3 py-2.5 text-white text-xs placeholder-white/20 focus:outline-none transition-all"
+        style={{ border: err ? "1px solid rgba(239,68,68,0.6)" : "1px solid rgba(255,255,255,0.10)" }}
+      />
+      {err && <p className="text-red-400 text-[10px]">Couldn't find a YouTube video — check the URL</p>}
+
+      <button onClick={load}
+        className="w-full py-2.5 rounded-xl text-white text-sm font-bold transition-all"
+        style={{ background:"linear-gradient(135deg,#E8602A,#C4507A)" }}
+        onMouseEnter={e=>e.currentTarget.style.opacity="0.85"}
+        onMouseLeave={e=>e.currentTarget.style.opacity="1"}>
+        {tr("savePlay")}
+      </button>
+
+      {videoId ? (
+        <>
+          <div className="rounded-xl overflow-hidden" style={{ aspectRatio:"16/9" }}>
+            <iframe
+              key={videoId}
+              src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`}
+              width="100%" height="100%"
+              style={{ display:"block", border:"none" }}
+              allow="autoplay; encrypted-media"
+              allowFullScreen
+              title="Background music"
+            />
+          </div>
+          <button onClick={stop}
+            className="w-full py-1.5 rounded-xl text-[10px] font-medium text-white/35 hover:text-rose-300 transition-all"
+            style={{ background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.07)" }}>
+            {tr("stopMusic")}
+          </button>
+        </>
+      ) : (
+        <div className="flex flex-col items-center justify-center gap-2 rounded-xl py-5"
+          style={{ background:"rgba(255,255,255,0.03)", border:"1px dashed rgba(255,255,255,0.08)" }}>
+          <svg width={26} height={26} viewBox="0 0 24 24" fill="none" stroke="rgba(240,133,74,0.22)" strokeWidth={1.5} strokeLinecap="round">
             <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
           </svg>
-          {videoId && (
-            <span className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-400 border-2 border-black animate-pulse" />
-          )}
-        </button>
-      </div>
-    </>
+          <p className="text-white/18 text-[10px] text-center">{tr("noTrack")}</p>
+        </div>
+      )}
+    </section>
   );
 };
 import { PageEditor } from "./PageEditor";
@@ -585,6 +506,32 @@ export const UI = () => {
   const [pageImages, setPageImages] = useAtom(pageImagesAtom);
   const [pageEditorStates, setPageEditorStates] = useAtom(pageEditorStatesAtom);
   const [editorOpen, setEditorOpen] = useState(false);
+  const [lang, setLang] = useState("en");
+  const tr = (key) => TRANSLATIONS[lang]?.[key] ?? TRANSLATIONS.en[key] ?? key;
+
+  // ── Share state ──────────────────────────────────────────────────────────────
+  const [isSharedView, setIsSharedView] = useState(false);
+  const [shareLoading, setShareLoading] = useState(false);
+  const [shareCopied, setShareCopied]   = useState(false);
+  const [shareInitLoading, setShareInitLoading] = useState(false);
+
+  // Load shared book from ?share=id on mount
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get('share');
+    if (!id) return;
+    setShareInitLoading(true);
+    loadShare(id)
+      .then(({ pages: sp, pageImages: si }) => {
+        setPages(sp);
+        setPageImages(si ?? {});
+        setPage(0);
+        setIsSharedView(true);
+      })
+      .catch(() => {
+        window.history.replaceState({}, '', window.location.pathname);
+      })
+      .finally(() => setShareInitLoading(false));
+  }, []);
   const [cropTarget, setCropTarget] = useState(null);
   // { pageId, side, initialState, initialImageUrl }
   const [pageEditorTarget, setPageEditorTarget] = useState(null);
@@ -602,6 +549,10 @@ export const UI = () => {
 
   const removePage = () => {
     if (pages.length <= 2) return;
+    const removed = pages[pages.length - 2];
+    // Delete any R2 CDN images for the removed page
+    const imgs = pageImages[removed?.id];
+    if (imgs) Object.values(imgs).forEach(url => deletePhoto(extractR2Key(url)));
     setPages((prev) => [...prev.slice(0, prev.length - 2), prev[prev.length - 1]]);
     if (page >= pages.length - 1) setPage(pages.length - 2);
   };
@@ -617,6 +568,9 @@ export const UI = () => {
 
   const handleEditorSave = ({ json, dataUrl }) => {
     const { pageId, side } = pageEditorTarget;
+    // If the old image was a CDN URL it's being replaced — free the R2 object
+    const oldUrl = pageImages[pageId]?.[side];
+    if (oldUrl) deletePhoto(extractR2Key(oldUrl));
     setPageEditorStates(prev => ({ ...prev, [`${pageId}-${side}`]: json }));
     setPageImages(prev => ({ ...prev, [pageId]: { ...prev[pageId], [side]: dataUrl } }));
     setPageEditorTarget(null);
@@ -647,9 +601,64 @@ export const UI = () => {
     <>
       <main className="pointer-events-none select-none z-10 fixed inset-0">
 
-        {/* Editor toggle */}
+        {/* Top-right button row */}
+        <div className="pointer-events-auto fixed top-6 right-6 flex items-center gap-2">
+
+          {/* Language toggle */}
+          <button
+            className="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 text-white border border-white/20 hover:border-white/40 backdrop-blur-md transition-all duration-300 px-3 py-2.5 rounded-full text-sm font-medium shadow-lg"
+            onClick={() => setLang(l => l === "en" ? "mn" : "en")}
+            title={lang === "en" ? "Монгол хэл рүү шилжих" : "Switch to English"}
+          >
+            <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/></svg>
+            {lang === "en" ? "MN" : "EN"}
+          </button>
+
+          {/* Share button — hidden in shared view */}
+          {!isSharedView && (
+            <button
+              className="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 text-white border border-white/20 hover:border-white/40 backdrop-blur-md transition-all duration-300 px-3 py-2.5 rounded-full text-sm font-medium shadow-lg"
+              onClick={async () => {
+                setShareLoading(true);
+                try {
+                  const { id } = await createShare({ pages, pageImages });
+                  const url = `${window.location.origin}/?share=${id}`;
+                  window.history.replaceState({}, '', `?share=${id}`);
+                  await navigator.clipboard.writeText(url).catch(() => {});
+                  setShareCopied(true);
+                  setTimeout(() => setShareCopied(false), 3000);
+                } catch (e) {
+                  alert('Share failed: ' + e.message);
+                } finally {
+                  setShareLoading(false);
+                }
+              }}
+              disabled={shareLoading}
+              title="Share this book"
+            >
+              {shareLoading ? (
+                <svg className="animate-spin" width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10" strokeOpacity=".25"/><path d="M22 12a10 10 0 00-10-10" strokeLinecap="round"/></svg>
+              ) : shareCopied ? (
+                <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+              ) : (
+                <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/></svg>
+              )}
+              {shareCopied ? "Copied!" : "Share"}
+            </button>
+          )}
+
+          {/* Shared-view badge */}
+          {isSharedView && (
+            <div className="flex items-center gap-1.5 bg-white/10 text-white/60 border border-white/15 backdrop-blur-md px-3 py-2.5 rounded-full text-sm">
+              <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/></svg>
+              Shared view
+            </div>
+          )}
+
+          {/* Editor toggle — hidden in shared view */}
+          {!isSharedView && (
         <button
-          className="pointer-events-auto fixed top-6 right-6 flex items-center gap-2 bg-white/15 hover:bg-white/25 text-white border border-white/20 hover:border-white/40 backdrop-blur-md transition-all duration-300 px-4 py-2.5 rounded-full text-sm font-medium shadow-lg"
+          className="flex items-center gap-2 bg-white/15 hover:bg-white/25 text-white border border-white/20 hover:border-white/40 backdrop-blur-md transition-all duration-300 px-4 py-2.5 rounded-full text-sm font-medium shadow-lg"
           onClick={() => setEditorOpen((v) => !v)}
         >
           {editorOpen ? (
@@ -657,26 +666,35 @@ export const UI = () => {
               <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
-              Close
+              {tr("close")}
             </>
           ) : (
             <>
               <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
               </svg>
-              Editor
+              {tr("editorMobile")}
             </>
           )}
         </button>
+          )}
+        </div>{/* end top-right button row */}
 
-        {/* Editor panel */}
+        {/* Share init loading overlay */}
+        {shareInitLoading && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+            <svg className="animate-spin w-10 h-10 text-white/70" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10" strokeOpacity=".25"/><path d="M22 12a10 10 0 00-10-10" strokeLinecap="round"/></svg>
+          </div>
+        )}
+
+        {/* Editor panel — hidden entirely in shared view */}
         <div
           className={`pointer-events-auto fixed top-0 right-0 h-full w-72 bg-black/60 backdrop-blur-xl border-l border-white/10 flex flex-col transition-transform duration-300 ease-in-out ${
-            editorOpen ? "translate-x-0" : "translate-x-full"
+            editorOpen && !isSharedView ? "translate-x-0" : "translate-x-full"
           }`}
         >
           <div className="flex items-center justify-between px-5 py-5 border-b border-white/10">
-            <span className="text-white font-semibold text-base tracking-wide">Editor</span>
+            <span className="text-white font-semibold text-base tracking-wide">{tr("editorMobile")}</span>
             <button className="text-white/40 hover:text-white transition-colors" onClick={() => setEditorOpen(false)}>
               <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -688,7 +706,7 @@ export const UI = () => {
 
             {/* Pages */}
             <section className="flex flex-col gap-3">
-              <p className="text-white/40 text-xs font-semibold uppercase tracking-widest">Pages</p>
+              <p className="text-white/40 text-xs font-semibold uppercase tracking-widest">{tr("pagesLabel")}</p>
               <div className="flex flex-col gap-2">
                 <button
                   className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-medium border border-white/10 hover:border-white/25 transition-all duration-200"
@@ -697,7 +715,7 @@ export const UI = () => {
                   <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                   </svg>
-                  Add Page
+                  {tr("addPage")}
                 </button>
                 <button
                   className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-white/5 hover:bg-red-500/20 text-white/60 hover:text-white text-sm font-medium border border-white/10 hover:border-red-400/40 transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed"
@@ -707,11 +725,11 @@ export const UI = () => {
                   <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
                   </svg>
-                  Remove Page
+                  {tr("removePage")}
                 </button>
               </div>
               <p className="text-white/25 text-xs">
-                {pages.length - 1} page{pages.length - 1 !== 1 ? "s" : ""} (excluding back cover)
+                {pages.length - 1} {tr("pageWord")}{lang === "en" && pages.length - 1 !== 1 ? "s" : ""} ({tr("excludingBackCover")})
               </p>
             </section>
 
@@ -729,7 +747,7 @@ export const UI = () => {
                       <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                       </svg>
-                      Edit Left
+                      {tr("editLeft")}
                     </button>
                   )}
                   {rightPage && (
@@ -740,7 +758,7 @@ export const UI = () => {
                       <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                       </svg>
-                      Edit Right
+                      {tr("editRight")}
                     </button>
                   )}
                 </div>
@@ -752,7 +770,7 @@ export const UI = () => {
                   <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                   </svg>
-                  Edit Front Cover
+                  {tr("editFrontCover")}
                 </button>
               ) : page === pages.length ? (
                 <button
@@ -762,7 +780,7 @@ export const UI = () => {
                   <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                   </svg>
-                  Edit Back Cover
+                  {tr("editBackCover")}
                 </button>
               ) : (
                 <button
@@ -775,16 +793,17 @@ export const UI = () => {
                   <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                   </svg>
-                  Edit Page
+                  {tr("editPage")}
                 </button>
               )}
             </section>
 
+            <div className="h-px bg-white/10" />
+
+            <MusicSection lang={lang} />
+
           </div>
         </div>
-
-        {/* Background music — persistent, survives editor open/close */}
-        <MusicPlayer />
 
         {/* Bottom page slider — compact, centered */}
         <div className="fixed bottom-5 left-0 right-0 flex justify-center pointer-events-auto" style={{ zIndex: 20 }}>
@@ -793,9 +812,9 @@ export const UI = () => {
             maxPage={pages.length}
             setPage={setPage}
             getLabel={(i) => {
-              if (i === 0)            return "Cover";
-              if (i === pages.length) return "Back Cover";
-              return `Page ${i}`;
+              if (i === 0)            return tr("coverLabel");
+              if (i === pages.length) return tr("backCoverLabel");
+              return `${tr("pageLabel")} ${i}`;
             }}
           />
         </div>
@@ -817,6 +836,7 @@ export const UI = () => {
           initialImageUrl={pageEditorTarget.initialImageUrl}
           onSave={handleEditorSave}
           onClose={() => setPageEditorTarget(null)}
+          lang={lang}
         />
       )}
     </>

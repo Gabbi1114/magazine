@@ -1,8 +1,9 @@
 import { fabric } from "fabric";
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { uploadPhoto, deletePhoto } from "../api";
 
 // ─── Translations ─────────────────────────────────────────────────────────────
-const TRANSLATIONS = {
+export const TRANSLATIONS = {
   en: {
     pageEditor:"Page Editor", editorMobile:"Editor",
     undoTitle:"Undo (Ctrl+Z)", redoTitle:"Redo (Ctrl+Y)",
@@ -48,6 +49,15 @@ const TRANSLATIONS = {
     tapToSelect:"Tap layers below to select", selected:"selected", ungrp:"Ungrp",
     applyCrop:"Apply Crop",
     langBtn:"MN",
+    // UI panel
+    close:"Close", pagesLabel:"Pages", addPage:"Add Page", removePage:"Remove Page",
+    pageWord:"page", excludingBackCover:"excluding back cover",
+    editLeft:"Edit Left", editRight:"Edit Right",
+    editFrontCover:"Edit Front Cover", editBackCover:"Edit Back Cover", editPage:"Edit Page",
+    bgMusicLabel:"Background Music",
+    ytLinkDesc:"Paste a YouTube link — music keeps playing even when the editor is closed.",
+    savePlay:"🎵 Save & Play", noTrack:"No track loaded yet", stopMusic:"⏹ Stop music",
+    coverLabel:"Cover", backCoverLabel:"Back Cover", pageLabel:"Page",
   },
   mn: {
     pageEditor:"Хуудасны засварлагч", editorMobile:"Засварлагч",
@@ -94,6 +104,15 @@ const TRANSLATIONS = {
     tapToSelect:"Сонгохын тулд доорх давхаргуудыг дарна уу", selected:"сонгогдсон", ungrp:"Задлах",
     applyCrop:"Тайрахыг хэрэглэх",
     langBtn:"EN",
+    // UI panel
+    close:"Хаах", pagesLabel:"Хуудаснууд", addPage:"Хуудас нэмэх", removePage:"Хуудас устгах",
+    pageWord:"хуудас", excludingBackCover:"арын хавтасыг оролцуулаагүй",
+    editLeft:"Зүүн засах", editRight:"Баруун засах",
+    editFrontCover:"Нүүр хавтас засах", editBackCover:"Арын хавтас засах", editPage:"Хуудас засах",
+    bgMusicLabel:"Арын хөгжим",
+    ytLinkDesc:"YouTube холбоос оруулна уу — засварлагч хаагдсан ч хөгжим үргэлжилнэ.",
+    savePlay:"🎵 Хадгалах & Тоглуулах", noTrack:"Дуу ачаалаагүй байна", stopMusic:"⏹ Хөгжим зогсоох",
+    coverLabel:"Нүүр хавтас", backCoverLabel:"Арын хавтас", pageLabel:"Хуудас",
   },
 };
 
@@ -3107,9 +3126,7 @@ function _fillFrameWithUrl(frame, url, canvas, onDone) {
   }, { crossOrigin: "anonymous" });
 }
 
-export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose }) => {
-  // ── Language ─────────────────────────────────────────────────────────────────
-  const [lang, setLang] = useState("en");
+export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose, lang = "en" }) => {
   _lang = lang; // sync module-level var so all t() calls in child renders use current lang
 
   // ── Load Google Fonts once ──────────────────────────────────────────────────
@@ -3616,9 +3633,23 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose }) =
     if (type === "line") shape = new fabric.Line([LW / 2 - 80, LH / 2, LW / 2 + 80, LH / 2], { stroke: "#1a1a2e", strokeWidth: 3 });
     if (shape) { c.add(shape); c.setActiveObject(shape); c.renderAll(); setActiveTool("select"); }
   };
-  const addImage = (file) => {
-    const url = URL.createObjectURL(file);
-    fabric.Image.fromURL(url, (img) => {
+  const addImage = async (file) => {
+    if (file.size > 10 * 1024 * 1024) {
+      alert('Image must be under 10 MB');
+      return;
+    }
+    let imgUrl = URL.createObjectURL(file);
+    let r2Key  = null;
+    try {
+      const result = await uploadPhoto(file);
+      URL.revokeObjectURL(imgUrl);
+      imgUrl = result.url;
+      r2Key  = result.key;
+    } catch (e) {
+      console.warn('[addImage] R2 upload failed, using local blob', e.message);
+    }
+    fabric.Image.fromURL(imgUrl, (img) => {
+      if (r2Key) img.r2Key = r2Key;
       const s = Math.min((LW * 0.7) / img.width, (LH * 0.7) / img.height);
       img.set({ left: LW / 2, top: LH / 2, originX: "center", originY: "center", scaleX: s, scaleY: s });
       fabricRef.current.add(img); fabricRef.current.setActiveObject(img); fabricRef.current.renderAll();
@@ -3751,6 +3782,11 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose }) =
     const c = fabricRef.current;
     const obj = c.getActiveObject();
     if (!obj) return;
+    // Delete from R2 if object carries an r2Key
+    const keysToDelete = obj._objects
+      ? obj._objects.map(o => o.r2Key).filter(Boolean)
+      : obj.r2Key ? [obj.r2Key] : [];
+    keysToDelete.forEach(k => deletePhoto(k));
     c.remove(obj); c.discardActiveObject(); c.renderAll();
   };
   const duplicateSelected = () => {
@@ -3903,7 +3939,8 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose }) =
   const handleSave = () => {
     const c = fabricRef.current;
     c.discardActiveObject(); c.renderAll();
-    const json = c.toJSON();
+    const json = c.toJSON(['r2Key','isPhotoFrame','isPhotoHole','frameShape','frameRx','frameRy',
+      'framePhotoOffsetY','_filledPhotoId','frameClipShape','frameClipD','frameR','frameClipRx']);
     const dataUrl = c.toDataURL({ format: "jpeg", quality: 0.95, multiplier: 1280 / c.getWidth() });
     onSave({ json, dataUrl });
   };
@@ -4243,17 +4280,6 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose }) =
           <Ic d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
         </button>
 
-        {/* Language toggle */}
-        <button
-          onClick={() => setLang(l => l === "en" ? "mn" : "en")}
-          className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all"
-          style={{ background:"rgba(196,80,122,0.15)", border:"1px solid rgba(196,80,122,0.3)", color:"rgba(220,130,160,0.9)" }}
-          onMouseEnter={e=>{e.currentTarget.style.background="rgba(196,80,122,0.28)"; e.currentTarget.style.color="#E090B4";}}
-          onMouseLeave={e=>{e.currentTarget.style.background="rgba(196,80,122,0.15)"; e.currentTarget.style.color="rgba(220,130,160,0.9)";}}
-          title={lang === "en" ? "Монгол хэл рүү шилжих" : "Switch to English"}>
-          <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/></svg>
-          {t("langBtn")}
-        </button>
 
         {/* Save — Persimmon → Amber, the 2026 hero gradient */}
         <button onClick={handleSave}
