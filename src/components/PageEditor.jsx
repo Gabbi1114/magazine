@@ -3241,6 +3241,9 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose, lan
 
   // ── Canvas init ──
   useEffect(() => {
+    // Ensure all fabric image loads (including loadFromJSON restoration) use CORS
+    fabric.Image.prototype.crossOrigin = 'anonymous';
+
     const canvas = new fabric.Canvas(canvasElRef.current, {
       width: LW, height: LH, backgroundColor: "#ffffff",
       preserveObjectStacking: true,

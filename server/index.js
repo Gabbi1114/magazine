@@ -57,15 +57,20 @@ const dataUrlToWebp = async (dataUrl, quality = 84) => {
   return sharp(Buffer.from(base64, 'base64')).webp({ quality }).toBuffer();
 };
 
+const BYTES_LIMIT = 15 * 1024 * 1024; // 15 MB per share
+
 // Convert pageImages: upload any data: URLs to R2, keep CDN URLs as-is
+// Returns { images, newBytes } — newBytes counts only newly converted WebP
 const processPageImages = async (pageImages = {}, prefix = 'shares/imgs') => {
   const out = {};
+  let newBytes = 0;
   for (const [pageId, sides] of Object.entries(pageImages)) {
     out[pageId] = {};
     for (const [side, value] of Object.entries(sides)) {
       if (!value) continue;
       if (value.startsWith('data:')) {
         const webp = await dataUrlToWebp(value, 82);
+        newBytes += webp.length;
         const key  = `${prefix}/${uid()}.webp`;
         await putR2(key, webp, 'image/webp');
         out[pageId][side] = `${CDN}/${key}`;
@@ -74,7 +79,7 @@ const processPageImages = async (pageImages = {}, prefix = 'shares/imgs') => {
       }
     }
   }
-  return out;
+  return { images: out, newBytes };
 };
 
 const VALID_ID = /^[\w-]{1,32}$/;
@@ -108,7 +113,7 @@ app.post('/api/share', async (req, res) => {
   if (!pages) return res.status(400).json({ error: 'pages required' });
 
   try {
-    const finalImages = await processPageImages(pageImages);
+    const { images: finalImages, newBytes } = await processPageImages(pageImages);
 
     const days = (typeof editDays === 'number' && editDays > 0)
       ? Math.min(Math.floor(editDays), MAX_EDIT_DAYS)
@@ -116,7 +121,7 @@ app.post('/api/share', async (req, res) => {
     const editUntil = new Date(Date.now() + days * 86400000).toISOString();
 
     const id      = uid();
-    const payload = JSON.stringify({ pages, pageImages: finalImages, editUntil });
+    const payload = JSON.stringify({ pages, pageImages: finalImages, editUntil, mediaBytes: newBytes, bytesLimit: BYTES_LIMIT });
     await putR2(`shares/${id}.json`, payload, 'application/json');
 
     res.json({ id, editUntil });
@@ -157,11 +162,13 @@ app.put('/api/share/:id', async (req, res) => {
     const { pages, pageImages } = req.body;
     if (!pages) return res.status(400).json({ error: 'pages required' });
 
-    const finalImages = await processPageImages(pageImages);
-    const payload = JSON.stringify({ pages, pageImages: finalImages, editUntil });
+    const { images: finalImages, newBytes } = await processPageImages(pageImages);
+    const prevBytes = existing.mediaBytes || 0;
+    const mediaBytes = prevBytes + newBytes;
+    const payload = JSON.stringify({ pages, pageImages: finalImages, editUntil, mediaBytes, bytesLimit: BYTES_LIMIT });
     await putR2(`shares/${id}.json`, payload, 'application/json');
 
-    res.json({ ok: true, editUntil });
+    res.json({ ok: true, editUntil, mediaBytes, bytesLimit: BYTES_LIMIT });
   } catch (err) {
     const is404 = err.name === 'NoSuchKey' || err.$metadata?.httpStatusCode === 404;
     if (is404) return res.status(404).json({ error: 'Share not found' });

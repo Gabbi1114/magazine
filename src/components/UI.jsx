@@ -1,7 +1,7 @@
 import { atom, useAtom } from "jotai";
 import { useEffect, useRef, useState } from "react";
 import { TRANSLATIONS } from "./PageEditor";
-import { createShare, loadShare, saveShare, deletePhoto, extractR2Key } from "../api";
+import { createShare, loadShare, saveShare, finalizeShare, deletePhoto, extractR2Key } from "../api";
 
 // ── Page Slider ───────────────────────────────────────────────────────────────
 // Compact centered slider. Book responds live while dragging.
@@ -517,6 +517,7 @@ export const UI = () => {
   const [shareCopied, setShareCopied]   = useState(false);
   const [shareSaving, setShareSaving]   = useState(false);
   const [shareSaved, setShareSaved]     = useState(false);
+  const [mediaBytes, setMediaBytes]     = useState(0);
   const [shareInitLoading, setShareInitLoading] = useState(false);
 
   const canEdit = isSharedView && editUntil && Date.now() < Date.parse(editUntil);
@@ -527,12 +528,13 @@ export const UI = () => {
     if (!id) return;
     setShareInitLoading(true);
     loadShare(id)
-      .then(({ pages: sp, pageImages: si, editUntil: eu }) => {
+      .then(({ pages: sp, pageImages: si, editUntil: eu, mediaBytes: mb }) => {
         setPages(sp);
         setPageImages(si ?? {});
         setPage(0);
         setShareId(id);
         setEditUntil(eu ?? null);
+        setMediaBytes(mb ?? 0);
         setIsSharedView(true);
       })
       .catch(() => {
@@ -655,31 +657,40 @@ export const UI = () => {
 
           {/* Shared-view: save button (if edit window open) or view-only badge */}
           {isSharedView && canEdit && (
-            <button
-              className="flex items-center gap-1.5 bg-emerald-500/20 hover:bg-emerald-500/35 text-emerald-300 border border-emerald-400/30 hover:border-emerald-400/60 backdrop-blur-md transition-all duration-300 px-3 py-2.5 rounded-full text-sm font-medium shadow-lg"
-              onClick={async () => {
-                setShareSaving(true);
-                try {
-                  await saveShare(shareId, { pages, pageImages });
-                  setShareSaved(true);
-                  setTimeout(() => setShareSaved(false), 3000);
-                } catch (e) {
-                  alert('Save failed: ' + e.message);
-                } finally {
-                  setShareSaving(false);
-                }
-              }}
-              disabled={shareSaving}
-            >
-              {shareSaving ? (
-                <svg className="animate-spin" width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10" strokeOpacity=".25"/><path d="M22 12a10 10 0 00-10-10" strokeLinecap="round"/></svg>
-              ) : shareSaved ? (
-                <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>
-              ) : (
-                <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-              )}
-              {shareSaved ? "Saved!" : "Save"}
-            </button>
+            <div className="flex flex-col items-end gap-1">
+              <button
+                className="flex items-center gap-1.5 bg-emerald-500/20 hover:bg-emerald-500/35 text-emerald-300 border border-emerald-400/30 hover:border-emerald-400/60 backdrop-blur-md transition-all duration-300 px-3 py-2.5 rounded-full text-sm font-medium shadow-lg"
+                onClick={async () => {
+                  setShareSaving(true);
+                  try {
+                    const result = await saveShare(shareId, { pages, pageImages });
+                    if (result.mediaBytes != null) setMediaBytes(result.mediaBytes);
+                    await finalizeShare(shareId);
+                    setEditUntil(new Date().toISOString());
+                    setShareSaved(true);
+                  } catch (e) {
+                    alert('Save failed: ' + e.message);
+                  } finally {
+                    setShareSaving(false);
+                  }
+                }}
+                disabled={shareSaving}
+              >
+                {shareSaving ? (
+                  <svg className="animate-spin" width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10" strokeOpacity=".25"/><path d="M22 12a10 10 0 00-10-10" strokeLinecap="round"/></svg>
+                ) : (
+                  <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                )}
+                {shareSaving ? "Saving…" : "Save & Lock"}
+              </button>
+              {/* Memory bar */}
+              <div className="flex items-center gap-1.5 px-1">
+                <div className="w-20 h-1 rounded-full bg-white/10 overflow-hidden">
+                  <div className="h-full rounded-full bg-emerald-400/70" style={{ width: `${Math.min(100, (mediaBytes / (15 * 1024 * 1024)) * 100)}%` }} />
+                </div>
+                <span className="text-[9px] text-white/35">{(mediaBytes / 1024 / 1024).toFixed(1)} / 15 MB</span>
+              </div>
+            </div>
           )}
           {isSharedView && !canEdit && (
             <div className="flex items-center gap-1.5 bg-white/10 text-white/50 border border-white/15 backdrop-blur-md px-3 py-2.5 rounded-full text-sm">
