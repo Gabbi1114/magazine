@@ -2,27 +2,9 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" id="dynamic-favicon" type="image/png" href="/favicon.ico" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>56 Moments</title>
-    <script>
-      (function () {
-        var img = new Image();
-        img.crossOrigin = "anonymous";
-        img.onload = function () {
-          var c = document.createElement("canvas");
-          c.width = 64; c.height = 64;
-          var ctx = c.getContext("2d");
-          ctx.fillStyle = "#ffffff";
-          ctx.fillRect(0, 0, 64, 64);
-          ctx.filter = "invert(1)";
-          ctx.drawImage(img, 0, 0, 64, 64);
-          var link = document.getElementById("dynamic-favicon");
-          link.href = c.toDataURL("image/png");
-        };
-        img.src = "https://pub-ac8c0cf9861545f09cb652f68d5d5b04.r2.dev/logo.png";
-      })();
-    </script>
   </head>
   <body>
     <div id="root"></div>
