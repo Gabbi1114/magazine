@@ -57,7 +57,7 @@ const dataUrlToWebp = async (dataUrl, quality = 84) => {
   return sharp(Buffer.from(base64, 'base64')).webp({ quality }).toBuffer();
 };
 
-const BYTES_LIMIT = 15 * 1024 * 1024; // 15 MB per share
+const BYTES_LIMIT = Infinity; // no total cap; per-file limit enforced by multer
 
 // Convert pageImages: upload any data: URLs to R2, keep CDN URLs as-is
 // Returns { images, newBytes } — newBytes counts only newly converted WebP
@@ -117,7 +117,7 @@ app.post('/api/share', async (req, res) => {
 
     const days = (typeof editDays === 'number' && editDays > 0)
       ? Math.min(Math.floor(editDays), MAX_EDIT_DAYS)
-      : 365;
+      : 5;
     const editUntil = new Date(Date.now() + days * 86400000).toISOString();
 
     const id      = uid();
