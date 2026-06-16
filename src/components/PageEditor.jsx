@@ -3130,7 +3130,7 @@ function _fillFrameWithUrl(frame, url, canvas, onDone) {
   }, { crossOrigin: "anonymous" });
 }
 
-export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose, lang = "en" }) => {
+export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose, lang = "en", paperColor = "#f5f0e8" }) => {
   _lang = lang; // sync module-level var so all t() calls in child renders use current lang
 
   // ── Load Google Fonts once ──────────────────────────────────────────────────
@@ -3252,7 +3252,7 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose, lan
     fabric.Image.prototype.crossOrigin = 'anonymous';
 
     const canvas = new fabric.Canvas(canvasElRef.current, {
-      width: LW, height: LH, backgroundColor: "#ffffff",
+      width: LW, height: LH, backgroundColor: initialState ? "#ffffff" : paperColor,
       preserveObjectStacking: true,
       selectionColor: "rgba(99,102,241,0.12)",
       selectionBorderColor: "#6366f1",
@@ -3317,7 +3317,7 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose, lan
         img.set({ left: LW / 2, top: LH / 2, originX: "center", originY: "center", scaleX: s, scaleY: s });
         canvas.add(img); canvas.renderAll(); afterLoad();
       }, { crossOrigin: 'anonymous' });
-    } else { afterLoad(); }
+    } else { setPageBgColor(paperColor); afterLoad(); }
 
     canvas.on("selection:created", () => {
       setActiveObj(canvas.getActiveObject()); setPropVer(v => v + 1);
@@ -4550,6 +4550,21 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose, lan
             )}
           </div>
         )}
+
+        {/* Per-page background color — mobile */}
+        <div className="flex-none flex items-center gap-3 px-3 py-2" style={{ borderBottom:"1px solid rgba(232,96,42,0.10)" }}>
+          <span className="text-[10px] font-bold uppercase tracking-widest text-white/30">{t("paperColorLabel")}</span>
+          <label className="flex items-center gap-2 cursor-pointer ml-auto">
+            <span className="text-[9px] font-mono text-white/25">{pageBgColor}</span>
+            <div className="relative w-6 h-6 rounded-md overflow-hidden flex-shrink-0" style={{ background: pageBgColor, border:"1px solid rgba(255,255,255,0.18)" }}>
+              <input type="color" value={pageBgColor} onChange={e => {
+                const c = e.target.value;
+                setPageBgColor(c);
+                fabricRef.current?.setBackgroundColor(c, () => { fabricRef.current?.renderAll(); saveHistory(); });
+              }} className="absolute inset-0 opacity-0 w-full h-full cursor-pointer" />
+            </div>
+          </label>
+        </div>
 
         {/* Tab bar — always visible; X button replaces tool strip row when expanded */}
         <div className="flex-none flex items-center" style={{ borderBottom:"1px solid rgba(232,96,42,0.12)" }}>

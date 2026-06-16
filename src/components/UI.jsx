@@ -340,6 +340,7 @@ export const pagesAtom = atom(buildInitialPages());
 export const pageImagesAtom = atom({});
 export const pageEditorStatesAtom = atom({});
 export const musicUrlAtom = atom("");
+export const paperColorAtom = atom("#f5f0e8");
 
 
 // Page aspect ratio: width / height
@@ -595,6 +596,7 @@ export const UI = () => {
   const [pageImages, setPageImages] = useAtom(pageImagesAtom);
   const [pageEditorStates, setPageEditorStates] = useAtom(pageEditorStatesAtom);
   const [musicUrl, setMusicUrl] = useAtom(musicUrlAtom);
+  const [paperColor, setPaperColor] = useAtom(paperColorAtom);
   const [editorOpen, setEditorOpen] = useState(false);
   const [lang, setLang] = useState("en");
   const tr = (key) => TRANSLATIONS[lang]?.[key] ?? TRANSLATIONS.en[key] ?? key;
@@ -873,6 +875,19 @@ export const UI = () => {
 
           <div className="flex-1 overflow-y-auto px-5 py-5 flex flex-col gap-6">
 
+            {/* Global paper color */}
+            <section className="flex flex-col gap-3">
+              <p className="text-white/40 text-xs font-semibold uppercase tracking-widest">{tr("paperColorLabel")}</p>
+              <label className="flex items-center gap-3 cursor-pointer group">
+                <div className="w-8 h-8 rounded-lg flex-shrink-0 relative overflow-hidden border border-white/20" style={{ background: paperColor }}>
+                  <input type="color" value={paperColor} onChange={e => setPaperColor(e.target.value)} className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
+                </div>
+                <span className="text-xs text-white/40 group-hover:text-white/70 transition-colors font-mono uppercase">{paperColor}</span>
+              </label>
+            </section>
+
+            <div className="h-px bg-white/10" />
+
             {/* Pages */}
             <section className="flex flex-col gap-3">
               <p className="text-white/40 text-xs font-semibold uppercase tracking-widest">{tr("pagesLabel")}</p>
@@ -1006,6 +1021,7 @@ export const UI = () => {
           onSave={handleEditorSave}
           onClose={() => setPageEditorTarget(null)}
           lang={lang}
+          paperColor={paperColor}
         />
       )}
     </>
