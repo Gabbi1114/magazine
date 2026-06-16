@@ -341,6 +341,16 @@ export const pageImagesAtom = atom({});
 export const pageEditorStatesAtom = atom({});
 export const musicUrlAtom = atom("");
 export const paperColorAtom = atom("#f5f0e8");
+export const hdriAtom = atom("kloofendal_48d_partly_cloudy_puresky");
+
+const HDRI_PRESETS = [
+  { slug: "kloofendal_48d_partly_cloudy_puresky", label: "Cloudy" },
+  { slug: "the_sky_is_on_fire",                   label: "Pink Sky" },
+  { slug: "industrial_sunset_puresky",            label: "Sunset" },
+  { slug: "evening_road_01_puresky",              label: "Evening" },
+  { slug: "galaxy",                               label: "Galactic" },
+  { slug: "meadow_2",                             label: "Meadow" },
+];
 
 
 // Page aspect ratio: width / height
@@ -597,6 +607,7 @@ export const UI = () => {
   const [pageEditorStates, setPageEditorStates] = useAtom(pageEditorStatesAtom);
   const [musicUrl, setMusicUrl] = useAtom(musicUrlAtom);
   const [paperColor, setPaperColor] = useAtom(paperColorAtom);
+  const [hdri, setHdri] = useAtom(hdriAtom);
   const [editorOpen, setEditorOpen] = useState(false);
   const [lang, setLang] = useState("en");
   const tr = (key) => TRANSLATIONS[lang]?.[key] ?? TRANSLATIONS.en[key] ?? key;
@@ -884,6 +895,31 @@ export const UI = () => {
                 </div>
                 <span className="text-xs text-white/40 group-hover:text-white/70 transition-colors font-mono uppercase">{paperColor}</span>
               </label>
+            </section>
+
+            <div className="h-px bg-white/10" />
+
+            {/* Sky / HDRI */}
+            <section className="flex flex-col gap-3">
+              <p className="text-white/40 text-xs font-semibold uppercase tracking-widest">Sky</p>
+              <div className="grid grid-cols-3 gap-2">
+                {HDRI_PRESETS.map((preset) => (
+                  <button
+                    key={preset.slug}
+                    onClick={() => setHdri(preset.slug)}
+                    className={`relative rounded-xl overflow-hidden border-2 transition-all ${hdri === preset.slug ? "border-white" : "border-transparent hover:border-white/40"}`}
+                  >
+                    <img
+                      src={`https://cdn.polyhaven.com/asset_img/thumbs/${preset.slug}.png?width=128`}
+                      alt={preset.label}
+                      className="w-full aspect-video object-cover"
+                    />
+                    <span className="absolute bottom-0 inset-x-0 text-[9px] text-white font-semibold text-center py-0.5 bg-black/50 truncate px-1">
+                      {preset.label}
+                    </span>
+                  </button>
+                ))}
+              </div>
             </section>
 
             <div className="h-px bg-white/10" />

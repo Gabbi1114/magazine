@@ -1,8 +1,12 @@
 import { Environment, Float, OrbitControls } from "@react-three/drei";
+import { useAtom } from "jotai";
 import { Suspense } from "react";
+import { hdriAtom } from "./UI";
 import { Book } from "./Book";
 
 export const Experience = () => {
+  const [hdri] = useAtom(hdriAtom);
+  const hdriUrl = `https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/${hdri}_1k.hdr`;
   return (
     <>
       <Float
@@ -25,7 +29,7 @@ export const Experience = () => {
       {/* HDRI loads independently — book renders immediately while sky loads in background */}
       <Suspense fallback={null}>
         <Environment
-          files="/cloudy_sky.exr"
+          files={hdriUrl}
           background
           backgroundBlurriness={0.05}
           backgroundIntensity={1}
