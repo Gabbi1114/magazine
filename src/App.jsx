@@ -66,6 +66,26 @@ function BookLoader() {
           0%   { transform: translateX(10px); }
           100% { transform: translateX(0px); }
         }
+        @keyframes shimmer {
+          0%   { transform: translateX(-200%); }
+          100% { transform: translateX(400%); }
+        }
+        .loading-track {
+          width: 160px;
+          height: 4px;
+          background: rgba(255,255,255,0.15);
+          border-radius: 2px;
+          overflow: hidden;
+          position: relative;
+        }
+        .loading-shimmer {
+          position: absolute;
+          top: 0; left: 0;
+          width: 40%;
+          height: 100%;
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.8), transparent);
+          animation: shimmer 1.4s ease-in-out infinite;
+        }
         @keyframes logoLift {
           0%   { transform: translateX(-10px); }
           100% { transform: translateX(10px); }
@@ -93,8 +113,8 @@ function BookLoader() {
             }}
           />
         </div>
-        <div style={{ width: 160, height: 4, background: "rgba(255,255,255,0.15)", borderRadius: 2, overflow: "hidden" }}>
-          <div style={{ width: `${progress}%`, height: "100%", background: "#ffffff", borderRadius: 2, transition: "width 0.2s ease" }} />
+        <div className="loading-track">
+          <div className="loading-shimmer" />
         </div>
       </div>
     </div>

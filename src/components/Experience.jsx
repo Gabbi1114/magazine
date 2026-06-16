@@ -1,4 +1,5 @@
 import { Environment, Float, OrbitControls } from "@react-three/drei";
+import { Suspense } from "react";
 import { Book } from "./Book";
 
 export const Experience = () => {
@@ -17,23 +18,19 @@ export const Experience = () => {
         minDistance={2}
         maxDistance={8}
       />
-
-      {/*
-        HDRI: "Cloudy Sky" (kloofendal_overcast_puresky) — soft diffuse sky lighting.
-        To use the BlenderKit "Cloudy Sky" HDRI instead, download it from BlenderKit,
-        rename it to cloudy_sky.hdr and drop it in /public — no other change needed.
-      */}
-      <Environment
-        files="/cloudy_sky.exr"
-        background
-        backgroundBlurriness={0.05}
-        backgroundIntensity={1}
-      />
-
       <directionalLight
         position={[2, 5, 2]}
         intensity={1.8}
       />
+      {/* HDRI loads independently — book renders immediately while sky loads in background */}
+      <Suspense fallback={null}>
+        <Environment
+          files="/cloudy_sky.exr"
+          background
+          backgroundBlurriness={0.05}
+          backgroundIntensity={1}
+        />
+      </Suspense>
     </>
   );
 };
