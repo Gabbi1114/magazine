@@ -604,8 +604,9 @@ export const UI = () => {
   const [editUntil, setEditUntil]       = useState(null); // ISO string or null
   const [shareLoading, setShareLoading] = useState(false);
   const [shareCopied, setShareCopied]   = useState(false);
-  const [shareSaving, setShareSaving]   = useState(false);
-  const [shareSaved, setShareSaved]     = useState(false);
+  const [shareSaving,    setShareSaving]    = useState(false);
+  const [shareFinishing, setShareFinishing] = useState(false);
+  const [shareSaved, setShareSaved]         = useState(false);
   const [mediaBytes, setMediaBytes]     = useState(0);
   const [shareInitLoading, setShareInitLoading] = useState(false);
 
@@ -751,34 +752,61 @@ export const UI = () => {
             </button>
           )}
 
-          {/* Shared-view: save button (if edit window open) or view-only badge */}
+          {/* Shared-view: Save + Finish buttons (if edit window open) or view-only badge */}
           {isSharedView && canEdit && (
             <div className="flex flex-col items-end gap-1">
-              <button
-                className="flex items-center gap-1.5 bg-emerald-500/20 hover:bg-emerald-500/35 text-emerald-300 border border-emerald-400/30 hover:border-emerald-400/60 backdrop-blur-md transition-all duration-300 px-3 py-2.5 rounded-full text-sm font-medium shadow-lg"
-                onClick={async () => {
-                  setShareSaving(true);
-                  try {
-                    const result = await saveShare(shareId, { pages, pageImages, musicUrl });
-                    if (result.mediaBytes != null) setMediaBytes(result.mediaBytes);
-                    await finalizeShare(shareId);
-                    setEditUntil(new Date().toISOString());
-                    setShareSaved(true);
-                  } catch (e) {
-                    alert('Save failed: ' + e.message);
-                  } finally {
-                    setShareSaving(false);
-                  }
-                }}
-                disabled={shareSaving}
-              >
-                {shareSaving ? (
-                  <svg className="animate-spin" width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10" strokeOpacity=".25"/><path d="M22 12a10 10 0 00-10-10" strokeLinecap="round"/></svg>
-                ) : (
-                  <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-                )}
-                {shareSaving ? "Saving…" : "Save & Lock"}
-              </button>
+              <div className="flex items-center gap-2">
+                {/* Save — persists edits, keeps edit window open */}
+                <button
+                  className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 text-white border border-white/20 hover:border-white/40 backdrop-blur-md transition-all duration-300 px-3 py-2.5 rounded-full text-sm font-medium shadow-lg"
+                  onClick={async () => {
+                    setShareSaving(true);
+                    try {
+                      const result = await saveShare(shareId, { pages, pageImages, musicUrl });
+                      if (result.mediaBytes != null) setMediaBytes(result.mediaBytes);
+                    } catch (e) {
+                      alert('Save failed: ' + e.message);
+                    } finally {
+                      setShareSaving(false);
+                    }
+                  }}
+                  disabled={shareSaving || shareFinishing}
+                >
+                  {shareSaving ? (
+                    <svg className="animate-spin" width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10" strokeOpacity=".25"/><path d="M22 12a10 10 0 00-10-10" strokeLinecap="round"/></svg>
+                  ) : (
+                    <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                  )}
+                  {shareSaving ? tr("saving") : tr("saveEdits")}
+                </button>
+
+                {/* Finish — saves + locks to view-only */}
+                <button
+                  className="flex items-center gap-1.5 bg-emerald-500/20 hover:bg-emerald-500/35 text-emerald-300 border border-emerald-400/30 hover:border-emerald-400/60 backdrop-blur-md transition-all duration-300 px-3 py-2.5 rounded-full text-sm font-medium shadow-lg"
+                  onClick={async () => {
+                    setShareFinishing(true);
+                    try {
+                      const result = await saveShare(shareId, { pages, pageImages, musicUrl });
+                      if (result.mediaBytes != null) setMediaBytes(result.mediaBytes);
+                      await finalizeShare(shareId);
+                      setEditUntil(new Date().toISOString());
+                      setShareSaved(true);
+                    } catch (e) {
+                      alert('Finish failed: ' + e.message);
+                    } finally {
+                      setShareFinishing(false);
+                    }
+                  }}
+                  disabled={shareSaving || shareFinishing}
+                >
+                  {shareFinishing ? (
+                    <svg className="animate-spin" width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10" strokeOpacity=".25"/><path d="M22 12a10 10 0 00-10-10" strokeLinecap="round"/></svg>
+                  ) : (
+                    <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                  )}
+                  {shareFinishing ? tr("finishing") : tr("finishEdit")}
+                </button>
+              </div>
               {/* Memory bar */}
               <div className="flex items-center gap-1.5 px-1">
                 <div className="w-20 h-1 rounded-full bg-white/10 overflow-hidden">

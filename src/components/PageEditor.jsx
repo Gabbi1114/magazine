@@ -57,6 +57,7 @@ export const TRANSLATIONS = {
     bgMusicLabel:"Background Music",
     ytLinkDesc:"Paste a YouTube link — music keeps playing even when the editor is closed.",
     savePlay:"🎵 Save & Play", noTrack:"No track loaded yet", stopMusic:"⏹ Stop music",
+    saveEdits:"Save", finishEdit:"Finish", saving:"Saving…", finishing:"Finishing…",
     coverLabel:"Cover", backCoverLabel:"Back Cover", pageLabel:"Page",
   },
   mn: {
@@ -112,6 +113,7 @@ export const TRANSLATIONS = {
     bgMusicLabel:"Арын хөгжим",
     ytLinkDesc:"YouTube холбоос оруулна уу — засварлагч хаагдсан ч хөгжим үргэлжилнэ.",
     savePlay:"🎵 Хадгалах & Тоглуулах", noTrack:"Дуу ачаалаагүй байна", stopMusic:"⏹ Хөгжим зогсоох",
+    saveEdits:"Хадгалах", finishEdit:"Дуусгах", saving:"Хадгалж байна…", finishing:"Дуусгаж байна…",
     coverLabel:"Нүүр хавтас", backCoverLabel:"Арын хавтас", pageLabel:"Хуудас",
   },
 };
