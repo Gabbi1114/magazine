@@ -1,4 +1,4 @@
-const API = (import.meta.env.VITE_API_URL ?? 'http://localhost:3001').replace(/\/$/, '');
+const API = (import.meta.env.VITE_API_URL || 'http://localhost:3001').replace(/\/$/, '');
 const CDN = (import.meta.env.VITE_CDN_URL ?? '').replace(/\/$/, '');
 
 // Extract the R2 object key from a CDN URL, or null if it's not a CDN URL.
