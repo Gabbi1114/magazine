@@ -109,7 +109,7 @@ app.post('/api/upload', upload.single('photo'), async (req, res) => {
 // Body: { pages, pageImages, editDays? }
 // editDays controls how long the recipient can save edits (default: 365)
 app.post('/api/share', async (req, res) => {
-  const { pages, pageImages, musicUrl, editDays, paperColor } = req.body;
+  const { pages, pageImages, musicUrl, editDays } = req.body;
   if (!pages) return res.status(400).json({ error: 'pages required' });
 
   try {
@@ -121,7 +121,7 @@ app.post('/api/share', async (req, res) => {
     const editUntil = new Date(Date.now() + days * 86400000).toISOString();
 
     const id      = uid();
-    const payload = JSON.stringify({ pages, pageImages: finalImages, editUntil, mediaBytes: newBytes, bytesLimit: BYTES_LIMIT, ...(musicUrl ? { musicUrl } : {}), ...(paperColor ? { paperColor } : {}) });
+    const payload = JSON.stringify({ pages, pageImages: finalImages, editUntil, mediaBytes: newBytes, bytesLimit: BYTES_LIMIT, ...(musicUrl ? { musicUrl } : {}) });
     await putR2(`shares/${id}.json`, payload, 'application/json');
 
     res.json({ id, editUntil });
@@ -159,15 +159,14 @@ app.put('/api/share/:id', async (req, res) => {
       return res.status(403).json({ error: 'Edit window has expired. This book is now view-only.' });
     }
 
-    const { pages, pageImages, musicUrl, paperColor } = req.body;
+    const { pages, pageImages, musicUrl } = req.body;
     if (!pages) return res.status(400).json({ error: 'pages required' });
 
     const { images: finalImages, newBytes } = await processPageImages(pageImages);
     const prevBytes = existing.mediaBytes || 0;
     const mediaBytes = prevBytes + newBytes;
     const savedMusic = musicUrl ?? existing.musicUrl ?? '';
-    const savedPaperColor = paperColor ?? existing.paperColor ?? '';
-    const payload = JSON.stringify({ pages, pageImages: finalImages, editUntil, mediaBytes, bytesLimit: BYTES_LIMIT, ...(savedMusic ? { musicUrl: savedMusic } : {}), ...(savedPaperColor ? { paperColor: savedPaperColor } : {}) });
+    const payload = JSON.stringify({ pages, pageImages: finalImages, editUntil, mediaBytes, bytesLimit: BYTES_LIMIT, ...(savedMusic ? { musicUrl: savedMusic } : {}) });
     await putR2(`shares/${id}.json`, payload, 'application/json');
 
     res.json({ ok: true, editUntil, mediaBytes, bytesLimit: BYTES_LIMIT });

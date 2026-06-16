@@ -3130,7 +3130,7 @@ function _fillFrameWithUrl(frame, url, canvas, onDone) {
   }, { crossOrigin: "anonymous" });
 }
 
-export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose, lang = "en", paperColor = "#f5f0e8" }) => {
+export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose, lang = "en" }) => {
   _lang = lang; // sync module-level var so all t() calls in child renders use current lang
 
   // ── Load Google Fonts once ──────────────────────────────────────────────────
@@ -3154,6 +3154,7 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose, lan
   const histIdxRef        = useRef(-1);
   const skipHistRef       = useRef(false);
 
+  const [pageBgColor,     setPageBgColor]     = useState("#ffffff");
   const [activeTool,      setActiveTool]      = useState("select");
   const [activeObj,       setActiveObj]       = useState(null);
   const [layers,          setLayers]          = useState([]);
@@ -3228,6 +3229,7 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose, lan
       fabricRef.current.renderAll(); updateLayers(); setActiveObj(null);
       skipHistRef.current = false;
       setCanUndo(histIdxRef.current > 0); setCanRedo(true);
+      if (typeof fabricRef.current.backgroundColor === "string") setPageBgColor(fabricRef.current.backgroundColor);
     });
   }, [updateLayers, reattachDrawLayer]);
 
@@ -3240,6 +3242,7 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose, lan
       fabricRef.current.renderAll(); updateLayers(); setActiveObj(null);
       skipHistRef.current = false;
       setCanUndo(true); setCanRedo(histIdxRef.current < historyRef.current.length - 1);
+      if (typeof fabricRef.current.backgroundColor === "string") setPageBgColor(fabricRef.current.backgroundColor);
     });
   }, [updateLayers, reattachDrawLayer]);
 
@@ -3249,7 +3252,7 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose, lan
     fabric.Image.prototype.crossOrigin = 'anonymous';
 
     const canvas = new fabric.Canvas(canvasElRef.current, {
-      width: LW, height: LH, backgroundColor: paperColor,
+      width: LW, height: LH, backgroundColor: "#ffffff",
       preserveObjectStacking: true,
       selectionColor: "rgba(99,102,241,0.12)",
       selectionBorderColor: "#6366f1",
@@ -3306,6 +3309,7 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose, lan
         }
         canvas.add(drawLayer); canvas.sendToBack(drawLayer);
         canvas.renderAll(); afterLoad();
+        if (typeof canvas.backgroundColor === "string") setPageBgColor(canvas.backgroundColor);
       });
     } else if (initialImageUrl) {
       fabric.Image.fromURL(initialImageUrl, (img) => {
@@ -3616,12 +3620,6 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose, lan
     };
   }, []); // eslint-disable-line
 
-  // Update canvas background when paperColor prop changes
-  useEffect(() => {
-    if (!fabricRef.current) return;
-    fabricRef.current.setBackgroundColor(paperColor, () => fabricRef.current?.renderAll());
-  }, [paperColor]);
-
   // ── Tool fns ──
   const addText = () => {
     const t = new fabric.IText("Type here", { left: LW / 2, top: LH / 2, originX: "center", originY: "center", fontFamily: "Arial", fontSize: 36, fill: "#1a1a2e" });
@@ -3705,7 +3703,7 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose, lan
     } else {
       // Replace entire canvas with template (build() may return a Promise for image-based templates)
       canvas.clear();
-      canvas.setBackgroundColor(paperColor, () => {});
+      canvas.setBackgroundColor(pageBgColor, () => {});
       const result = item.build();
       const objects = (result instanceof Promise) ? await result : result;
       objects.forEach(obj => canvas.add(obj));
@@ -4401,6 +4399,27 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose, lan
         {/* Desktop right panel */}
         <div className="hidden md:flex w-64 flex-none flex-col overflow-hidden"
           style={{ background:"linear-gradient(180deg, #281020 0%, #1e0c18 100%)", borderLeft:"1px solid rgba(232,96,42,0.15)" }}>
+
+          {/* Page background color */}
+          <div className="flex items-center gap-3 px-4 py-2.5 flex-none" style={{ borderBottom:"1px solid rgba(232,96,42,0.10)" }}>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-white/30">{t("paperColorLabel")}</span>
+            <label className="flex items-center gap-2 cursor-pointer ml-auto">
+              <span className="text-[9px] font-mono text-white/25">{pageBgColor}</span>
+              <div className="relative w-6 h-6 rounded-md overflow-hidden flex-shrink-0" style={{ background: pageBgColor, border:"1px solid rgba(255,255,255,0.18)" }}>
+                <input
+                  type="color"
+                  value={pageBgColor}
+                  onChange={e => {
+                    const c = e.target.value;
+                    setPageBgColor(c);
+                    fabricRef.current?.setBackgroundColor(c, () => { fabricRef.current?.renderAll(); saveHistory(); });
+                  }}
+                  className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                />
+              </div>
+            </label>
+          </div>
+
           <div className="flex flex-col overflow-hidden" style={{ maxHeight:"45%", borderBottom:"1px solid rgba(232,96,42,0.12)" }}>
             <div className="flex items-center justify-between px-4 py-3 flex-none"
               style={{ borderBottom:"1px solid rgba(232,96,42,0.10)" }}>

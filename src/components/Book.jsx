@@ -19,7 +19,7 @@ import {
   Vector3,
 } from "three";
 import { degToRad } from "three/src/math/MathUtils.js";
-import { pageAtom, pageImagesAtom, pagesAtom, paperColorAtom } from "./UI";
+import { pageAtom, pageImagesAtom, pagesAtom } from "./UI";
 
 const easingFactor = 0.5;
 const easingFactorFold = 0.3;
@@ -197,10 +197,6 @@ const Page = ({ number, isLastPage, page, opened, bookClosed, pageId }) => {
   const skinnedMeshRef = useRef();
 
   const [pageImages] = useAtom(pageImagesAtom);
-  const [paperColor] = useAtom(paperColorAtom);
-  const paperColorRef = useRef(paperColor);
-  paperColorRef.current = paperColor;
-
   const customFront = pageImages[pageId]?.front;
   const customBack = pageImages[pageId]?.back;
 
@@ -222,13 +218,6 @@ const Page = ({ number, isLastPage, page, opened, bookClosed, pageId }) => {
     });
   }, [customBack]);
 
-  // Update page face colors when paperColor changes
-  useEffect(() => {
-    if (!skinnedMeshRef.current) return;
-    const c = new Color(paperColor);
-    if (number !== 0) { skinnedMeshRef.current.material[4].color.set(c); skinnedMeshRef.current.material[4].needsUpdate = true; }
-    if (!isLastPage) { skinnedMeshRef.current.material[5].color.set(c); skinnedMeshRef.current.material[5].needsUpdate = true; }
-  }, [paperColor, number, isLastPage]);
 
   const manualSkinnedMesh = useMemo(() => {
     const bones = [];
@@ -252,13 +241,13 @@ const Page = ({ number, isLastPage, page, opened, bookClosed, pageId }) => {
     const materials = [
       ...pageMaterials,
       new MeshStandardMaterial({
-        color: number === 0 ? whiteColor : new Color(paperColorRef.current),
+        color: number === 0 ? whiteColor : pageColor,
         map: frontMap,
         roughness: 0.3,
         metalness: 0.1,
       }),
       new MeshStandardMaterial({
-        color: isLastPage ? whiteColor : new Color(paperColorRef.current),
+        color: isLastPage ? whiteColor : pageColor,
         map: backMap,
         roughness: 0.3,
         metalness: 0.1,

@@ -340,7 +340,6 @@ export const pagesAtom = atom(buildInitialPages());
 export const pageImagesAtom = atom({});
 export const pageEditorStatesAtom = atom({});
 export const musicUrlAtom = atom("");
-export const paperColorAtom = atom("#f5f0e8");
 
 
 // Page aspect ratio: width / height
@@ -596,7 +595,6 @@ export const UI = () => {
   const [pageImages, setPageImages] = useAtom(pageImagesAtom);
   const [pageEditorStates, setPageEditorStates] = useAtom(pageEditorStatesAtom);
   const [musicUrl, setMusicUrl] = useAtom(musicUrlAtom);
-  const [paperColor, setPaperColor] = useAtom(paperColorAtom);
   const [editorOpen, setEditorOpen] = useState(false);
   const [lang, setLang] = useState("en");
   const tr = (key) => TRANSLATIONS[lang]?.[key] ?? TRANSLATIONS.en[key] ?? key;
@@ -621,7 +619,7 @@ export const UI = () => {
     if (!id) return;
     setShareInitLoading(true);
     loadShare(id)
-      .then(({ pages: sp, pageImages: si, editUntil: eu, mediaBytes: mb, musicUrl: mu, paperColor: pc }) => {
+      .then(({ pages: sp, pageImages: si, editUntil: eu, mediaBytes: mb, musicUrl: mu }) => {
         setPages(sp);
         setPageImages(si ?? {});
         setPage(0);
@@ -629,7 +627,6 @@ export const UI = () => {
         setEditUntil(eu ?? null);
         setMediaBytes(mb ?? 0);
         if (mu) setMusicUrl(mu);
-        if (pc) setPaperColor(pc);
         setIsSharedView(true);
       })
       .catch(() => {
@@ -732,7 +729,7 @@ export const UI = () => {
               onClick={async () => {
                 setShareLoading(true);
                 try {
-                  const { id } = await createShare({ pages, pageImages, musicUrl, paperColor });
+                  const { id } = await createShare({ pages, pageImages, musicUrl });
                   const url = `${window.location.origin}/?share=${id}`;
                   await navigator.clipboard.writeText(url).catch(() => {});
                   window.location.href = url;
@@ -766,7 +763,7 @@ export const UI = () => {
                   onClick={async () => {
                     setShareSaving(true);
                     try {
-                      const result = await saveShare(shareId, { pages, pageImages, musicUrl, paperColor });
+                      const result = await saveShare(shareId, { pages, pageImages, musicUrl });
                       if (result.mediaBytes != null) setMediaBytes(result.mediaBytes);
                     } catch (e) {
                       alert('Save failed: ' + e.message);
@@ -790,7 +787,7 @@ export const UI = () => {
                   onClick={async () => {
                     setShareFinishing(true);
                     try {
-                      const result = await saveShare(shareId, { pages, pageImages, musicUrl, paperColor });
+                      const result = await saveShare(shareId, { pages, pageImages, musicUrl });
                       if (result.mediaBytes != null) setMediaBytes(result.mediaBytes);
                       await finalizeShare(shareId);
                       setEditUntil(new Date().toISOString());
@@ -875,27 +872,6 @@ export const UI = () => {
           </div>
 
           <div className="flex-1 overflow-y-auto px-5 py-5 flex flex-col gap-6">
-
-            {/* Paper Color */}
-            <section className="flex flex-col gap-3">
-              <p className="text-white/40 text-xs font-semibold uppercase tracking-widest">{tr("paperColorLabel")}</p>
-              <label className="flex items-center gap-3 cursor-pointer group">
-                <div
-                  className="w-10 h-10 rounded-xl flex-shrink-0 relative overflow-hidden border border-white/20"
-                  style={{ background: paperColor }}
-                >
-                  <input
-                    type="color"
-                    value={paperColor}
-                    onChange={e => setPaperColor(e.target.value)}
-                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                  />
-                </div>
-                <span className="text-xs text-white/50 group-hover:text-white/80 transition-colors uppercase font-mono">{paperColor}</span>
-              </label>
-            </section>
-
-            <div className="h-px bg-white/10" />
 
             {/* Pages */}
             <section className="flex flex-col gap-3">
@@ -1030,7 +1006,6 @@ export const UI = () => {
           onSave={handleEditorSave}
           onClose={() => setPageEditorTarget(null)}
           lang={lang}
-          paperColor={paperColor}
         />
       )}
     </>
