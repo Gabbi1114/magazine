@@ -145,18 +145,19 @@ const extractYtId = (url) => {
 // The editor panel is always in the DOM (off-screen via transform when closed),
 // so the iframe stays mounted and audio keeps playing even when the panel hides.
 const MusicSection = ({ lang = "en" }) => {
-  const [input,   setInput]   = useState("");
-  const [videoId, setVideoId] = useState(null);
-  const [err,     setErr]     = useState(false);
+  const [savedUrl, setSavedUrl] = useAtom(musicUrlAtom);
+  const [input,    setInput]    = useState(savedUrl || "");
+  const [videoId,  setVideoId]  = useState(() => extractYtId(savedUrl || ""));
+  const [err,      setErr]      = useState(false);
 
   const tr = (key) => TRANSLATIONS[lang]?.[key] ?? TRANSLATIONS.en[key] ?? key;
 
   const load = () => {
     const id = extractYtId(input.trim());
-    if (id) { setVideoId(id); setErr(false); }
+    if (id) { setVideoId(id); setSavedUrl(input.trim()); setErr(false); }
     else setErr(true);
   };
-  const stop = () => { setVideoId(null); setInput(""); };
+  const stop = () => { setVideoId(null); setInput(""); setSavedUrl(""); };
 
   return (
     <section className="flex flex-col gap-3">
@@ -251,7 +252,8 @@ const buildInitialPages = () => {
 export const pageAtom = atom(0);
 export const pagesAtom = atom(buildInitialPages());
 export const pageImagesAtom = atom({});
-export const pageEditorStatesAtom = atom({}); // { "${pageId}-${side}": fabricJSON }
+export const pageEditorStatesAtom = atom({});
+export const musicUrlAtom = atom("");
 
 // Page aspect ratio: width / height
 const PAGE_RATIO = 1.28 / 1.71;
@@ -505,6 +507,7 @@ export const UI = () => {
   const [pages, setPages] = useAtom(pagesAtom);
   const [pageImages, setPageImages] = useAtom(pageImagesAtom);
   const [pageEditorStates, setPageEditorStates] = useAtom(pageEditorStatesAtom);
+  const [musicUrl, setMusicUrl] = useAtom(musicUrlAtom);
   const [editorOpen, setEditorOpen] = useState(false);
   const [lang, setLang] = useState("en");
   const tr = (key) => TRANSLATIONS[lang]?.[key] ?? TRANSLATIONS.en[key] ?? key;
@@ -528,13 +531,14 @@ export const UI = () => {
     if (!id) return;
     setShareInitLoading(true);
     loadShare(id)
-      .then(({ pages: sp, pageImages: si, editUntil: eu, mediaBytes: mb }) => {
+      .then(({ pages: sp, pageImages: si, editUntil: eu, mediaBytes: mb, musicUrl: mu }) => {
         setPages(sp);
         setPageImages(si ?? {});
         setPage(0);
         setShareId(id);
         setEditUntil(eu ?? null);
         setMediaBytes(mb ?? 0);
+        if (mu) setMusicUrl(mu);
         setIsSharedView(true);
       })
       .catch(() => {
@@ -631,7 +635,7 @@ export const UI = () => {
               onClick={async () => {
                 setShareLoading(true);
                 try {
-                  const { id } = await createShare({ pages, pageImages });
+                  const { id } = await createShare({ pages, pageImages, musicUrl });
                   const url = `${window.location.origin}/?share=${id}`;
                   await navigator.clipboard.writeText(url).catch(() => {});
                   window.location.href = url;
@@ -663,7 +667,7 @@ export const UI = () => {
                 onClick={async () => {
                   setShareSaving(true);
                   try {
-                    const result = await saveShare(shareId, { pages, pageImages });
+                    const result = await saveShare(shareId, { pages, pageImages, musicUrl });
                     if (result.mediaBytes != null) setMediaBytes(result.mediaBytes);
                     await finalizeShare(shareId);
                     setEditUntil(new Date().toISOString());
