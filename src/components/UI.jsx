@@ -1,7 +1,7 @@
 import { atom, useAtom } from "jotai";
 import { useEffect, useRef, useState } from "react";
 import { TRANSLATIONS } from "./PageEditor";
-import { createShare, loadShare, deletePhoto, extractR2Key } from "../api";
+import { createShare, loadShare, saveShare, deletePhoto, extractR2Key } from "../api";
 
 // ── Page Slider ───────────────────────────────────────────────────────────────
 // Compact centered slider. Book responds live while dragging.
@@ -511,9 +511,15 @@ export const UI = () => {
 
   // ── Share state ──────────────────────────────────────────────────────────────
   const [isSharedView, setIsSharedView] = useState(false);
+  const [shareId, setShareId]           = useState(null);
+  const [editUntil, setEditUntil]       = useState(null); // ISO string or null
   const [shareLoading, setShareLoading] = useState(false);
   const [shareCopied, setShareCopied]   = useState(false);
+  const [shareSaving, setShareSaving]   = useState(false);
+  const [shareSaved, setShareSaved]     = useState(false);
   const [shareInitLoading, setShareInitLoading] = useState(false);
+
+  const canEdit = isSharedView && editUntil && Date.now() < Date.parse(editUntil);
 
   // Load shared book from ?share=id on mount
   useEffect(() => {
@@ -521,10 +527,12 @@ export const UI = () => {
     if (!id) return;
     setShareInitLoading(true);
     loadShare(id)
-      .then(({ pages: sp, pageImages: si }) => {
+      .then(({ pages: sp, pageImages: si, editUntil: eu }) => {
         setPages(sp);
         setPageImages(si ?? {});
         setPage(0);
+        setShareId(id);
+        setEditUntil(eu ?? null);
         setIsSharedView(true);
       })
       .catch(() => {
@@ -647,16 +655,43 @@ export const UI = () => {
             </button>
           )}
 
-          {/* Shared-view badge */}
-          {isSharedView && (
-            <div className="flex items-center gap-1.5 bg-white/10 text-white/60 border border-white/15 backdrop-blur-md px-3 py-2.5 rounded-full text-sm">
-              <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/></svg>
-              Shared view
+          {/* Shared-view: save button (if edit window open) or view-only badge */}
+          {isSharedView && canEdit && (
+            <button
+              className="flex items-center gap-1.5 bg-emerald-500/20 hover:bg-emerald-500/35 text-emerald-300 border border-emerald-400/30 hover:border-emerald-400/60 backdrop-blur-md transition-all duration-300 px-3 py-2.5 rounded-full text-sm font-medium shadow-lg"
+              onClick={async () => {
+                setShareSaving(true);
+                try {
+                  await saveShare(shareId, { pages, pageImages });
+                  setShareSaved(true);
+                  setTimeout(() => setShareSaved(false), 3000);
+                } catch (e) {
+                  alert('Save failed: ' + e.message);
+                } finally {
+                  setShareSaving(false);
+                }
+              }}
+              disabled={shareSaving}
+            >
+              {shareSaving ? (
+                <svg className="animate-spin" width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10" strokeOpacity=".25"/><path d="M22 12a10 10 0 00-10-10" strokeLinecap="round"/></svg>
+              ) : shareSaved ? (
+                <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+              ) : (
+                <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+              )}
+              {shareSaved ? "Saved!" : "Save"}
+            </button>
+          )}
+          {isSharedView && !canEdit && (
+            <div className="flex items-center gap-1.5 bg-white/10 text-white/50 border border-white/15 backdrop-blur-md px-3 py-2.5 rounded-full text-sm">
+              <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+              View only
             </div>
           )}
 
-          {/* Editor toggle — hidden in shared view */}
-          {!isSharedView && (
+          {/* Editor toggle — shown in shared-view edit mode too */}
+          {(!isSharedView || canEdit) && (
         <button
           className="flex items-center gap-2 bg-white/15 hover:bg-white/25 text-white border border-white/20 hover:border-white/40 backdrop-blur-md transition-all duration-300 px-4 py-2.5 rounded-full text-sm font-medium shadow-lg"
           onClick={() => setEditorOpen((v) => !v)}
@@ -690,7 +725,7 @@ export const UI = () => {
         {/* Editor panel — hidden entirely in shared view */}
         <div
           className={`pointer-events-auto fixed top-0 right-0 h-full w-72 bg-black/60 backdrop-blur-xl border-l border-white/10 flex flex-col transition-transform duration-300 ease-in-out ${
-            editorOpen && !isSharedView ? "translate-x-0" : "translate-x-full"
+            editorOpen && (!isSharedView || canEdit) ? "translate-x-0" : "translate-x-full"
           }`}
         >
           <div className="flex items-center justify-between px-5 py-5 border-b border-white/10">

@@ -1,13 +1,11 @@
 const API = (import.meta.env.VITE_API_URL || 'http://localhost:3001').replace(/\/$/, '');
-const CDN = (import.meta.env.VITE_CDN_URL ?? '').replace(/\/$/, '');
+const CDN = (import.meta.env.VITE_CDN_URL || '').replace(/\/$/, '');
 
-// Extract the R2 object key from a CDN URL, or null if it's not a CDN URL.
 export const extractR2Key = (url) => {
   if (!url || !CDN || !url.startsWith(CDN)) return null;
   return url.slice(CDN.length).replace(/^\//, '');
 };
 
-// Upload a File or Blob to R2 via the backend. Returns { url, key }.
 export const uploadPhoto = async (fileOrBlob) => {
   const fd = new FormData();
   fd.append('photo', fileOrBlob, 'photo.jpg');
@@ -16,27 +14,47 @@ export const uploadPhoto = async (fileOrBlob) => {
   return r.json();
 };
 
-// Save a book snapshot to R2 and return { id }.
-// pageImages values that are data: URLs are converted to WebP by the server.
-export const createShare = async ({ pages, pageImages }) => {
+// Create a new share. editDays controls how long the recipient can save edits (default 365).
+export const createShare = async ({ pages, pageImages, editDays = 365 }) => {
   const r = await fetch(`${API}/api/share`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ pages, pageImages }),
+    body: JSON.stringify({ pages, pageImages, editDays }),
   });
   if (!r.ok) throw new Error(`Share failed (${r.status})`);
-  return r.json();
+  return r.json(); // { id, editUntil }
 };
 
-// Fetch a previously saved book snapshot. Returns { pages, pageImages }.
+// Load a share. Returns { pages, pageImages, editUntil }.
 export const loadShare = async (id) => {
   const r = await fetch(`${API}/api/share/${encodeURIComponent(id)}`);
   if (!r.ok) throw new Error(`Share not found (${r.status})`);
   return r.json();
 };
 
-// Delete a photo from R2. key must start with photos/ or shares/imgs/.
-// Silently ignores missing CDN URL config or network errors.
+// Save edits back to an existing share (while edit window is open).
+export const saveShare = async (id, { pages, pageImages }) => {
+  const r = await fetch(`${API}/api/share/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ pages, pageImages }),
+  });
+  if (!r.ok) {
+    const err = await r.json().catch(() => ({}));
+    throw new Error(err.error || `Save failed (${r.status})`);
+  }
+  return r.json();
+};
+
+// Lock the share immediately so no further edits are possible.
+export const finalizeShare = async (id) => {
+  const r = await fetch(`${API}/api/share/${encodeURIComponent(id)}/finalize`, {
+    method: 'POST',
+  });
+  if (!r.ok) throw new Error(`Finalize failed (${r.status})`);
+  return r.json();
+};
+
 export const deletePhoto = async (urlOrKey) => {
   if (!urlOrKey) return;
   const key = urlOrKey.startsWith('photos/') || urlOrKey.startsWith('shares/imgs/')
