@@ -1,5 +1,5 @@
-const API = (import.meta.env.VITE_API_URL || 'http://localhost:3001').replace(/\/$/, '');
-const CDN = (import.meta.env.VITE_CDN_URL || '').replace(/\/$/, '');
+const API = (import.meta.env.VITE_API_URL || 'https://magazine-mr3p.onrender.com').replace(/\/$/, '');
+const CDN = (import.meta.env.VITE_CDN_URL || 'https://pub-73aa813fbb7d4ef8aed824206cd5d273.r2.dev').replace(/\/$/, '');
 
 export const extractR2Key = (url) => {
   if (!url || !CDN || !url.startsWith(CDN)) return null;
