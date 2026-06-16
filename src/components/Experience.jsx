@@ -6,7 +6,7 @@ import { Book } from "./Book";
 
 export const Experience = () => {
   const [hdri] = useAtom(hdriAtom);
-  const hdriUrl = `https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/${hdri}_1k.hdr`;
+  const hdriUrl = `https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/2k/${hdri}_2k.hdr`;
   return (
     <>
       <Float
@@ -15,7 +15,7 @@ export const Experience = () => {
         speed={2}
         rotationIntensity={0}
       >
-        <Book />
+        <Book scale={1.4} />
       </Float>
       <OrbitControls
         enablePan={false}
@@ -31,7 +31,7 @@ export const Experience = () => {
         <Environment
           files={hdriUrl}
           background
-          backgroundBlurriness={0.05}
+          backgroundBlurriness={0.4}
           backgroundIntensity={1}
         />
       </Suspense>

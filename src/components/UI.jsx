@@ -345,10 +345,10 @@ export const hdriAtom = atom("kloofendal_48d_partly_cloudy_puresky");
 
 const HDRI_PRESETS = [
   { slug: "kloofendal_48d_partly_cloudy_puresky", label: "Cloudy" },
-  { slug: "the_sky_is_on_fire",                   label: "Pink Sky" },
+  { slug: "belfast_sunset_puresky",               label: "Pink Sky" },
   { slug: "industrial_sunset_puresky",            label: "Sunset" },
   { slug: "evening_road_01_puresky",              label: "Evening" },
-  { slug: "galaxy",                               label: "Galactic" },
+  { slug: "kloppenheim_02",                       label: "Galactic" },
   { slug: "meadow_2",                             label: "Meadow" },
 ];
 
