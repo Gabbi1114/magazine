@@ -15,11 +15,11 @@ export const uploadPhoto = async (fileOrBlob) => {
 };
 
 // Create a new share. editDays controls how long the recipient can save edits (default 365).
-export const createShare = async ({ pages, pageImages, musicUrl = '', editDays = 365 }) => {
+export const createShare = async ({ pages, pageImages, musicUrl = '', editDays = 365, paperColor = '' }) => {
   const r = await fetch(`${API}/api/share`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ pages, pageImages, musicUrl, editDays }),
+    body: JSON.stringify({ pages, pageImages, musicUrl, editDays, paperColor }),
   });
   if (!r.ok) throw new Error(`Share failed (${r.status})`);
   return r.json(); // { id, editUntil }
@@ -33,11 +33,11 @@ export const loadShare = async (id) => {
 };
 
 // Save edits back to an existing share (while edit window is open).
-export const saveShare = async (id, { pages, pageImages, musicUrl = '' }) => {
+export const saveShare = async (id, { pages, pageImages, musicUrl = '', paperColor = '' }) => {
   const r = await fetch(`${API}/api/share/${encodeURIComponent(id)}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ pages, pageImages, musicUrl }),
+    body: JSON.stringify({ pages, pageImages, musicUrl, paperColor }),
   });
   if (!r.ok) {
     const err = await r.json().catch(() => ({}));

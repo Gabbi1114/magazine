@@ -340,6 +340,18 @@ export const pagesAtom = atom(buildInitialPages());
 export const pageImagesAtom = atom({});
 export const pageEditorStatesAtom = atom({});
 export const musicUrlAtom = atom("");
+export const paperColorAtom = atom("#f5f0e8");
+
+const PAPER_COLORS = [
+  { hex: "#f5f0e8", label: "Cream" },
+  { hex: "#fdfcf8", label: "White" },
+  { hex: "#fef9e7", label: "Ivory" },
+  { hex: "#fef3c7", label: "Sunlight" },
+  { hex: "#fce7f3", label: "Blush" },
+  { hex: "#dbeafe", label: "Sky" },
+  { hex: "#dcfce7", label: "Mint" },
+  { hex: "#e8ddd0", label: "Kraft" },
+];
 
 // Page aspect ratio: width / height
 const PAGE_RATIO = 1.28 / 1.71;
@@ -594,6 +606,7 @@ export const UI = () => {
   const [pageImages, setPageImages] = useAtom(pageImagesAtom);
   const [pageEditorStates, setPageEditorStates] = useAtom(pageEditorStatesAtom);
   const [musicUrl, setMusicUrl] = useAtom(musicUrlAtom);
+  const [paperColor, setPaperColor] = useAtom(paperColorAtom);
   const [editorOpen, setEditorOpen] = useState(false);
   const [lang, setLang] = useState("en");
   const tr = (key) => TRANSLATIONS[lang]?.[key] ?? TRANSLATIONS.en[key] ?? key;
@@ -618,7 +631,7 @@ export const UI = () => {
     if (!id) return;
     setShareInitLoading(true);
     loadShare(id)
-      .then(({ pages: sp, pageImages: si, editUntil: eu, mediaBytes: mb, musicUrl: mu }) => {
+      .then(({ pages: sp, pageImages: si, editUntil: eu, mediaBytes: mb, musicUrl: mu, paperColor: pc }) => {
         setPages(sp);
         setPageImages(si ?? {});
         setPage(0);
@@ -626,6 +639,7 @@ export const UI = () => {
         setEditUntil(eu ?? null);
         setMediaBytes(mb ?? 0);
         if (mu) setMusicUrl(mu);
+        if (pc) setPaperColor(pc);
         setIsSharedView(true);
       })
       .catch(() => {
@@ -728,7 +742,7 @@ export const UI = () => {
               onClick={async () => {
                 setShareLoading(true);
                 try {
-                  const { id } = await createShare({ pages, pageImages, musicUrl });
+                  const { id } = await createShare({ pages, pageImages, musicUrl, paperColor });
                   const url = `${window.location.origin}/?share=${id}`;
                   await navigator.clipboard.writeText(url).catch(() => {});
                   window.location.href = url;
@@ -762,7 +776,7 @@ export const UI = () => {
                   onClick={async () => {
                     setShareSaving(true);
                     try {
-                      const result = await saveShare(shareId, { pages, pageImages, musicUrl });
+                      const result = await saveShare(shareId, { pages, pageImages, musicUrl, paperColor });
                       if (result.mediaBytes != null) setMediaBytes(result.mediaBytes);
                     } catch (e) {
                       alert('Save failed: ' + e.message);
@@ -786,7 +800,7 @@ export const UI = () => {
                   onClick={async () => {
                     setShareFinishing(true);
                     try {
-                      const result = await saveShare(shareId, { pages, pageImages, musicUrl });
+                      const result = await saveShare(shareId, { pages, pageImages, musicUrl, paperColor });
                       if (result.mediaBytes != null) setMediaBytes(result.mediaBytes);
                       await finalizeShare(shareId);
                       setEditUntil(new Date().toISOString());
@@ -871,6 +885,34 @@ export const UI = () => {
           </div>
 
           <div className="flex-1 overflow-y-auto px-5 py-5 flex flex-col gap-6">
+
+            {/* Paper Color */}
+            <section className="flex flex-col gap-3">
+              <p className="text-white/40 text-xs font-semibold uppercase tracking-widest">{tr("paperColorLabel")}</p>
+              <div className="grid grid-cols-4 gap-2">
+                {PAPER_COLORS.map(({ hex, label }) => (
+                  <button
+                    key={hex}
+                    title={label}
+                    onClick={() => setPaperColor(hex)}
+                    className="flex flex-col items-center gap-1 group"
+                  >
+                    <div
+                      className="w-full aspect-square rounded-xl transition-all duration-200"
+                      style={{
+                        background: hex,
+                        outline: paperColor === hex ? "2px solid rgba(255,255,255,0.8)" : "2px solid transparent",
+                        outlineOffset: "2px",
+                        boxShadow: paperColor === hex ? "0 0 0 1px rgba(255,255,255,0.2)" : "none",
+                      }}
+                    />
+                    <span className="text-[9px] text-white/30 group-hover:text-white/60 transition-colors">{label}</span>
+                  </button>
+                ))}
+              </div>
+            </section>
+
+            <div className="h-px bg-white/10" />
 
             {/* Pages */}
             <section className="flex flex-col gap-3">
@@ -1005,6 +1047,7 @@ export const UI = () => {
           onSave={handleEditorSave}
           onClose={() => setPageEditorTarget(null)}
           lang={lang}
+          paperColor={paperColor}
         />
       )}
     </>

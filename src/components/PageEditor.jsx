@@ -58,6 +58,7 @@ export const TRANSLATIONS = {
     ytLinkDesc:"Paste a YouTube link — music keeps playing even when the editor is closed.",
     savePlay:"🎵 Save & Play", noTrack:"No track loaded yet", stopMusic:"⏹ Stop music",
     saveEdits:"Save", finishEdit:"Finish", saving:"Saving…", finishing:"Finishing…",
+    paperColorLabel:"Paper Color",
     coverLabel:"Cover", backCoverLabel:"Back Cover", pageLabel:"Page",
   },
   mn: {
@@ -114,6 +115,7 @@ export const TRANSLATIONS = {
     ytLinkDesc:"YouTube холбоос оруулна уу — засварлагч хаагдсан ч хөгжим үргэлжилнэ.",
     savePlay:"🎵 Хадгалах & Тоглуулах", noTrack:"Дуу ачаалаагүй байна", stopMusic:"⏹ Хөгжим зогсоох",
     saveEdits:"Хадгалах", finishEdit:"Дуусгах", saving:"Хадгалж байна…", finishing:"Дуусгаж байна…",
+    paperColorLabel:"Цаасны өнгө",
     coverLabel:"Нүүр хавтас", backCoverLabel:"Арын хавтас", pageLabel:"Хуудас",
   },
 };
@@ -3128,7 +3130,7 @@ function _fillFrameWithUrl(frame, url, canvas, onDone) {
   }, { crossOrigin: "anonymous" });
 }
 
-export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose, lang = "en" }) => {
+export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose, lang = "en", paperColor = "#f5f0e8" }) => {
   _lang = lang; // sync module-level var so all t() calls in child renders use current lang
 
   // ── Load Google Fonts once ──────────────────────────────────────────────────
@@ -3247,7 +3249,7 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose, lan
     fabric.Image.prototype.crossOrigin = 'anonymous';
 
     const canvas = new fabric.Canvas(canvasElRef.current, {
-      width: LW, height: LH, backgroundColor: "#ffffff",
+      width: LW, height: LH, backgroundColor: paperColor,
       preserveObjectStacking: true,
       selectionColor: "rgba(99,102,241,0.12)",
       selectionBorderColor: "#6366f1",
@@ -3614,6 +3616,12 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose, lan
     };
   }, []); // eslint-disable-line
 
+  // Update canvas background when paperColor prop changes
+  useEffect(() => {
+    if (!fabricRef.current) return;
+    fabricRef.current.setBackgroundColor(paperColor, () => fabricRef.current?.renderAll());
+  }, [paperColor]);
+
   // ── Tool fns ──
   const addText = () => {
     const t = new fabric.IText("Type here", { left: LW / 2, top: LH / 2, originX: "center", originY: "center", fontFamily: "Arial", fontSize: 36, fill: "#1a1a2e" });
@@ -3697,7 +3705,7 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose, lan
     } else {
       // Replace entire canvas with template (build() may return a Promise for image-based templates)
       canvas.clear();
-      canvas.setBackgroundColor("#ffffff", () => {});
+      canvas.setBackgroundColor(paperColor, () => {});
       const result = item.build();
       const objects = (result instanceof Promise) ? await result : result;
       objects.forEach(obj => canvas.add(obj));
