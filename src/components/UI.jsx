@@ -1,6 +1,6 @@
 import { atom, useAtom } from "jotai";
 import { useEffect, useRef, useState } from "react";
-import { TRANSLATIONS } from "./PageEditor";
+import { TRANSLATIONS } from "../translations";
 import { createShare, loadShare, saveShare, finalizeShare, deletePhoto, extractR2Key } from "../api";
 
 // ── Page Slider ───────────────────────────────────────────────────────────────
