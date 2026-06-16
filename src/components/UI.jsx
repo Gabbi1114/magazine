@@ -349,7 +349,7 @@ const HDRI_PRESETS = [
   { slug: "industrial_sunset_puresky",            label: "Sunset" },
   { slug: "evening_road_01_puresky",              label: "Evening" },
   { slug: "kloppenheim_02",                       label: "Galactic" },
-  { slug: "meadow_2",                             label: "Meadow" },
+  { slug: "hilly_terrain_01",                     label: "Golden Hill" },
 ];
 
 

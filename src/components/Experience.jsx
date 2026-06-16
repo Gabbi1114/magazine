@@ -31,7 +31,7 @@ export const Experience = () => {
         <Environment
           files={hdriUrl}
           background
-          backgroundBlurriness={0.08}
+          backgroundBlurriness={0}
           backgroundIntensity={1}
         />
       </Suspense>
