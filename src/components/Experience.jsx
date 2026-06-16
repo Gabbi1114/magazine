@@ -12,7 +12,11 @@ export const Experience = () => {
       >
         <Book />
       </Float>
-      <OrbitControls />
+      <OrbitControls
+        enablePan={false}
+        minDistance={2}
+        maxDistance={8}
+      />
 
       {/*
         HDRI: "Cloudy Sky" (kloofendal_overcast_puresky) — soft diffuse sky lighting.
