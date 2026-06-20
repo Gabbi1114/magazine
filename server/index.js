@@ -117,7 +117,7 @@ app.post('/api/share', async (req, res) => {
 
     const days = (typeof editDays === 'number' && editDays > 0)
       ? Math.min(Math.floor(editDays), MAX_EDIT_DAYS)
-      : 5;
+      : 30;
     const editUntil = new Date(Date.now() + days * 86400000).toISOString();
 
     const id      = uid();
