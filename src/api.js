@@ -14,8 +14,8 @@ export const uploadPhoto = async (fileOrBlob) => {
   return r.json();
 };
 
-// Create a new share. editDays controls how long the recipient can save edits (default 365).
-export const createShare = async ({ pages, pageImages, musicUrl = '', editDays = 365 }) => {
+// Create a new share. editDays controls how long the recipient can save edits (default 30).
+export const createShare = async ({ pages, pageImages, musicUrl = '', editDays = 30 }) => {
   const r = await fetch(`${API}/api/share`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
