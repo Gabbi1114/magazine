@@ -599,6 +599,44 @@ const UploadSlot = ({ label, imageUrl, onFileSelected }) => (
   </label>
 );
 
+// ─── Countdown Timer ──────────────────────────────────────────────────────────
+const CountdownTimer = ({ editUntil }) => {
+  const [remaining, setRemaining] = useState(() => Math.max(0, Date.parse(editUntil) - Date.now()));
+
+  useEffect(() => {
+    const tick = () => setRemaining(Math.max(0, Date.parse(editUntil) - Date.now()));
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [editUntil]);
+
+  if (remaining <= 0) return null;
+
+  const totalSecs = Math.floor(remaining / 1000);
+  const d = Math.floor(totalSecs / 86400);
+  const h = Math.floor((totalSecs % 86400) / 3600);
+  const m = Math.floor((totalSecs % 3600) / 60);
+  const s = totalSecs % 60;
+
+  const label = d > 0
+    ? `${d}d ${String(h).padStart(2,"0")}h ${String(m).padStart(2,"0")}m`
+    : `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+
+  const urgent = remaining < 3600000; // < 1 hour
+
+  return (
+    <div className={`flex items-center gap-1.5 backdrop-blur-md border px-3 py-2.5 rounded-full text-sm font-medium shadow-lg transition-colors ${
+      urgent
+        ? "bg-red-500/20 border-red-400/40 text-red-200"
+        : "bg-white/15 border-white/20 text-white"
+    }`}>
+      <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+      </svg>
+      <span className="font-mono tracking-tight">{label}</span>
+    </div>
+  );
+};
+
 // ─── Main UI ───────────────────────────────────────────────────────────────────
 export const UI = () => {
   const [page, setPage] = useAtom(pageAtom);
@@ -722,6 +760,11 @@ export const UI = () => {
 
         {/* Top-right button row */}
         <div className="pointer-events-auto fixed top-6 right-6 flex items-center gap-2">
+
+          {/* Edit countdown — only in editable shared view */}
+          {isSharedView && canEdit && editUntil && (
+            <CountdownTimer editUntil={editUntil} />
+          )}
 
           {/* Language toggle — hidden in view-only shared mode */}
           {(!isSharedView || canEdit) && (
