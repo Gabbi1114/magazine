@@ -690,8 +690,36 @@ export const UI = () => {
   const [pageEditorTarget, setPageEditorTarget] = useState(null);
 
   useEffect(() => {
-    const audio = new Audio("/audios/page-flip-01a.mp3");
-    audio.play().catch(() => {});
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const duration = 0.18;
+      const sr = ctx.sampleRate;
+      const buf = ctx.createBuffer(1, Math.floor(sr * duration), sr);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < data.length; i++) {
+        const t = i / data.length;
+        // White noise with fast attack and exponential decay
+        data[i] = (Math.random() * 2 - 1) * Math.pow(1 - t, 3) * (1 - Math.pow(t - 0.05, 2) * 8);
+      }
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      // Bandpass centred around paper rustle frequency
+      const bp = ctx.createBiquadFilter();
+      bp.type = "bandpass";
+      bp.frequency.value = 2800;
+      bp.Q.value = 0.6;
+      // High shelf adds crispness
+      const hs = ctx.createBiquadFilter();
+      hs.type = "highshelf";
+      hs.frequency.value = 5000;
+      hs.gain.value = 6;
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0.55, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+      src.connect(bp); bp.connect(hs); hs.connect(gain); gain.connect(ctx.destination);
+      src.start();
+      src.stop(ctx.currentTime + duration);
+    } catch (_) {}
   }, [page]);
 
   const addPage = () => {
