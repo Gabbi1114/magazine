@@ -98,17 +98,15 @@ const PageSlider = ({ page, maxPage, setPage, getLabel }) => {
         {/* Track */}
         <div
           ref={trackRef}
-          className="relative rounded-full cursor-grab active:cursor-grabbing"
-          style={{ width: "min(200px, 50vw)", height: 4, background: "rgba(255,255,255,0.18)" }}
-          onMouseDown={e  => startDrag(e.clientX)}
-          onTouchStart={e => startDrag(e.touches[0].clientX)}>
+          className="relative rounded-full"
+          style={{ width: "min(200px, 50vw)", height: 4, background: "rgba(255,255,255,0.18)" }}>
 
           {/* Filled part */}
           <div className="absolute left-0 top-0 h-full rounded-full pointer-events-none"
             style={{ width: `${thumbPct}%`, background: "linear-gradient(90deg,#E8602A,#C4507A)" }} />
 
-          {/* Round white thumb */}
-          <div className="absolute top-1/2 rounded-full pointer-events-none"
+          {/* Round white thumb — drag handle only */}
+          <div className="absolute top-1/2 rounded-full cursor-grab active:cursor-grabbing"
             style={{
               left: `${thumbPct}%`,
               transform: "translate(-50%,-50%)",
@@ -116,7 +114,9 @@ const PageSlider = ({ page, maxPage, setPage, getLabel }) => {
               background: "#ffffff",
               boxShadow: "0 2px 16px rgba(0,0,0,0.55), 0 0 0 3px rgba(255,255,255,0.2)",
               zIndex: 2,
-            }} />
+            }}
+            onMouseDown={e  => { e.stopPropagation(); startDrag(e.clientX); }}
+            onTouchStart={e => { e.stopPropagation(); startDrag(e.touches[0].clientX); }} />
         </div>
 
         {/* Right lines — narrow end toward thumb */}
@@ -656,6 +656,8 @@ export const UI = () => {
   const [editUntil, setEditUntil]       = useState(null); // ISO string or null
   const [shareLoading, setShareLoading] = useState(false);
   const [shareCopied, setShareCopied]   = useState(false);
+  const [shareModalUrl, setShareModalUrl] = useState(null);
+  const [modalCopied, setModalCopied]     = useState(false);
   const [shareSaving,    setShareSaving]    = useState(false);
   const [shareFinishing, setShareFinishing] = useState(false);
   const [shareSaved, setShareSaved]         = useState(false);
@@ -690,36 +692,8 @@ export const UI = () => {
   const [pageEditorTarget, setPageEditorTarget] = useState(null);
 
   useEffect(() => {
-    try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const duration = 0.18;
-      const sr = ctx.sampleRate;
-      const buf = ctx.createBuffer(1, Math.floor(sr * duration), sr);
-      const data = buf.getChannelData(0);
-      for (let i = 0; i < data.length; i++) {
-        const t = i / data.length;
-        // White noise with fast attack and exponential decay
-        data[i] = (Math.random() * 2 - 1) * Math.pow(1 - t, 3) * (1 - Math.pow(t - 0.05, 2) * 8);
-      }
-      const src = ctx.createBufferSource();
-      src.buffer = buf;
-      // Bandpass centred around paper rustle frequency
-      const bp = ctx.createBiquadFilter();
-      bp.type = "bandpass";
-      bp.frequency.value = 2800;
-      bp.Q.value = 0.6;
-      // High shelf adds crispness
-      const hs = ctx.createBiquadFilter();
-      hs.type = "highshelf";
-      hs.frequency.value = 5000;
-      hs.gain.value = 6;
-      const gain = ctx.createGain();
-      gain.gain.setValueAtTime(0.55, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
-      src.connect(bp); bp.connect(hs); hs.connect(gain); gain.connect(ctx.destination);
-      src.start();
-      src.stop(ctx.currentTime + duration);
-    } catch (_) {}
+    const audio = new Audio("/audios/page-flip-01a.mp3");
+    audio.play().catch(() => {});
   }, [page]);
 
   const addPage = () => {
@@ -815,8 +789,8 @@ export const UI = () => {
                 try {
                   const { id } = await createShare({ pages, pageImages, musicUrl });
                   const url = `${window.location.origin}/?share=${id}`;
-                  await navigator.clipboard.writeText(url).catch(() => {});
-                  window.location.href = url;
+                  setShareModalUrl(url);
+                  setModalCopied(false);
                 } catch (e) {
                   alert('Share failed: ' + e.message);
                 } finally {
@@ -932,6 +906,47 @@ export const UI = () => {
         </button>
           )}
         </div>{/* end top-right button row */}
+
+        {/* Share link modal */}
+        {shareModalUrl && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm"
+            onClick={() => setShareModalUrl(null)}>
+            <div className="pointer-events-auto bg-[#111] border border-white/15 rounded-2xl p-6 mx-4 w-full max-w-sm shadow-2xl flex flex-col gap-4"
+              onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between">
+                <span className="text-white font-semibold text-base">Share link ready</span>
+                <button className="text-white/40 hover:text-white transition-colors" onClick={() => setShareModalUrl(null)}>
+                  <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                </button>
+              </div>
+              <div className="flex items-center gap-2 bg-white/8 border border-white/12 rounded-xl px-3 py-2.5">
+                <span className="text-white/70 text-sm truncate flex-1 font-mono">{shareModalUrl}</span>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  className="flex-1 flex items-center justify-center gap-2 bg-white text-black font-semibold rounded-xl py-2.5 text-sm hover:bg-white/90 transition-colors"
+                  onClick={async () => {
+                    await navigator.clipboard.writeText(shareModalUrl).catch(() => {});
+                    setModalCopied(true);
+                    setTimeout(() => setModalCopied(false), 2000);
+                  }}>
+                  {modalCopied
+                    ? <><svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg> Copied!</>
+                    : <><svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy link</>
+                  }
+                </button>
+                <a
+                  href={shareModalUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 bg-white/12 hover:bg-white/20 text-white border border-white/15 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors">
+                  <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                  Open
+                </a>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Share init loading overlay */}
         {shareInitLoading && (

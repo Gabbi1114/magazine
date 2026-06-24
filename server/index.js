@@ -118,13 +118,12 @@ app.post('/api/share', async (req, res) => {
     const days = (typeof editDays === 'number' && editDays > 0)
       ? Math.min(Math.floor(editDays), MAX_EDIT_DAYS)
       : 30;
-    const editUntil = new Date(Date.now() + days * 86400000).toISOString();
 
     const id      = uid();
-    const payload = JSON.stringify({ pages, pageImages: finalImages, editUntil, mediaBytes: newBytes, bytesLimit: BYTES_LIMIT, ...(musicUrl ? { musicUrl } : {}) });
+    const payload = JSON.stringify({ pages, pageImages: finalImages, editDays: days, editUntil: null, mediaBytes: newBytes, bytesLimit: BYTES_LIMIT, ...(musicUrl ? { musicUrl } : {}) });
     await putR2(`shares/${id}.json`, payload, 'application/json');
 
-    res.json({ id, editUntil });
+    res.json({ id, editUntil: null });
   } catch (err) {
     console.error('[share/create]', err.message);
     res.status(500).json({ error: err.message });
@@ -137,6 +136,10 @@ app.get('/api/share/:id', async (req, res) => {
   if (!VALID_ID.test(id)) return res.status(400).json({ error: 'Invalid share ID' });
   try {
     const data = await getShareJson(id);
+    if (!data.editUntil && data.editDays) {
+      data.editUntil = new Date(Date.now() + data.editDays * 86400000).toISOString();
+      await putR2(`shares/${id}.json`, JSON.stringify(data), 'application/json');
+    }
     res.json(data);
   } catch (err) {
     const is404 = err.name === 'NoSuchKey' || err.$metadata?.httpStatusCode === 404;
