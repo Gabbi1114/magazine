@@ -51,16 +51,21 @@ const getShareJson = async (id) => {
   return JSON.parse(body);
 };
 
-const dataUrlToWebp = async (dataUrl, quality = 84) => {
+const toAvif = async (input, quality = 62) =>
+  sharp(input)
+    .resize({ width: 1920, height: 1920, fit: 'inside', withoutEnlargement: true })
+    .avif({ quality, effort: 4 })
+    .toBuffer();
+
+const dataUrlToAvif = async (dataUrl) => {
   const base64 = dataUrl.split(',')[1];
   if (!base64) throw new Error('Invalid data URL');
-  return sharp(Buffer.from(base64, 'base64')).webp({ quality }).toBuffer();
+  return toAvif(Buffer.from(base64, 'base64'));
 };
 
 const BYTES_LIMIT = 10 * 1024 * 1024; // 10 MB total per share
 
 // Convert pageImages: upload any data: URLs to R2, keep CDN URLs as-is
-// Returns { images, newBytes } — newBytes counts only newly converted WebP
 const processPageImages = async (pageImages = {}, prefix = 'shares/imgs') => {
   const out = {};
   let newBytes = 0;
@@ -69,10 +74,10 @@ const processPageImages = async (pageImages = {}, prefix = 'shares/imgs') => {
     for (const [side, value] of Object.entries(sides)) {
       if (!value) continue;
       if (value.startsWith('data:')) {
-        const webp = await dataUrlToWebp(value, 82);
-        newBytes += webp.length;
-        const key  = `${prefix}/${uid()}.webp`;
-        await putR2(key, webp, 'image/webp');
+        const avif = await dataUrlToAvif(value);
+        newBytes += avif.length;
+        const key  = `${prefix}/${uid()}.avif`;
+        await putR2(key, avif, 'image/avif');
         out[pageId][side] = `${CDN}/${key}`;
       } else {
         out[pageId][side] = value;
@@ -95,9 +100,9 @@ const upload = multer({
 app.post('/api/upload', upload.single('photo'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file received' });
   try {
-    const webp = await sharp(req.file.buffer).webp({ quality: 85 }).toBuffer();
-    const key  = `photos/${uid()}.webp`;
-    await putR2(key, webp, 'image/webp');
+    const avif = await toAvif(req.file.buffer, 65);
+    const key  = `photos/${uid()}.avif`;
+    await putR2(key, avif, 'image/avif');
     res.json({ url: `${CDN}/${key}`, key });
   } catch (err) {
     console.error('[upload]', err.message);
