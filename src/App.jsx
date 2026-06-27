@@ -1,6 +1,6 @@
 import { useProgress } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 import { Experience } from "./components/Experience";
 import { UI } from "./components/UI";
 
@@ -121,7 +121,80 @@ function BookLoader() {
   );
 }
 
+const LOCK_PASSWORD = import.meta.env.VITE_LOCK_PASSWORD;
+const isSharedLink  = new URLSearchParams(window.location.search).has("share");
+const SESSION_KEY   = "56m_unlocked";
+
+function LockScreen({ onUnlock }) {
+  const [value, setValue]   = useState("");
+  const [error, setError]   = useState(false);
+  const [shake, setShake]   = useState(false);
+
+  const attempt = () => {
+    if (value === LOCK_PASSWORD) {
+      sessionStorage.setItem(SESSION_KEY, "1");
+      onUnlock();
+    } else {
+      setError(true);
+      setShake(true);
+      setTimeout(() => setShake(false), 500);
+    }
+  };
+
+  return (
+    <div style={{ position:"fixed", inset:0, zIndex:9999, background:"#0f172a", display:"flex", alignItems:"center", justifyContent:"center" }}>
+      <style>{`
+        @keyframes shake {
+          0%,100% { transform:translateX(0); }
+          20%,60% { transform:translateX(-8px); }
+          40%,80% { transform:translateX(8px); }
+        }
+        .lock-shake { animation: shake 0.45s ease; }
+      `}</style>
+      <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:24, width:"100%", maxWidth:320, padding:"0 24px" }}>
+        <img
+          src="https://pub-ac8c0cf9861545f09cb652f68d5d5b04.r2.dev/logo.png"
+          alt="56 Moments"
+          style={{ width:80, filter:"brightness(0) invert(1)", opacity:0.9 }}
+        />
+        <div style={{ color:"rgba(255,255,255,0.5)", fontSize:13, letterSpacing:"0.05em" }}>Enter password to continue</div>
+        <div className={shake ? "lock-shake" : ""} style={{ width:"100%", display:"flex", flexDirection:"column", gap:10 }}>
+          <input
+            type="password"
+            value={value}
+            autoFocus
+            placeholder="Password"
+            onChange={e => { setValue(e.target.value); setError(false); }}
+            onKeyDown={e => e.key === "Enter" && attempt()}
+            style={{
+              width:"100%", padding:"12px 16px", borderRadius:12, border:`1.5px solid ${error ? "#f87171" : "rgba(255,255,255,0.15)"}`,
+              background:"rgba(255,255,255,0.07)", color:"#fff", fontSize:15, outline:"none", boxSizing:"border-box",
+            }}
+          />
+          {error && <div style={{ color:"#f87171", fontSize:12, textAlign:"center" }}>Incorrect password</div>}
+          <button
+            onClick={attempt}
+            style={{
+              width:"100%", padding:"12px", borderRadius:12, border:"none", background:"#fff",
+              color:"#000", fontWeight:700, fontSize:15, cursor:"pointer",
+            }}
+          >
+            Unlock
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function App() {
+  const needsLock = LOCK_PASSWORD && !isSharedLink;
+  const [unlocked, setUnlocked] = useState(() =>
+    !needsLock || sessionStorage.getItem(SESSION_KEY) === "1"
+  );
+
+  if (!unlocked) return <LockScreen onUnlock={() => setUnlocked(true)} />;
+
   return (
     <>
       <UI />

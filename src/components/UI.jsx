@@ -761,7 +761,7 @@ export const UI = () => {
       <main className="pointer-events-none select-none z-10 fixed inset-0">
 
         {/* Top-right button row */}
-        <div className="pointer-events-auto fixed top-6 right-6 flex items-center gap-2">
+        <div className="pointer-events-auto fixed top-3 right-3 sm:top-6 sm:right-6 flex flex-wrap justify-end items-center gap-1.5 sm:gap-2" style={{ maxWidth: "calc(100vw - 24px)" }}>
 
           {/* Edit countdown — only in editable shared view */}
           {isSharedView && canEdit && editUntil && (
@@ -771,7 +771,7 @@ export const UI = () => {
           {/* Language toggle — hidden in view-only shared mode */}
           {(!isSharedView || canEdit) && (
             <button
-              className="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 text-white border border-white/20 hover:border-white/40 backdrop-blur-md transition-all duration-300 px-3 py-2.5 rounded-full text-sm font-medium shadow-lg"
+              className="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 text-white border border-white/20 hover:border-white/40 backdrop-blur-md transition-all duration-300 px-2.5 py-2 sm:px-3 sm:py-2.5 rounded-full text-xs sm:text-sm font-medium shadow-lg"
               onClick={() => setLang(l => l === "en" ? "mn" : "en")}
               title={lang === "en" ? "Монгол хэл рүү шилжих" : "Switch to English"}
             >
@@ -783,7 +783,7 @@ export const UI = () => {
           {/* Share button — hidden in shared view */}
           {!isSharedView && (
             <button
-              className="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 text-white border border-white/20 hover:border-white/40 backdrop-blur-md transition-all duration-300 px-3 py-2.5 rounded-full text-sm font-medium shadow-lg"
+              className="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 text-white border border-white/20 hover:border-white/40 backdrop-blur-md transition-all duration-300 px-2.5 py-2 sm:px-3 sm:py-2.5 rounded-full text-xs sm:text-sm font-medium shadow-lg"
               onClick={async () => {
                 setShareLoading(true);
                 try {
@@ -807,7 +807,7 @@ export const UI = () => {
               ) : (
                 <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/></svg>
               )}
-              {shareCopied ? "Copied!" : "Share"}
+              <span className="hidden sm:inline">{shareCopied ? "Copied!" : "Share"}</span>
             </button>
           )}
 
@@ -817,7 +817,7 @@ export const UI = () => {
               <div className="flex items-center gap-2">
                 {/* Save — persists edits, keeps edit window open */}
                 <button
-                  className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 text-white border border-white/20 hover:border-white/40 backdrop-blur-md transition-all duration-300 px-3 py-2.5 rounded-full text-sm font-medium shadow-lg"
+                  className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 text-white border border-white/20 hover:border-white/40 backdrop-blur-md transition-all duration-300 px-2.5 py-2 sm:px-3 sm:py-2.5 rounded-full text-xs sm:text-sm font-medium shadow-lg"
                   onClick={async () => {
                     setShareSaving(true);
                     try {
@@ -836,12 +836,12 @@ export const UI = () => {
                   ) : (
                     <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
                   )}
-                  {shareSaving ? tr("saving") : tr("saveEdits")}
+                  <span className="hidden sm:inline">{shareSaving ? tr("saving") : tr("saveEdits")}</span>
                 </button>
 
                 {/* Finish — saves + locks to view-only */}
                 <button
-                  className="flex items-center gap-1.5 bg-emerald-500/20 hover:bg-emerald-500/35 text-emerald-300 border border-emerald-400/30 hover:border-emerald-400/60 backdrop-blur-md transition-all duration-300 px-3 py-2.5 rounded-full text-sm font-medium shadow-lg"
+                  className="flex items-center gap-1.5 bg-emerald-500/20 hover:bg-emerald-500/35 text-emerald-300 border border-emerald-400/30 hover:border-emerald-400/60 backdrop-blur-md transition-all duration-300 px-2.5 py-2 sm:px-3 sm:py-2.5 rounded-full text-xs sm:text-sm font-medium shadow-lg"
                   onClick={async () => {
                     setShareFinishing(true);
                     try {
@@ -863,7 +863,7 @@ export const UI = () => {
                   ) : (
                     <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
                   )}
-                  {shareFinishing ? tr("finishing") : tr("finishEdit")}
+                  <span className="hidden sm:inline">{shareFinishing ? tr("finishing") : tr("finishEdit")}</span>
                 </button>
               </div>
               {/* Memory bar */}
@@ -885,7 +885,7 @@ export const UI = () => {
           {/* Editor toggle — shown in shared-view edit mode too */}
           {(!isSharedView || canEdit) && (
         <button
-          className="flex items-center gap-2 bg-white/15 hover:bg-white/25 text-white border border-white/20 hover:border-white/40 backdrop-blur-md transition-all duration-300 px-4 py-2.5 rounded-full text-sm font-medium shadow-lg"
+          className="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 text-white border border-white/20 hover:border-white/40 backdrop-blur-md transition-all duration-300 px-2.5 py-2 sm:px-4 sm:py-2.5 rounded-full text-xs sm:text-sm font-medium shadow-lg"
           onClick={() => setEditorOpen((v) => !v)}
         >
           {editorOpen ? (
@@ -893,14 +893,14 @@ export const UI = () => {
               <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
-              {tr("close")}
+              <span className="hidden sm:inline">{tr("close")}</span>
             </>
           ) : (
             <>
               <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
               </svg>
-              {tr("editorMobile")}
+              <span className="hidden sm:inline">{tr("editorMobile")}</span>
             </>
           )}
         </button>
