@@ -3144,6 +3144,66 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose, lan
     });
     fabricRef.current = canvas;
 
+    // ── Global control styling ───────────────────────────────────────────────
+    // Large touch-friendly corners; image stays pinned at opposite corner when scaling
+    fabric.Object.prototype.set({
+      cornerSize: 14,
+      touchCornerSize: 32,
+      cornerColor: "#ffffff",
+      cornerStrokeColor: "#6366f1",
+      borderColor: "#6366f1",
+      borderScaleFactor: 1.5,
+      cornerStyle: "circle",
+      transparentCorners: false,
+      centeredScaling: false,
+    });
+
+    // ── Rotation control — circular-arrow icon ───────────────────────────────
+    const drawRotIcon = (ctx, left, top, _style, obj) => {
+      const R = 10;
+      ctx.save();
+      ctx.translate(left, top);
+      ctx.rotate(fabric.util.degreesToRadians(obj.angle));
+
+      // background circle
+      ctx.beginPath();
+      ctx.arc(0, 0, R + 4, 0, Math.PI * 2);
+      ctx.fillStyle = "#6366f1";
+      ctx.fill();
+
+      // circular arrow arc
+      ctx.beginPath();
+      ctx.arc(0, 0, R, -Math.PI * 0.15, Math.PI * 1.35, false);
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 2.5;
+      ctx.lineCap = "round";
+      ctx.stroke();
+
+      // arrowhead at end of arc
+      const ex = Math.cos(Math.PI * 1.35) * R;
+      const ey = Math.sin(Math.PI * 1.35) * R;
+      const ta = Math.PI * 1.35 + Math.PI / 2;
+      ctx.beginPath();
+      ctx.moveTo(ex, ey);
+      ctx.lineTo(ex + Math.cos(ta - 0.5) * 6, ey + Math.sin(ta - 0.5) * 6);
+      ctx.lineTo(ex + Math.cos(ta + 0.5) * 6, ey + Math.sin(ta + 0.5) * 6);
+      ctx.closePath();
+      ctx.fillStyle = "#ffffff";
+      ctx.fill();
+
+      ctx.restore();
+    };
+
+    fabric.Object.prototype.controls.mtr = new fabric.Control({
+      x: 0, y: -0.5,
+      offsetY: -28,
+      cursorStyleHandler: fabric.controlsUtils.rotationStyleHandler,
+      actionHandler: fabric.controlsUtils.rotationWithSnapping,
+      actionName: "rotate",
+      render: drawRotIcon,
+      cornerSize: 28,
+    });
+
     // ── Single drawing layer backed by a plain HTML canvas ──────────────────
     const drawEl  = document.createElement("canvas");
     drawEl.width  = LW; drawEl.height = LH;
