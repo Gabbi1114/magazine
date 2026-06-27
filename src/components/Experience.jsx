@@ -6,7 +6,8 @@ import { Book } from "./Book";
 
 export const Experience = () => {
   const [hdri] = useAtom(hdriAtom);
-  const hdriUrl = `https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/${hdri}_1k.hdr`;
+  const url1k = `https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/${hdri}_1k.hdr`;
+  const url2k = `https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/2k/${hdri}_2k.hdr`;
   return (
     <>
       <Float
@@ -26,14 +27,13 @@ export const Experience = () => {
         position={[2, 5, 2]}
         intensity={1.8}
       />
-      {/* HDRI loads independently — book renders immediately while sky loads in background */}
+      {/* 1k resolves first — scene visible fast */}
       <Suspense fallback={null}>
-        <Environment
-          files={hdriUrl}
-          background
-          backgroundBlurriness={0}
-          backgroundIntensity={1}
-        />
+        <Environment files={url1k} background backgroundBlurriness={0} backgroundIntensity={1} />
+      </Suspense>
+      {/* 2k loads in parallel, overrides 1k when ready */}
+      <Suspense fallback={null}>
+        <Environment files={url2k} background backgroundBlurriness={0} backgroundIntensity={1} />
       </Suspense>
     </>
   );
