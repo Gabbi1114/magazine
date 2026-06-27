@@ -123,7 +123,6 @@ function BookLoader() {
 
 const LOCK_PASSWORD = import.meta.env.VITE_LOCK_PASSWORD;
 const isSharedLink  = new URLSearchParams(window.location.search).has("share");
-const SESSION_KEY   = "56m_unlocked";
 
 function LockScreen({ onUnlock }) {
   const [value, setValue]   = useState("");
@@ -132,7 +131,6 @@ function LockScreen({ onUnlock }) {
 
   const attempt = () => {
     if (value === LOCK_PASSWORD) {
-      sessionStorage.setItem(SESSION_KEY, "1");
       onUnlock();
     } else {
       setError(true);
@@ -189,9 +187,7 @@ function LockScreen({ onUnlock }) {
 
 function App() {
   const needsLock = LOCK_PASSWORD && !isSharedLink;
-  const [unlocked, setUnlocked] = useState(() =>
-    !needsLock || sessionStorage.getItem(SESSION_KEY) === "1"
-  );
+  const [unlocked, setUnlocked] = useState(!needsLock);
 
   if (!unlocked) return <LockScreen onUnlock={() => setUnlocked(true)} />;
 
