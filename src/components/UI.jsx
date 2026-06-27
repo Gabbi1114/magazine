@@ -320,8 +320,6 @@ const pictures = [
   "DSC01489", "DSC02031", "DSC02064", "DSC02069",
 ];
 
-let nextId = 100;
-
 const buildInitialPages = () => {
   const p = [{ id: 0, front: "book-cover", back: pictures[0] }];
   for (let i = 1; i < pictures.length - 1; i += 2) {
@@ -697,7 +695,9 @@ export const UI = () => {
   }, [page]);
 
   const addPage = () => {
-    const newPage = { id: nextId++, front: "DSC00680", back: "DSC00680" };
+    if (pages.length >= 20) return;
+    const maxId = pages.reduce((m, p) => Math.max(m, typeof p.id === "number" ? p.id : 0), 0);
+    const newPage = { id: maxId + 1, front: "DSC00680", back: "DSC00680" };
     setPages((prev) => [...prev.slice(0, prev.length - 1), newPage, prev[prev.length - 1]]);
     setPage(pages.length - 1);
   };
@@ -1015,8 +1015,9 @@ export const UI = () => {
               <p className="text-white/40 text-xs font-semibold uppercase tracking-widest">{tr("pagesLabel")}</p>
               <div className="flex flex-col gap-2">
                 <button
-                  className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-medium border border-white/10 hover:border-white/25 transition-all duration-200"
+                  className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-medium border border-white/10 hover:border-white/25 transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed"
                   onClick={addPage}
+                  disabled={pages.length >= 20}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />

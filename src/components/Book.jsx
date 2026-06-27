@@ -30,7 +30,7 @@ const PAGE_WIDTH = 1.28;
 const PAGE_HEIGHT = 1.71;
 const PAGE_DEPTH = 0.003;
 const COVER_DEPTH = 0.015;
-const PAGE_SEGMENTS = 30;
+const PAGE_SEGMENTS = 20;
 const SEGMENT_WIDTH = PAGE_WIDTH / PAGE_SEGMENTS;
 
 function buildPageGeometry(depth) {

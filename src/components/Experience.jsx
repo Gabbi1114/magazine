@@ -6,7 +6,7 @@ import { Book } from "./Book";
 
 export const Experience = () => {
   const [hdri] = useAtom(hdriAtom);
-  const hdriUrl = `https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/2k/${hdri}_2k.hdr`;
+  const hdriUrl = `https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/${hdri}_1k.hdr`;
   return (
     <>
       <Float
