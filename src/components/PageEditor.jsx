@@ -3588,27 +3588,25 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose, lan
     if (type === "line") shape = new fabric.Line([LW / 2 - 80, LH / 2, LW / 2 + 80, LH / 2], { stroke: "#1a1a2e", strokeWidth: 3 });
     if (shape) { c.add(shape); c.setActiveObject(shape); c.renderAll(); setActiveTool("select"); }
   };
-  const addImage = async (file) => {
+  const addImage = (file) => {
     if (file.size > 10 * 1024 * 1024) {
       alert('Image must be under 10 MB');
       return;
     }
-    let imgUrl = URL.createObjectURL(file);
-    let r2Key  = null;
-    try {
-      const result = await uploadPhoto(file);
-      URL.revokeObjectURL(imgUrl);
-      imgUrl = result.url;
-      r2Key  = result.key;
-    } catch (e) {
-      console.warn('[addImage] R2 upload failed, using local blob', e.message);
-    }
-    fabric.Image.fromURL(imgUrl, (img) => {
-      if (r2Key) img.r2Key = r2Key;
+    const blobUrl = URL.createObjectURL(file);
+    // Show immediately from local blob — no upload wait
+    fabric.Image.fromURL(blobUrl, (img) => {
       const s = Math.min((LW * 0.7) / img.width, (LH * 0.7) / img.height);
       img.set({ left: LW / 2, top: LH / 2, originX: "center", originY: "center", scaleX: s, scaleY: s });
       fabricRef.current.add(img); fabricRef.current.setActiveObject(img); fabricRef.current.renderAll();
-    }, { crossOrigin: 'anonymous' });
+      // Upload to R2 in background, swap URL when done
+      uploadPhoto(file).then((result) => {
+        img.r2Key = result.key;
+        img.setSrc(result.url, () => { fabricRef.current?.renderAll(); URL.revokeObjectURL(blobUrl); }, { crossOrigin: 'anonymous' });
+      }).catch((e) => {
+        console.warn('[addImage] R2 upload failed, keeping local blob', e.message);
+      });
+    });
     setActiveTool("select");
   };
 
