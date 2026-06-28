@@ -723,12 +723,18 @@ export const UI = () => {
 
   const handleEditorSave = ({ json, dataUrl }) => {
     const { pageId, side } = pageEditorTarget;
-    // If the old image was a CDN URL it's being replaced — free the R2 object
     const oldUrl = pageImages[pageId]?.[side];
     if (oldUrl) deletePhoto(extractR2Key(oldUrl));
     setPageEditorStates(prev => ({ ...prev, [`${pageId}-${side}`]: json }));
     setPageImages(prev => ({ ...prev, [pageId]: { ...prev[pageId], [side]: dataUrl } }));
     setPageEditorTarget(null);
+  };
+
+  const handleEditorAutoSave = ({ json, dataUrl }) => {
+    if (!pageEditorTarget) return;
+    const { pageId, side } = pageEditorTarget;
+    setPageEditorStates(prev => ({ ...prev, [`${pageId}-${side}`]: json }));
+    setPageImages(prev => ({ ...prev, [pageId]: { ...prev[pageId], [side]: dataUrl } }));
   };
 
   const openCrop = (pageId, side, file) => {
@@ -1142,6 +1148,7 @@ export const UI = () => {
           initialState={pageEditorTarget.initialState}
           initialImageUrl={pageEditorTarget.initialImageUrl}
           onSave={handleEditorSave}
+          onAutoSave={handleEditorAutoSave}
           onClose={() => setPageEditorTarget(null)}
           lang={lang}
           paperColor={paperColor}

@@ -3014,7 +3014,7 @@ function _fillFrameWithUrl(frame, url, canvas, onDone) {
   }, { crossOrigin: "anonymous" });
 }
 
-export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose, lang = "en", paperColor = "#f5f0e8" }) => {
+export const PageEditor = ({ initialState, initialImageUrl, onSave, onAutoSave, onClose, lang = "en", paperColor = "#f5f0e8" }) => {
   _lang = lang; // sync module-level var so all t() calls in child renders use current lang
 
   // ── Load Google Fonts once ──────────────────────────────────────────────────
@@ -3366,6 +3366,22 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose, lan
     canvas.on("object:removed",  () => { updateLayers(); saveHistory(); setPropVer(v => v + 1); });
     canvas.on("object:modified", onMod);
     canvas.on("text:changed",    onMod);
+
+    // ── Auto-save: debounce 1.5s after any change ────────────────────────────
+    let autoSaveTimer = null;
+    const triggerAutoSave = () => {
+      if (!onAutoSave) return;
+      clearTimeout(autoSaveTimer);
+      autoSaveTimer = setTimeout(() => {
+        const c = fabricRef.current;
+        if (!c) return;
+        onAutoSave(buildSnapshot(c));
+      }, 1500);
+    };
+    canvas.on("object:added",    triggerAutoSave);
+    canvas.on("object:removed",  triggerAutoSave);
+    canvas.on("object:modified", triggerAutoSave);
+    canvas.on("text:changed",    triggerAutoSave);
 
     const onKey = (e) => {
       const el = document.activeElement;
@@ -3889,13 +3905,18 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onClose, lan
     },
   };
 
+  const buildSnapshot = (c) => {
+    const json = c.toJSON(['r2Key','isPhotoFrame','isPhotoHole','frameShape','frameRx','frameRy',
+      'framePhotoOffsetY','_filledPhotoId','frameClipShape','frameClipD','frameR','frameClipRx']);
+    // Native canvas resolution (480px) — plenty for the 3D book texture, ~10x faster than 1280px
+    const dataUrl = c.toDataURL({ format: "jpeg", quality: 0.88, multiplier: LW / c.getWidth() });
+    return { json, dataUrl };
+  };
+
   const handleSave = () => {
     const c = fabricRef.current;
     c.discardActiveObject(); c.renderAll();
-    const json = c.toJSON(['r2Key','isPhotoFrame','isPhotoHole','frameShape','frameRx','frameRy',
-      'framePhotoOffsetY','_filledPhotoId','frameClipShape','frameClipD','frameR','frameClipRx']);
-    const dataUrl = c.toDataURL({ format: "jpeg", quality: 0.95, multiplier: 1280 / c.getWidth() });
-    onSave({ json, dataUrl });
+    onSave(buildSnapshot(c));
   };
 
   // ── Tool config ──
