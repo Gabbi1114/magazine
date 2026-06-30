@@ -11,6 +11,16 @@
 
 body {
   margin: 0;
+  cursor: url("https://cdn.custom-cursor.com/db/16732/32/vsco-girl-love-letter-and-hearts-cursor.png") 0 0, auto;
+}
+
+*, *::before, *::after {
+  cursor: url("https://cdn.custom-cursor.com/db/16732/32/vsco-girl-love-letter-and-hearts-cursor.png") 0 0, auto;
+}
+
+a, button, [role="button"], input[type="submit"], input[type="button"], label, select,
+[onClick], [onclick], [tabindex], .cursor-pointer {
+  cursor: url("https://cdn.custom-cursor.com/db/16731/32/vsco-girl-love-letter-and-hearts-pointer.png") 0 0, pointer !important;
 }
 
 .outline-text {
