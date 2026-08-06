@@ -661,6 +661,7 @@ export const UI = () => {
   const [shareSaved, setShareSaved]         = useState(false);
   const [mediaBytes, setMediaBytes]     = useState(0);
   const [shareInitLoading, setShareInitLoading] = useState(false);
+  const [shareLoadFailed, setShareLoadFailed] = useState(false);
 
   const canEdit = isSharedView && editUntil && Date.now() < Date.parse(editUntil);
 
@@ -689,7 +690,11 @@ export const UI = () => {
         setIsSharedView(true);
       })
       .catch(() => {
-        window.history.replaceState({}, '', window.location.pathname);
+        // Keep the URL intact and tell the visitor what happened instead of
+        // silently wiping ?share= back to the bare domain — a customer
+        // staring at a "reset" page with zero explanation has no way to
+        // know if the link is broken, expired, or they mistyped something.
+        setShareLoadFailed(true);
       })
       .finally(() => setShareInitLoading(false));
   }, []);
@@ -972,6 +977,29 @@ export const UI = () => {
         {shareInitLoading && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
             <svg className="animate-spin w-10 h-10 text-white/70" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10" strokeOpacity=".25"/><path d="M22 12a10 10 0 00-10-10" strokeLinecap="round"/></svg>
+          </div>
+        )}
+
+        {/* Share link failed to load — tell the visitor instead of silently
+            resetting to a blank book with no explanation */}
+        {shareLoadFailed && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-6">
+            <div className="max-w-sm w-full bg-white/10 border border-white/15 rounded-2xl p-6 text-center backdrop-blur-md">
+              <div className="text-white font-semibold text-base mb-2">
+                {lang === "mn" ? "Линк ажиллахгүй байна" : "This link isn't working"}
+              </div>
+              <p className="text-white/60 text-sm leading-relaxed mb-4">
+                {lang === "mn"
+                  ? "Энэ линк хүчингүй эсвэл дуусгавар болсон байна. Хэрэв энэ нь захиалгаас ирсэн бол 56 Moments-тэй холбогдоно уу."
+                  : "This link is invalid or has expired. If it came from an order, please contact 56 Moments for help."}
+              </p>
+              <button
+                className="bg-white text-black font-medium text-sm px-4 py-2 rounded-full"
+                onClick={() => setShareLoadFailed(false)}
+              >
+                {lang === "mn" ? "Ойлголоо" : "OK"}
+              </button>
+            </div>
           </div>
         )}
 
