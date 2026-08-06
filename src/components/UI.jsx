@@ -664,10 +664,18 @@ export const UI = () => {
 
   const canEdit = isSharedView && editUntil && Date.now() < Date.parse(editUntil);
 
-  // Load shared book from ?share=id on mount
+  // Load shared book from ?share=id on mount. ?share=test is the public
+  // local-only demo — never touches the server at all, edits live only in
+  // this tab's state (and the usual page/pageImages atoms), gone on reload.
   useEffect(() => {
     const id = new URLSearchParams(window.location.search).get('share');
     if (!id) return;
+    if (id === 'test') {
+      setShareId('test');
+      setEditUntil(new Date(Date.now() + 5 * 86400000).toISOString());
+      setIsSharedView(true);
+      return;
+    }
     setShareInitLoading(true);
     loadShare(id)
       .then(({ pages: sp, pageImages: si, editUntil: eu, mediaBytes: mb, musicUrl: mu }) => {
@@ -825,6 +833,7 @@ export const UI = () => {
                 <button
                   className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 text-white border border-white/20 hover:border-white/40 backdrop-blur-md transition-all duration-300 px-2.5 py-2 sm:px-3 sm:py-2.5 rounded-full text-xs sm:text-sm font-medium shadow-lg"
                   onClick={async () => {
+                    if (shareId === 'test') return; // local-only — nothing to save
                     setShareSaving(true);
                     try {
                       const result = await saveShare(shareId, { pages, pageImages, musicUrl });
@@ -849,6 +858,11 @@ export const UI = () => {
                 <button
                   className="flex items-center gap-1.5 bg-emerald-500/20 hover:bg-emerald-500/35 text-emerald-300 border border-emerald-400/30 hover:border-emerald-400/60 backdrop-blur-md transition-all duration-300 px-2.5 py-2 sm:px-3 sm:py-2.5 rounded-full text-xs sm:text-sm font-medium shadow-lg"
                   onClick={async () => {
+                    if (shareId === 'test') { // local-only — just lock the UI, nothing to persist
+                      setEditUntil(new Date().toISOString());
+                      setShareSaved(true);
+                      return;
+                    }
                     setShareFinishing(true);
                     try {
                       const result = await saveShare(shareId, { pages, pageImages, musicUrl });

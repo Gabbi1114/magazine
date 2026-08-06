@@ -89,6 +89,19 @@ const processPageImages = async (pageImages = {}, prefix = 'shares/imgs') => {
 
 const VALID_ID = /^[\w-]{1,32}$/;
 
+// Creating a share (or pre-provisioning one for a specific paid id) requires
+// this shared secret — only 56moments.store's main server knows it, so a
+// browser calling this API directly can never mint a free share. Existing
+// shares stay freely readable/editable (GET/PUT/finalize are unauthenticated
+// by design — that's how the customer who received a real link uses it).
+const SHARE_CREATE_SECRET = process.env.SHARE_CREATE_SECRET;
+function requireCreateSecret(req, res, next) {
+  if (!SHARE_CREATE_SECRET) return next(); // not configured yet — dev convenience only
+  if (req.get('x-book-create-secret') !== SHARE_CREATE_SECRET)
+    return res.status(403).json({ error: 'Forbidden' });
+  next();
+}
+
 // ─── POST /api/upload ─────────────────────────────────────────────────────────
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -113,7 +126,7 @@ app.post('/api/upload', upload.single('photo'), async (req, res) => {
 // ─── POST /api/share ──────────────────────────────────────────────────────────
 // Body: { pages, pageImages, editDays? }
 // editDays controls how long the recipient can save edits (default: 365)
-app.post('/api/share', async (req, res) => {
+app.post('/api/share', requireCreateSecret, async (req, res) => {
   const { pages, pageImages, musicUrl, editDays } = req.body;
   if (!pages) return res.status(400).json({ error: 'pages required' });
 
@@ -131,6 +144,43 @@ app.post('/api/share', async (req, res) => {
     res.json({ id, editUntil: null });
   } catch (err) {
     console.error('[share/create]', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── POST /api/share/:id/ensure ────────────────────────────────────────────────
+// Creates a share at a SPECIFIC id only if it doesn't already exist (never
+// overwrites). This is what 56moments.store's main server calls right after
+// a WebCard order is paid, so the link handed to the customer is real from
+// the moment they open it.
+app.post('/api/share/:id/ensure', requireCreateSecret, async (req, res) => {
+  const { id } = req.params;
+  if (!VALID_ID.test(id)) return res.status(400).json({ error: 'Invalid share ID' });
+
+  try {
+    await getShareJson(id);
+    return res.json({ ok: true, existed: true }); // already there — no-op
+  } catch (err) {
+    const is404 = err.name === 'NoSuchKey' || err.$metadata?.httpStatusCode === 404;
+    if (!is404) {
+      console.error('[share/ensure]', err.message);
+      return res.status(500).json({ error: err.message });
+    }
+  }
+
+  const { pages, pageImages, musicUrl, editDays } = req.body;
+  if (!pages) return res.status(400).json({ error: 'pages required' });
+
+  try {
+    const { images: finalImages, newBytes } = await processPageImages(pageImages);
+    const days = (typeof editDays === 'number' && editDays > 0)
+      ? Math.min(Math.floor(editDays), MAX_EDIT_DAYS)
+      : 30;
+    const payload = JSON.stringify({ pages, pageImages: finalImages, editDays: days, editUntil: null, mediaBytes: newBytes, bytesLimit: BYTES_LIMIT, ...(musicUrl ? { musicUrl } : {}) });
+    await putR2(`shares/${id}.json`, payload, 'application/json');
+    res.json({ ok: true, existed: false });
+  } catch (err) {
+    console.error('[share/ensure]', err.message);
     res.status(500).json({ error: err.message });
   }
 });
