@@ -102,6 +102,44 @@ function requireCreateSecret(req, res, next) {
   next();
 }
 
+// ─── Self-heal ──────────────────────────────────────────────────────────────
+// If a share isn't in R2 yet, ask 56moments.store's main server whether this
+// id was ever actually issued (paid for) before creating it here. Covers two
+// real gaps: the background /ensure call that runs right after an order is
+// approved can still be mid-retry (cold Render backend) when the customer
+// clicks the link, or it can have exhausted its retries entirely — either
+// way, without this, a link nobody did anything wrong to just 404s forever
+// with "invalid or expired". A random unpaid id still gets rejected, since
+// verify only returns true for ids that exist in a real order.
+const MAIN_STORE_API_BASE = (process.env.MAIN_STORE_API_BASE || 'https://56moments.store').replace(/\/$/, '');
+
+async function selfHealShare(id) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 8_000);
+  try {
+    const r = await fetch(`${MAIN_STORE_API_BASE}/api/webcard-verify/${encodeURIComponent(id)}`, { signal: controller.signal });
+    clearTimeout(timer);
+    if (!r.ok) return null;
+    const { valid } = await r.json();
+    if (!valid) return null;
+  } catch (err) {
+    clearTimeout(timer);
+    console.warn('[share/self-heal] verify failed for', id, err.message);
+    return null;
+  }
+  const data = {
+    pages: [{ id: 1, front: 'DSC00680', back: 'DSC00680' }, { id: 2, front: 'DSC00680', back: 'DSC00680' }],
+    pageImages: {},
+    editDays: 30,
+    editUntil: null,
+    mediaBytes: 0,
+    bytesLimit: BYTES_LIMIT,
+  };
+  await putR2(`shares/${id}.json`, JSON.stringify(data), 'application/json');
+  console.log(`[share/self-heal] healed ${id} (verified with main store, was never created here)`);
+  return data;
+}
+
 // ─── POST /api/upload ─────────────────────────────────────────────────────────
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -190,15 +228,21 @@ app.get('/api/share/:id', async (req, res) => {
   const { id } = req.params;
   if (!VALID_ID.test(id)) return res.status(400).json({ error: 'Invalid share ID' });
   try {
-    const data = await getShareJson(id);
+    let data;
+    try {
+      data = await getShareJson(id);
+    } catch (err) {
+      const is404 = err.name === 'NoSuchKey' || err.$metadata?.httpStatusCode === 404;
+      if (!is404) throw err;
+      data = await selfHealShare(id);
+      if (!data) return res.status(404).json({ error: 'Share not found' });
+    }
     if (!data.editUntil && data.editDays) {
       data.editUntil = new Date(Date.now() + data.editDays * 86400000).toISOString();
       await putR2(`shares/${id}.json`, JSON.stringify(data), 'application/json');
     }
     res.json(data);
   } catch (err) {
-    const is404 = err.name === 'NoSuchKey' || err.$metadata?.httpStatusCode === 404;
-    if (is404) return res.status(404).json({ error: 'Share not found' });
     console.error('[share/get]', err.message);
     res.status(500).json({ error: err.message });
   }
