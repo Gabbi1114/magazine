@@ -65,8 +65,11 @@ const dataUrlToAvif = async (dataUrl) => {
 
 const BYTES_LIMIT = 10 * 1024 * 1024; // 10 MB total per share
 
-// Convert pageImages: upload any data: URLs to R2, keep CDN URLs as-is
-const processPageImages = async (pageImages = {}, prefix = 'shares/imgs') => {
+// Convert pageImages: upload any data: URLs to R2, keep CDN URLs as-is.
+// Stored under the share's own id folder (matches box/scrapbook) rather than
+// a flat shares/imgs/ folder shared by every book — makes it possible to
+// actually tell which photos belong to which share, and to bulk-delete one.
+const processPageImages = async (pageImages = {}, shareId) => {
   const out = {};
   let newBytes = 0;
   for (const [pageId, sides] of Object.entries(pageImages)) {
@@ -76,7 +79,7 @@ const processPageImages = async (pageImages = {}, prefix = 'shares/imgs') => {
       if (value.startsWith('data:')) {
         const avif = await dataUrlToAvif(value);
         newBytes += avif.length;
-        const key  = `${prefix}/${uid()}.avif`;
+        const key  = `${shareId}/${uid()}.avif`;
         await putR2(key, avif, 'image/avif');
         out[pageId][side] = `${CDN}/${key}`;
       } else {
@@ -152,7 +155,12 @@ app.post('/api/upload', upload.single('photo'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file received' });
   try {
     const avif = await toAvif(req.file.buffer, 65);
-    const key  = `photos/${uid()}.avif`;
+    // Scoped under the share's own id folder when the caller already knows
+    // it (every real purchase does, from the moment the link is opened) —
+    // matches box/scrapbook. Falls back to the old flat folder only for the
+    // rare case of composing before any share id exists yet.
+    const shareId = VALID_ID.test(String(req.body?.shareId || '')) ? req.body.shareId : null;
+    const key = `${shareId ?? 'photos'}/${uid()}.avif`;
     await putR2(key, avif, 'image/avif');
     res.json({ url: `${CDN}/${key}`, key });
   } catch (err) {
@@ -169,13 +177,13 @@ app.post('/api/share', requireCreateSecret, async (req, res) => {
   if (!pages) return res.status(400).json({ error: 'pages required' });
 
   try {
-    const { images: finalImages, newBytes } = await processPageImages(pageImages);
+    const id = uid(); // generated first so any fresh data: URLs land under this share's own folder
+    const { images: finalImages, newBytes } = await processPageImages(pageImages, id);
 
     const days = (typeof editDays === 'number' && editDays > 0)
       ? Math.min(Math.floor(editDays), MAX_EDIT_DAYS)
       : 30;
 
-    const id      = uid();
     const payload = JSON.stringify({ pages, pageImages: finalImages, editDays: days, editUntil: null, mediaBytes: newBytes, bytesLimit: BYTES_LIMIT, ...(musicUrl ? { musicUrl } : {}) });
     await putR2(`shares/${id}.json`, payload, 'application/json');
 
@@ -210,7 +218,7 @@ app.post('/api/share/:id/ensure', requireCreateSecret, async (req, res) => {
   if (!pages) return res.status(400).json({ error: 'pages required' });
 
   try {
-    const { images: finalImages, newBytes } = await processPageImages(pageImages);
+    const { images: finalImages, newBytes } = await processPageImages(pageImages, id);
     const days = (typeof editDays === 'number' && editDays > 0)
       ? Math.min(Math.floor(editDays), MAX_EDIT_DAYS)
       : 30;
@@ -264,7 +272,7 @@ app.put('/api/share/:id', async (req, res) => {
     const { pages, pageImages, musicUrl } = req.body;
     if (!pages) return res.status(400).json({ error: 'pages required' });
 
-    const { images: finalImages, newBytes } = await processPageImages(pageImages);
+    const { images: finalImages, newBytes } = await processPageImages(pageImages, id);
     const prevBytes = existing.mediaBytes || 0;
     const mediaBytes = prevBytes + newBytes;
     const savedMusic = musicUrl ?? existing.musicUrl ?? '';
@@ -302,7 +310,11 @@ app.post('/api/share/:id/finalize', async (req, res) => {
 app.delete('/api/photo', async (req, res) => {
   const { key } = req.body;
   if (!key || typeof key !== 'string') return res.status(400).json({ error: 'key required' });
-  if (!key.startsWith('photos/') && !key.startsWith('shares/imgs/')) {
+  // Legacy flat keys from before photos were scoped per-share, plus the new
+  // {shareId}/{file} scheme (shareId is the same id format share JSON uses).
+  const isLegacyFlatKey = key.startsWith('photos/') || key.startsWith('shares/imgs/');
+  const isShareScopedKey = VALID_ID.test(key.split('/')[0]) && key.includes('/') && !key.includes('..');
+  if (!isLegacyFlatKey && !isShareScopedKey) {
     return res.status(403).json({ error: 'Forbidden key prefix' });
   }
   try {

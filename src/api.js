@@ -6,9 +6,14 @@ export const extractR2Key = (url) => {
   return url.slice(CDN.length).replace(/^\//, '');
 };
 
-export const uploadPhoto = async (fileOrBlob) => {
+// shareId scopes the upload under that share's own folder in storage
+// (matches box/scrapbook) instead of one flat folder shared by every book —
+// pass it whenever it's already known, which is always true for a real
+// purchase link opened from ?share=.
+export const uploadPhoto = async (fileOrBlob, shareId) => {
   const fd = new FormData();
   fd.append('photo', fileOrBlob, 'photo.jpg');
+  if (shareId) fd.append('shareId', shareId);
   const r = await fetch(`${API}/api/upload`, { method: 'POST', body: fd });
   if (!r.ok) throw new Error(`Upload failed (${r.status})`);
   return r.json();

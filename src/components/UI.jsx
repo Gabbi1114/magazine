@@ -1194,6 +1194,7 @@ export const UI = () => {
           onClose={() => setPageEditorTarget(null)}
           lang={lang}
           paperColor={paperColor}
+          shareId={shareId}
         />
       )}
     </>

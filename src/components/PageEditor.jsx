@@ -3014,7 +3014,7 @@ function _fillFrameWithUrl(frame, url, canvas, onDone) {
   }, { crossOrigin: "anonymous" });
 }
 
-export const PageEditor = ({ initialState, initialImageUrl, onSave, onAutoSave, onClose, lang = "en", paperColor = "#f5f0e8" }) => {
+export const PageEditor = ({ initialState, initialImageUrl, onSave, onAutoSave, onClose, lang = "en", paperColor = "#f5f0e8", shareId = null }) => {
   _lang = lang; // sync module-level var so all t() calls in child renders use current lang
 
   // ── Load Google Fonts once ──────────────────────────────────────────────────
@@ -3616,7 +3616,7 @@ export const PageEditor = ({ initialState, initialImageUrl, onSave, onAutoSave, 
       img.set({ left: LW / 2, top: LH / 2, originX: "center", originY: "center", scaleX: s, scaleY: s });
       fabricRef.current.add(img); fabricRef.current.setActiveObject(img); fabricRef.current.renderAll();
       // Upload to R2 in background, swap URL when done
-      uploadPhoto(file).then((result) => {
+      uploadPhoto(file, shareId).then((result) => {
         img.r2Key = result.key;
         img.setSrc(result.url, () => { fabricRef.current?.renderAll(); URL.revokeObjectURL(blobUrl); }, { crossOrigin: 'anonymous' });
       }).catch((e) => {
