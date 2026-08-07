@@ -63,7 +63,7 @@ const dataUrlToAvif = async (dataUrl) => {
   return toAvif(Buffer.from(base64, 'base64'));
 };
 
-const BYTES_LIMIT = 10 * 1024 * 1024; // 10 MB total per share
+const BYTES_LIMIT = 15 * 1024 * 1024; // 15 MB total per share — matches box/scrapbook
 
 // Convert pageImages: upload any data: URLs to R2, keep CDN URLs as-is.
 // Stored under the share's own id folder (matches box/scrapbook) rather than
