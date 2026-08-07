@@ -702,6 +702,26 @@ export const UI = () => {
   // { pageId, side, initialState, initialImageUrl }
   const [pageEditorTarget, setPageEditorTarget] = useState(null);
 
+  // Autosave — persists to the server a couple seconds after any change.
+  // Previously the ONLY thing that ever wrote a real edit back to the
+  // server was the explicit Save button; the page editor's own "auto-save"
+  // only synced local React state (pageImages/pageEditorStates) so the
+  // modal wouldn't lose work if it closed unexpectedly. A customer who
+  // edited their book and just closed the tab without pressing Save lost
+  // every change — nothing had actually been sent to the server yet.
+  useEffect(() => {
+    if (!isSharedView || !canEdit || !shareId || shareId === 'test') return;
+    const timer = setTimeout(async () => {
+      try {
+        const result = await saveShare(shareId, { pages, pageImages, musicUrl });
+        if (result.mediaBytes != null) setMediaBytes(result.mediaBytes);
+      } catch (e) {
+        console.warn('[autosave] failed:', e.message);
+      }
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [isSharedView, canEdit, shareId, pages, pageImages, musicUrl]);
+
   useEffect(() => {
     const audio = new Audio("/audios/page-flip-01a.mp3");
     audio.play().catch(() => {});
