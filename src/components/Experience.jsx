@@ -19,6 +19,14 @@ export const Experience = () => {
         <Book scale={1.4} />
       </Float>
       <OrbitControls
+        // The book's hinge/spine sits at local x=0 and pages extend to the
+        // right from there (see PAGE_WIDTH in Book.jsx) — it was never
+        // centered on the model's own bounding box. OrbitControls' default
+        // target of [0,0,0] framed the spine at the center of the viewport
+        // instead of the book, pushing the whole model visibly off to the
+        // right (worse on narrow screens, where there's less room to spare).
+        // 0.9 ≈ half of PAGE_WIDTH (1.28) × the book's scale (1.4).
+        target={[0.9, 0, 0]}
         enablePan={false}
         minDistance={2}
         maxDistance={8}
