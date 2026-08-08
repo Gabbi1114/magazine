@@ -8,6 +8,17 @@
   background: radial-gradient(#5a47ce, #232323 80%);
 }
 
+html,
+body {
+  /* The <meta viewport user-scalable=no> tag alone doesn't reliably block
+     pinch-zoom anymore — modern iOS Safari ignores it for accessibility
+     reasons. Blocking it here at the CSS level means the whole PAGE (fixed
+     toolbars, page editor) can never be pinch-zoomed out of position,
+     while the book's own OrbitControls zoom keeps working — that's
+     canvas-scoped pointer/wheel handling, unaffected by this. */
+  touch-action: pan-x pan-y;
+}
+
 body {
   margin: 0;
   cursor: url("https://cdn.custom-cursor.com/db/16732/32/vsco-girl-love-letter-and-hearts-cursor.png") 0 0, auto;
